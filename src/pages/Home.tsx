@@ -33,8 +33,26 @@ export default function HomePage() {
 
     if (session && player && tournament) {
       loadData();
+      // Show onboarding on first login
+      if (!player.has_seen_onboarding) {
+        setShowOnboarding(true);
+      }
+      // Check if player has pledged
+      supabase
+        .from('pledge_items')
+        .select('id')
+        .eq('pledged_by_player_id', player.id)
+        .limit(1)
+        .then(({ data }) => setHasPledged((data || []).length > 0));
     }
   }, [session, player, tournament, isLoading, navigate]);
+
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    if (player) {
+      await supabase.from('players').update({ has_seen_onboarding: true }).eq('id', player.id);
+    }
+  };
 
   const loadData = async () => {
     if (!player || !tournament) return;
