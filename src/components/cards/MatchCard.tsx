@@ -11,7 +11,6 @@ interface MatchCardProps {
   currentPlayerId: string;
   onClaimBooking?: () => void;
   onReportResult?: () => void;
-  _bookingUrl?: string;
   className?: string;
 }
 
