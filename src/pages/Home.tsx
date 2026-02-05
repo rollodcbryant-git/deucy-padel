@@ -74,8 +74,7 @@ export default function HomePage() {
       setHasPledgedCurrentRound((data || []).length > 0);
       setPledgeGateActive(false);
     }
-    }
-  }, [session, player, tournament, isLoading, navigate]);
+  };
 
   const handleOnboardingComplete = async () => {
     setShowOnboarding(false);
