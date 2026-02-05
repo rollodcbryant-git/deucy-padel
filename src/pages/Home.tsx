@@ -334,7 +334,8 @@ export default function HomePage() {
               {leaderboard.slice(0, 5).map((p, index) => (
                 <Card
                   key={p.id}
-                  className={`chaos-card p-3 ${p.id === player.id ? 'border-primary/50' : ''}`}
+                  className={`chaos-card p-3 cursor-pointer ${p.id === player.id ? 'border-primary/50' : ''}`}
+                  onClick={() => navigate(`/player/${p.id}`)}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`
