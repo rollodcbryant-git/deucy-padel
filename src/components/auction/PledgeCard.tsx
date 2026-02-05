@@ -64,6 +64,18 @@ export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: Pl
             <StatusChip variant="warning" size="sm">Pending</StatusChip>
           </div>
         )}
+
+        {roundIndex != null && (
+          <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-background/80 backdrop-blur-sm border border-border px-2 py-0.5 text-[10px] font-bold text-foreground">
+            R{roundIndex}
+          </span>
+        )}
+
+        {!estimate && pledge.status !== 'Draft' && (
+          <span className="absolute top-2 right-2 inline-flex items-center rounded-full bg-muted/80 backdrop-blur-sm px-2 py-0.5 text-[10px] text-muted-foreground">
+            Pending estimate
+          </span>
+        )}
       </div>
 
       <CardContent className="p-3 space-y-1">
