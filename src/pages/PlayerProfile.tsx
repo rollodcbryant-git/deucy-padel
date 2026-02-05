@@ -175,10 +175,11 @@ export default function PlayerProfilePage() {
           </div>
 
           {/* Pledges section */}
-          {pledges.length > 0 && (
+          {visiblePledges.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                {pledges.length === 1 ? 'Pledge' : 'Pledges'}
+                {isSelf ? 'Your Pledges' : 'Pledges'}
+              </h3>
               </h3>
 
               {pledges.map((pledge) => {
