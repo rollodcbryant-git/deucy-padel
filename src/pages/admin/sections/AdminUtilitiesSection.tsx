@@ -1,8 +1,9 @@
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { Tournament } from '@/lib/types';
-import { Database, Trash2, Archive, Copy, ExternalLink } from 'lucide-react';
+import { Database, Trash2, Archive, Copy, ExternalLink, Eye } from 'lucide-react';
 
 interface Props {
   tournament: Tournament;
@@ -13,7 +14,34 @@ interface Props {
 
 export default function AdminUtilitiesSection({ tournament, onReload, callEngine, isUpdating }: Props) {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
+  const previewAsPlayer = async () => {
+    const { data: players } = await supabase
+      .from('players')
+      .select('*')
+      .eq('tournament_id', tournament.id)
+      .eq('status', 'Active')
+      .limit(1);
+    
+    if (!players || players.length === 0) {
+      toast({ title: 'No active players to preview as', variant: 'destructive' });
+      return;
+    }
+
+    const player = players[0];
+    const token = crypto.randomUUID();
+    await supabase.from('players').update({ session_token: token }).eq('id', player.id);
+
+    const session = {
+      playerId: player.id,
+      tournamentId: tournament.id,
+      playerName: player.full_name,
+      token,
+    };
+    localStorage.setItem('padel_chaos_session', JSON.stringify(session));
+    navigate('/home');
+  };
   const getPublishedUrl = () => {
     const origin = window.location.origin;
     if (origin.includes('preview--') || origin.includes('lovable.dev')) {
@@ -51,6 +79,10 @@ export default function AdminUtilitiesSection({ tournament, onReload, callEngine
 
   return (
     <div className="space-y-2">
+      <Button variant="outline" className="w-full justify-start text-primary border-primary/30" onClick={previewAsPlayer}>
+        <Eye className="mr-2 h-4 w-4" />Preview as Player
+      </Button>
+
       <Button variant="outline" className="w-full justify-start" onClick={copyInviteLink}>
         <Copy className="mr-2 h-4 w-4" />Copy Invite Link
       </Button>
