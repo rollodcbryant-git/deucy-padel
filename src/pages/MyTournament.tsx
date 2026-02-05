@@ -10,6 +10,7 @@ import { CreditsDisplay } from '@/components/ui/CreditsDisplay';
 import { MatchCard } from '@/components/cards/MatchCard';
 import { getJuiceEmoji } from '@/lib/juice-names';
 import { ArrowLeft, Loader2, ExternalLink } from 'lucide-react';
+import { BottomNav } from '@/components/layout/BottomNav';
 import type { MatchWithPlayers, Player, Round } from '@/lib/types';
 
 export default function MyTournamentPage() {
