@@ -276,20 +276,18 @@ export default function HomePage() {
             </Card>
           )}
 
-          {/* Pledge gate warning */}
-          {tournament.status === 'Live' && pledgeGateActive && (
+          {/* Persistent pledge-missing banner */}
+          {pledgeStatus === 'missing' && (
             <Card className="chaos-card border-chaos-orange/50 bg-chaos-orange/5">
-              <CardContent className="p-6 text-center">
-                <div className="text-4xl mb-3">🎁</div>
-                <p className="font-semibold text-chaos-orange">Pledge missing for this round</p>
-                <p className="text-sm text-muted-foreground mt-1 mb-4">
-                  Drop a pledge to stay eligible for matches
-                </p>
-                <Button
-                  className="w-full touch-target bg-gradient-primary hover:opacity-90"
-                  onClick={() => navigate('/auction')}
-                >
-                  Add your pledge
+              <CardContent className="p-5 flex items-center gap-4">
+                <div className="text-3xl">🎁</div>
+                <div className="flex-1">
+                  <p className="font-semibold text-chaos-orange">Entry incomplete</p>
+                  <p className="text-xs text-muted-foreground">Add your pledge to be scheduled for matches</p>
+                </div>
+                <Button size="sm" onClick={() => navigate('/complete-entry')}
+                  className="bg-gradient-primary hover:opacity-90 shrink-0">
+                  Add Pledge
                 </Button>
               </CardContent>
             </Card>
