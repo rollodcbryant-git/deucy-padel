@@ -30,6 +30,7 @@ export function CreditsDisplay({
           </span>
         </div>
         <span className="text-sm text-muted-foreground mt-1">credits</span>
+        <span className="text-[10px] text-muted-foreground/60">Spend these in the auction</span>
         {rank && (
           <div className="mt-2 flex items-center gap-1">
             <span className="text-sm text-muted-foreground">Rank</span>

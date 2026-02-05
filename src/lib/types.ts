@@ -51,6 +51,8 @@ export interface Player {
   match_losses: number;
   no_shows: number;
   session_token: string | null;
+  has_seen_onboarding: boolean;
+  has_seen_auction_intro: boolean;
   created_at: string;
   updated_at: string;
 }

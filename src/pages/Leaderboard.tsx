@@ -72,6 +72,7 @@ export default function LeaderboardPage() {
             <p className="text-sm text-muted-foreground">
               {players.length} players • Your rank: #{playerRank}
             </p>
+            <p className="text-xs text-muted-foreground/70 mt-1">💡 Credits decide the auction</p>
           </div>
         }
       >
