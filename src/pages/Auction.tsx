@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Auction, AuctionLotWithDetails, PledgeItem, Player } from '@/lib/types';
 import { Gavel, Filter, Clock, TrendingUp, Inbox } from 'lucide-react';
+import { formatEuros } from '@/lib/euros';
 
 type FilterType = 'all' | 'ending_soon' | 'most_bids' | 'no_bids';
 
@@ -27,7 +28,6 @@ export default function AuctionPage() {
       navigate('/');
       return;
     }
-
     if (tournament && player) {
       loadAuction();
     }
@@ -35,49 +35,17 @@ export default function AuctionPage() {
 
   useEffect(() => {
     if (!auction) return;
-
-    // Subscribe to real-time updates
     const channel = supabase
       .channel('auction-lots')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'auction_lots',
-          filter: `auction_id=eq.${auction.id}`,
-        },
-        () => {
-          loadLots();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bids',
-        },
-        () => {
-          loadLots();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'auction_lots', filter: `auction_id=eq.${auction.id}` }, () => loadLots())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bids' }, () => loadLots())
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [auction]);
 
   const loadAuction = async () => {
     if (!tournament) return;
-
-    const { data: auctionData } = await supabase
-      .from('auctions')
-      .select('*')
-      .eq('tournament_id', tournament.id)
-      .single();
-
+    const { data: auctionData } = await supabase.from('auctions').select('*').eq('tournament_id', tournament.id).single();
     if (auctionData) {
       setAuction(auctionData as Auction);
       loadLots();
@@ -86,58 +54,27 @@ export default function AuctionPage() {
 
   const loadLots = async () => {
     if (!tournament) return;
-
-    const { data: auctionData } = await supabase
-      .from('auctions')
-      .select('id')
-      .eq('tournament_id', tournament.id)
-      .single();
-
+    const { data: auctionData } = await supabase.from('auctions').select('id').eq('tournament_id', tournament.id).single();
     if (!auctionData) return;
-
-    const { data: lotsData } = await supabase
-      .from('auction_lots')
-      .select('*')
-      .eq('auction_id', auctionData.id);
-
+    const { data: lotsData } = await supabase.from('auction_lots').select('*').eq('auction_id', auctionData.id);
     if (!lotsData) return;
-
-    // Get pledge items and bid counts
     const pledgeIds = lotsData.map(l => l.pledge_item_id);
-    const { data: pledgeItems } = await supabase
-      .from('pledge_items')
-      .select('*')
-      .in('id', pledgeIds);
-
+    const { data: pledgeItems } = await supabase.from('pledge_items').select('*').in('id', pledgeIds);
     const pledgeMap = new Map((pledgeItems || []).map(p => [p.id, p as PledgeItem]));
-
-    // Get bid counts for each lot
     const lotsWithDetails: AuctionLotWithDetails[] = await Promise.all(
       lotsData.map(async (lot) => {
-        const { count } = await supabase
-          .from('bids')
-          .select('*', { count: 'exact', head: true })
-          .eq('lot_id', lot.id);
-
-        return {
-          ...lot,
-          pledge_item: pledgeMap.get(lot.pledge_item_id),
-          bids_count: count || 0,
-        } as AuctionLotWithDetails;
+        const { count } = await supabase.from('bids').select('*', { count: 'exact', head: true }).eq('lot_id', lot.id);
+        return { ...lot, pledge_item: pledgeMap.get(lot.pledge_item_id), bids_count: count || 0 } as AuctionLotWithDetails;
       })
     );
-
     setLots(lotsWithDetails);
   };
 
   const getFilteredLots = () => {
     let filtered = [...lots];
-
     switch (filter) {
       case 'ending_soon':
-        filtered = filtered
-          .filter(l => l.ends_at && l.status === 'Live')
-          .sort((a, b) => new Date(a.ends_at!).getTime() - new Date(b.ends_at!).getTime());
+        filtered = filtered.filter(l => l.ends_at && l.status === 'Live').sort((a, b) => new Date(a.ends_at!).getTime() - new Date(b.ends_at!).getTime());
         break;
       case 'most_bids':
         filtered = filtered.sort((a, b) => (b.bids_count || 0) - (a.bids_count || 0));
@@ -146,7 +83,6 @@ export default function AuctionPage() {
         filtered = filtered.filter(l => !l.current_bid);
         break;
     }
-
     return filtered;
   };
 
@@ -165,9 +101,7 @@ export default function AuctionPage() {
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🔨</div>
             <h1 className="text-2xl font-bold mb-2">Auction Not Live</h1>
-            <p className="text-muted-foreground">
-              The auction hasn't started yet. Check back later!
-            </p>
+            <p className="text-muted-foreground">The auction hasn't started yet. Check back later!</p>
           </div>
         </PageLayout>
         <BottomNav />
@@ -176,15 +110,11 @@ export default function AuctionPage() {
   }
 
   const filteredLots = getFilteredLots();
+  const showDecimals = tournament.display_decimals;
 
   const getCategoryEmoji = (category?: string) => {
     switch (category) {
-      case 'food': return '🍕';
-      case 'drink': return '🍷';
-      case 'object': return '🎁';
-      case 'service': return '💆';
-      case 'chaos': return '🎲';
-      default: return '📦';
+      case 'food': return '🍕'; case 'drink': return '🍷'; case 'object': return '🎁'; case 'service': return '💆'; case 'chaos': return '🎲'; default: return '📦';
     }
   };
 
@@ -195,13 +125,10 @@ export default function AuctionPage() {
           <div className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h1 className="font-bold text-xl flex items-center gap-2">
-                <Gavel className="h-6 w-6 text-chaos-orange" />
-                Auction
+                <Gavel className="h-6 w-6 text-chaos-orange" /> Auction
               </h1>
               <StatusChip variant="live" pulse>Live</StatusChip>
             </div>
-
-            {/* Countdown */}
             {auction.ends_at && (
               <div className="text-center py-2">
                 <p className="text-xs text-muted-foreground mb-1">Auction ends in</p>
@@ -212,7 +139,7 @@ export default function AuctionPage() {
         }
       >
         <div className="space-y-4">
-          {/* Your credits */}
+          {/* Your balance */}
           <Card className="chaos-card border-primary/30">
             <CardContent className="p-4 flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Your bidding power</span>
@@ -228,15 +155,8 @@ export default function AuctionPage() {
               { key: 'most_bids', label: 'Most Bids', icon: TrendingUp },
               { key: 'no_bids', label: 'No Bids', icon: Inbox },
             ].map(({ key, label, icon: Icon }) => (
-              <Button
-                key={key}
-                variant={filter === key ? 'default' : 'outline'}
-                size="sm"
-                className={filter === key ? 'bg-gradient-primary' : ''}
-                onClick={() => setFilter(key as FilterType)}
-              >
-                <Icon className="h-4 w-4 mr-1" />
-                {label}
+              <Button key={key} variant={filter === key ? 'default' : 'outline'} size="sm" className={filter === key ? 'bg-gradient-primary' : ''} onClick={() => setFilter(key as FilterType)}>
+                <Icon className="h-4 w-4 mr-1" /> {label}
               </Button>
             ))}
           </div>
@@ -244,58 +164,35 @@ export default function AuctionPage() {
           {/* Lots grid */}
           <div className="space-y-3">
             {filteredLots.map((lot) => (
-              <Card
-                key={lot.id}
-                className="chaos-card cursor-pointer hover:border-primary/50 transition-all"
-                onClick={() => navigate(`/auction/${lot.id}`)}
-              >
+              <Card key={lot.id} className="chaos-card cursor-pointer hover:border-primary/50 transition-all" onClick={() => navigate(`/auction/${lot.id}`)}>
                 <CardContent className="p-4">
                   <div className="flex gap-4">
-                    {/* Image or emoji */}
                     <div className="h-20 w-20 rounded-lg bg-muted flex items-center justify-center text-3xl shrink-0">
                       {lot.pledge_item?.image_url ? (
-                        <img
-                          src={lot.pledge_item.image_url}
-                          alt={lot.pledge_item.title}
-                          className="h-full w-full object-cover rounded-lg"
-                        />
-                      ) : (
-                        getCategoryEmoji(lot.pledge_item?.category)
-                      )}
+                        <img src={lot.pledge_item.image_url} alt={lot.pledge_item.title} className="h-full w-full object-cover rounded-lg" />
+                      ) : getCategoryEmoji(lot.pledge_item?.category)}
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0 space-y-1">
                       <p className="font-semibold truncate">{lot.pledge_item?.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {lot.pledge_item?.category && (
-                          <span className="capitalize">{lot.pledge_item.category}</span>
-                        )}
+                        {lot.pledge_item?.category && <span className="capitalize">{lot.pledge_item.category}</span>}
                       </p>
-
                       <div className="flex items-center gap-2 text-sm">
                         {lot.current_bid ? (
                           <>
-                            <span className="text-primary font-bold">
-                              💰 {lot.current_bid}
-                            </span>
-                            <span className="text-muted-foreground">
-                              ({lot.bids_count} bids)
-                            </span>
+                            <span className="text-primary font-bold">{formatEuros(lot.current_bid, showDecimals)}</span>
+                            <span className="text-muted-foreground">({lot.bids_count} bids)</span>
                           </>
                         ) : (
                           <span className="text-muted-foreground">No bids yet</span>
                         )}
                       </div>
-
                       {lot.pledge_item?.estimate_low && lot.pledge_item?.estimate_high && (
                         <p className="text-xs text-muted-foreground">
-                          Est: {lot.pledge_item.estimate_low}-{lot.pledge_item.estimate_high}
+                          Est: {formatEuros(lot.pledge_item.estimate_low)}–{formatEuros(lot.pledge_item.estimate_high)}
                         </p>
                       )}
                     </div>
-
-                    {/* Countdown */}
                     {lot.ends_at && lot.status === 'Live' && (
                       <div className="text-right">
                         <CountdownTimer targetDate={lot.ends_at} variant="compact" />
@@ -305,7 +202,6 @@ export default function AuctionPage() {
                 </CardContent>
               </Card>
             ))}
-
             {filteredLots.length === 0 && (
               <div className="text-center py-12">
                 <div className="text-4xl mb-3">🔍</div>
@@ -315,7 +211,6 @@ export default function AuctionPage() {
           </div>
         </div>
       </PageLayout>
-
       <BottomNav />
     </>
   );

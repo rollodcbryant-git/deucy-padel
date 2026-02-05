@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { Player, CreditLedgerEntry } from '@/lib/types';
-import { Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { formatEuros } from '@/lib/euros';
 
 interface Props {
   tournamentId: string;
@@ -18,7 +19,7 @@ export default function AdminCreditsSection({ tournamentId, players, onReload }:
   const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
   const [ledger, setLedger] = useState<CreditLedgerEntry[]>([]);
   const [adjustPlayer, setAdjustPlayer] = useState<string | null>(null);
-  const [adjustAmount, setAdjustAmount] = useState(0);
+  const [adjustAmountEuros, setAdjustAmountEuros] = useState('');
   const [adjustReason, setAdjustReason] = useState('');
 
   const loadLedger = async (playerId: string) => {
@@ -42,7 +43,8 @@ export default function AdminCreditsSection({ tournamentId, players, onReload }:
   };
 
   const submitAdjustment = async () => {
-    if (!adjustPlayer || adjustAmount === 0 || !adjustReason.trim()) {
+    const amountCents = Math.round(parseFloat(adjustAmountEuros || '0') * 100);
+    if (!adjustPlayer || amountCents === 0 || !adjustReason.trim()) {
       toast({ title: 'Fill all fields', variant: 'destructive' });
       return;
     }
@@ -53,16 +55,16 @@ export default function AdminCreditsSection({ tournamentId, players, onReload }:
       tournament_id: tournamentId,
       player_id: adjustPlayer,
       type: 'AdminAdjustment',
-      amount: adjustAmount,
+      amount: amountCents,
       note: adjustReason,
     });
     await supabase.from('players').update({
-      credits_balance: player.credits_balance + adjustAmount,
+      credits_balance: player.credits_balance + amountCents,
     }).eq('id', adjustPlayer);
 
-    toast({ title: `Adjusted ${player.full_name} by ${adjustAmount > 0 ? '+' : ''}${adjustAmount}c` });
+    toast({ title: `Adjusted ${player.full_name} by ${amountCents > 0 ? '+' : ''}${formatEuros(amountCents)}` });
     setAdjustPlayer(null);
-    setAdjustAmount(0);
+    setAdjustAmountEuros('');
     setAdjustReason('');
     onReload();
   };
@@ -87,7 +89,7 @@ export default function AdminCreditsSection({ tournamentId, players, onReload }:
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-primary">{p.credits_balance}c</span>
+                <span className="font-mono text-primary">{formatEuros(p.credits_balance)}</span>
                 {expandedPlayer === p.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               </div>
             </button>
@@ -97,12 +99,12 @@ export default function AdminCreditsSection({ tournamentId, players, onReload }:
                 {ledger.map(e => (
                   <div key={e.id} className="flex justify-between text-xs p-1.5 rounded bg-muted/20">
                     <span className="text-muted-foreground">{e.type}{e.note ? ` · ${e.note}` : ''}</span>
-                    <span className={e.amount >= 0 ? 'text-primary' : 'text-destructive'}>{e.amount > 0 ? '+' : ''}{e.amount}</span>
+                    <span className={e.amount >= 0 ? 'text-primary' : 'text-destructive'}>{e.amount > 0 ? '+' : ''}{formatEuros(e.amount)}</span>
                   </div>
                 ))}
                 {ledger.length === 0 && <p className="text-xs text-muted-foreground py-1">No transactions</p>}
                 <Button variant="outline" size="sm" className="h-7 text-xs mt-1" onClick={() => setAdjustPlayer(p.id)}>
-                  <Plus className="mr-1 h-3 w-3" />Adjust Credits
+                  <Plus className="mr-1 h-3 w-3" />Adjust Balance
                 </Button>
               </div>
             )}
@@ -115,7 +117,10 @@ export default function AdminCreditsSection({ tournamentId, players, onReload }:
         <div className="p-3 rounded-lg border border-border space-y-2">
           <p className="text-sm font-medium">Adjust: {players.find(p => p.id === adjustPlayer)?.full_name}</p>
           <div className="flex gap-2">
-            <Input type="number" value={adjustAmount} onChange={e => setAdjustAmount(Number(e.target.value))} placeholder="Amount (+/-)" className="h-8" />
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
+              <Input type="number" value={adjustAmountEuros} onChange={e => setAdjustAmountEuros(e.target.value)} placeholder="Amount (+/-)" className="h-8 pl-7" step="0.5" />
+            </div>
           </div>
           <Textarea value={adjustReason} onChange={e => setAdjustReason(e.target.value)} placeholder="Reason (required)" className="min-h-[60px]" />
           <div className="flex gap-2">

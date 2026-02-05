@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { StatusChip } from '@/components/ui/StatusChip';
+import { formatEuros } from '@/lib/euros';
 import type { PledgeItem, Player } from '@/lib/types';
 
 interface PledgeCardProps {
@@ -23,9 +24,9 @@ export function getCategoryConfig(category: string) {
 }
 
 function formatEstimate(low: number | null, high: number | null): string | null {
-  if (low != null && high != null && low !== high) return `${low}–${high}c`;
-  if (low != null) return `${low}c`;
-  if (high != null) return `${high}c`;
+  if (low != null && high != null && low !== high) return `${formatEuros(low)}–${formatEuros(high)}`;
+  if (low != null) return formatEuros(low);
+  if (high != null) return formatEuros(high);
   return null;
 }
 
@@ -87,7 +88,7 @@ export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: Pl
           </p>
           {estimate && (
             <span className="text-xs font-medium text-primary shrink-0 ml-2">
-              💰 {estimate}
+              {estimate}
             </span>
           )}
         </div>

@@ -11,7 +11,8 @@ import { getCategoryConfig } from '@/components/auction/PledgeCard';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { Player, PledgeItem, Round } from '@/lib/types';
-import { ArrowLeft, Camera, Pencil } from 'lucide-react';
+import { ArrowLeft, Camera } from 'lucide-react';
+import { formatEuros } from '@/lib/euros';
 
 export default function PlayerProfilePage() {
   const { playerId } = useParams<{ playerId: string }>();
@@ -40,17 +41,15 @@ export default function PlayerProfilePage() {
   const loadProfile = async () => {
     if (!tournament || !playerId) return;
 
-    const [playerRes, pledgeRes, roundRes, rankRes] = await Promise.all([
+    const [playerRes, pledgeRes, roundRes] = await Promise.all([
       supabase.from('players').select('*').eq('id', playerId).single(),
       supabase.from('pledge_items').select('*').eq('pledged_by_player_id', playerId).eq('tournament_id', tournament.id).order('created_at', { ascending: false }),
       supabase.from('rounds').select('*').eq('tournament_id', tournament.id).order('index', { ascending: true }),
-      supabase.from('players').select('*', { count: 'exact', head: true }).eq('tournament_id', tournament.id).eq('status', 'Active').gt('credits_balance', 0),
     ]);
 
     if (playerRes.data) {
       setProfilePlayer(playerRes.data as Player);
 
-      // Calculate rank
       const { count } = await supabase
         .from('players')
         .select('*', { count: 'exact', head: true })
@@ -110,6 +109,7 @@ export default function PlayerProfilePage() {
 
   const roundMap = new Map(rounds.map(r => [r.id, r]));
   const setDiff = profilePlayer.sets_won - profilePlayer.sets_lost;
+  const showDecimals = tournament.display_decimals;
 
   return (
     <>
@@ -155,7 +155,7 @@ export default function PlayerProfilePage() {
               <p className="text-sm text-muted-foreground">Rank #{rank}</p>
             </div>
 
-            <CreditsDisplay amount={profilePlayer.credits_balance} variant="large" />
+            <CreditsDisplay amount={profilePlayer.credits_balance} variant="large" showDisclaimer showDecimals={showDecimals} />
           </div>
 
           {/* Stats chips */}
@@ -216,7 +216,7 @@ export default function PlayerProfilePage() {
                         </span>
                         {estimate ? (
                           <span className="text-xs text-primary font-medium">
-                            💰 {pledge.estimate_low ?? '?'}–{pledge.estimate_high ?? '?'}c
+                            {formatEuros(pledge.estimate_low ?? 0, showDecimals)}–{formatEuros(pledge.estimate_high ?? 0, showDecimals)}
                           </span>
                         ) : pledge.status !== 'Draft' ? (
                           <span className="text-xs text-muted-foreground">Pending estimate</span>

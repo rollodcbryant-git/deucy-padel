@@ -62,7 +62,7 @@ export default function LeaderboardPage() {
             <p className="text-sm text-muted-foreground">
               {players.length} players • Your rank: #{playerRank}
             </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">💡 Credits decide the auction</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">💡 € balance decides the auction</p>
           </div>
         }
       >
@@ -100,7 +100,7 @@ export default function LeaderboardPage() {
             </Card>
           )}
 
-          {/* Full list from #4 onwards (or all if <3 players) */}
+          {/* Full list from #4 onwards */}
           {players.slice(3).map((p, idx) => {
             const index = idx + 3;
             return (

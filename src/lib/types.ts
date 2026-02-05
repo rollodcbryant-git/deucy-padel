@@ -27,10 +27,14 @@ export interface Tournament {
   stake_per_player: number;
   participation_bonus: number;
   penalty_amount: number;
-  starting_credits: number;
+  starting_credits: number; // stored as cents (e.g. 2000 = €20.00)
   join_code: string | null;
   pledge_gate_enabled: boolean;
   pledge_deadline_hours: number;
+  euros_per_set_win: number; // cents gained per set won
+  euros_per_set_loss: number; // cents lost per set lost
+  allow_negative_balance: boolean;
+  display_decimals: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -45,7 +49,7 @@ export interface Player {
   gender: PlayerGender | null;
   confirmed: boolean;
   status: PlayerStatus;
-  credits_balance: number;
+  credits_balance: number; // stored as cents
   matches_played: number;
   sets_won: number;
   sets_lost: number;
@@ -100,7 +104,7 @@ export interface CreditLedgerEntry {
   match_id: string | null;
   round_id: string | null;
   type: CreditType;
-  amount: number;
+  amount: number; // stored as cents
   note: string | null;
   created_at: string;
 }
@@ -116,8 +120,8 @@ export interface PledgeItem {
   quantity_text: string | null;
   image_url: string | null;
   approved: boolean;
-  estimate_low: number | null;
-  estimate_high: number | null;
+  estimate_low: number | null; // cents
+  estimate_high: number | null; // cents
   status: PledgeStatus;
   created_at: string;
 }
@@ -136,9 +140,9 @@ export interface AuctionLot {
   id: string;
   auction_id: string;
   pledge_item_id: string;
-  current_bid: number | null;
+  current_bid: number | null; // cents
   current_winner_player_id: string | null;
-  min_increment: number;
+  min_increment: number; // cents
   ends_at: string | null;
   extensions_count: number;
   status: LotStatus;
@@ -149,7 +153,7 @@ export interface Bid {
   id: string;
   lot_id: string;
   bidder_player_id: string;
-  amount: number;
+  amount: number; // cents
   created_at: string;
 }
 
@@ -157,7 +161,7 @@ export interface EscrowHold {
   id: string;
   lot_id: string;
   bidder_player_id: string;
-  reserved_amount: number;
+  reserved_amount: number; // cents
   status: EscrowStatus;
   created_at: string;
   released_at: string | null;

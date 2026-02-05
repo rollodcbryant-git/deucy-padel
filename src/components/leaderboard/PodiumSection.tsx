@@ -30,7 +30,6 @@ export function PodiumSection({ players, currentPlayerId }: PodiumSectionProps) 
     'bg-muted/40 border-chaos-orange/10',
   ];
 
-  // Map back to actual indices for styling
   const getConfig = (displayIndex: number, totalPlayers: number) => {
     if (totalPlayers === 1) {
       return { height: podiumHeights[1], avatar: 'h-18 w-18', rank: '#1', color: podiumColors[1], actualRank: 1 };
