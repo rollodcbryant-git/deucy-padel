@@ -79,6 +79,10 @@ export default function AdminUtilitiesSection({ tournament, onReload, callEngine
 
   return (
     <div className="space-y-2">
+      <Button variant="outline" className="w-full justify-start text-primary border-primary/30" onClick={previewAsPlayer}>
+        <Eye className="mr-2 h-4 w-4" />Preview as Player
+      </Button>
+
       <Button variant="outline" className="w-full justify-start" onClick={copyInviteLink}>
         <Copy className="mr-2 h-4 w-4" />Copy Invite Link
       </Button>
