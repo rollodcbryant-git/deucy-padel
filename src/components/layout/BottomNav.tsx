@@ -13,7 +13,6 @@ const navItems: NavItem[] = [
   { path: '/matches', label: 'Matches', icon: <Calendar className="h-5 w-5" /> },
   { path: '/leaderboard', label: 'Ranking', icon: <Trophy className="h-5 w-5" /> },
   { path: '/auction', label: 'Auction', icon: <Gavel className="h-5 w-5" /> },
-  { path: '/players', label: 'Players', icon: <Users className="h-5 w-5" /> },
 ];
 
 export function BottomNav() {
