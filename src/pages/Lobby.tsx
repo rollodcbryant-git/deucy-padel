@@ -6,7 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { Progress } from '@/components/ui/progress';
-import { Settings, Loader2 } from 'lucide-react';
+import { CreditsDisplay } from '@/components/ui/CreditsDisplay';
+import { Settings, Loader2, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJuiceEmoji } from '@/lib/juice-names';
 import type { Tournament } from '@/lib/types';
@@ -17,25 +18,34 @@ interface TournamentWithCount extends Tournament {
 
 export default function LobbyPage() {
   const navigate = useNavigate();
-  const { session, isLoading: sessionLoading, player } = usePlayer();
+  const { session, isLoading: sessionLoading, player, tournament, logout } = usePlayer();
   const [tournaments, setTournaments] = useState<TournamentWithCount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [playerTournamentIds, setPlayerTournamentIds] = useState<Set<string>>(new Set());
+  const [playerRank, setPlayerRank] = useState<number>(0);
 
   useEffect(() => {
     loadTournaments();
   }, []);
 
-  // If player is logged in and has an active tournament, allow quick access
   useEffect(() => {
-    if (!sessionLoading && session && player) {
-      // Player has an active session — they can still browse the lobby
+    if (player && tournament) {
+      loadPlayerRank();
     }
-  }, [sessionLoading, session, player]);
+  }, [player, tournament]);
+
+  const loadPlayerRank = async () => {
+    if (!player || !tournament) return;
+    const { count } = await supabase
+      .from('players')
+      .select('*', { count: 'exact', head: true })
+      .eq('tournament_id', tournament.id)
+      .eq('status', 'Active')
+      .gt('credits_balance', player.credits_balance);
+    setPlayerRank((count || 0) + 1);
+  };
 
   const loadTournaments = async () => {
     try {
-      // Load all non-Draft tournaments ordered by series
       const { data: tournamentsData } = await supabase
         .from('tournaments')
         .select('*')
@@ -48,7 +58,6 @@ export default function LobbyPage() {
         return;
       }
 
-      // Get player counts for each tournament
       const withCounts: TournamentWithCount[] = [];
       for (const t of tournamentsData) {
         const { count } = await supabase
@@ -60,13 +69,6 @@ export default function LobbyPage() {
       }
 
       setTournaments(withCounts);
-
-      // Check which tournaments the current user (by phone) is in
-      if (session && player) {
-        const ids = new Set<string>();
-        ids.add(player.tournament_id);
-        setPlayerTournamentIds(ids);
-      }
     } catch (error) {
       console.error('Error loading tournaments:', error);
     } finally {
@@ -109,6 +111,12 @@ export default function LobbyPage() {
     return null;
   };
 
+  const handleLogout = () => {
+    logout();
+  };
+
+  const isInTournament = (tId: string) => player?.tournament_id === tId;
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -117,35 +125,45 @@ export default function LobbyPage() {
     );
   }
 
-  const isInTournament = (tId: string) => playerTournamentIds.has(tId);
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="p-6 pb-2 text-center">
-        <h1 className="text-3xl font-bold text-gradient-primary">Deucy</h1>
-        <p className="text-sm text-muted-foreground mt-1">Tournaments</p>
+      <div className="p-4 pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gradient-primary">Deucy</h1>
+            <p className="text-xs text-muted-foreground">Tournaments</p>
+          </div>
+          {session && player && (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-1.5">
+                <CreditsDisplay amount={player.credits_balance} variant="compact" showIcon={false} />
+                {playerRank > 0 && (
+                  <>
+                    <span className="text-border">·</span>
+                    <span className="text-xs text-accent font-semibold">#{playerRank}</span>
+                  </>
+                )}
+              </div>
+              <Button variant="ghost" size="icon" onClick={handleLogout} className="h-8 w-8">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Active session banner */}
-      {session && player && (
+      {/* Signed-in user context */}
+      {session && player && tournament && (
         <div className="px-4 mb-2">
-          <Card className="chaos-card border-primary/30">
-            <CardContent className="p-3 flex items-center justify-between">
-              <div className="text-sm">
-                <span className="text-muted-foreground">Signed in as </span>
-                <span className="font-semibold">{player.full_name}</span>
-              </div>
-              <Button size="sm" variant="default" onClick={() => navigate('/home')}>
-                My Tournament →
-              </Button>
-            </CardContent>
-          </Card>
+          <p className="text-xs text-muted-foreground">
+            👋 {player.full_name} · Playing in <span className="text-primary font-medium">{tournament.name}</span>
+          </p>
         </div>
       )}
 
       {/* Tournament list */}
-      <div className="flex-1 p-4 space-y-3">
+      <div className="flex-1 p-4 pt-2 space-y-3">
         {tournaments.length === 0 && (
           <div className="text-center py-12">
             <div className="text-5xl mb-4">🧃</div>
@@ -162,7 +180,11 @@ export default function LobbyPage() {
           const userIsIn = isInTournament(t.id);
 
           return (
-            <Card key={t.id} className={`chaos-card overflow-hidden ${userIsIn ? 'border-primary/40' : ''}`}>
+            <Card
+              key={t.id}
+              className={`chaos-card overflow-hidden cursor-pointer transition-all hover:border-primary/30 ${userIsIn ? 'border-primary/40' : ''}`}
+              onClick={() => navigate(`/tournament/${t.id}`)}
+            >
               <CardContent className="p-4 space-y-3">
                 {/* Title row */}
                 <div className="flex items-center justify-between">
@@ -201,7 +223,7 @@ export default function LobbyPage() {
                 )}
 
                 {/* CTA */}
-                <div>
+                <div onClick={(e) => e.stopPropagation()}>
                   {t.status === 'SignupOpen' && !userIsIn && !isFull && (
                     <Button
                       className="w-full bg-gradient-primary hover:opacity-90"
@@ -215,13 +237,13 @@ export default function LobbyPage() {
                     <p className="text-sm text-center text-muted-foreground">Full — next one below is open</p>
                   )}
 
-                  {userIsIn && (t.status === 'SignupOpen' || t.status === 'Live' || t.status === 'AuctionLive') && (
+                  {userIsIn && (
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => navigate('/home')}
+                      onClick={() => navigate(`/tournament/${t.id}`)}
                     >
-                      View my tournament
+                      View →
                     </Button>
                   )}
 
@@ -229,14 +251,8 @@ export default function LobbyPage() {
                     <p className="text-sm text-center text-muted-foreground">In progress</p>
                   )}
 
-                  {(t.status === 'Finished' || t.status === 'Closed') && userIsIn && (
-                    <Button
-                      variant="ghost"
-                      className="w-full"
-                      onClick={() => navigate('/home')}
-                    >
-                      View results
-                    </Button>
+                  {(t.status === 'Finished' || t.status === 'Closed') && !userIsIn && (
+                    <p className="text-sm text-center text-muted-foreground">Finished</p>
                   )}
                 </div>
               </CardContent>
