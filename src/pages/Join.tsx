@@ -77,14 +77,14 @@ export default function JoinPage() {
       const pinHash = hashPin(pin);
 
       // Create player
-      const { error } = await supabase.from('players').insert({
+      const { data: newPlayer, error } = await supabase.from('players').insert({
         tournament_id: tournamentId,
         full_name: fullName,
         phone,
         pin_hash: pinHash,
         gender: gender || null,
         credits_balance: tournament?.starting_credits || 1000,
-      });
+      }).select().single();
 
       if (error) {
         throw error;
