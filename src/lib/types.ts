@@ -29,6 +29,8 @@ export interface Tournament {
   penalty_amount: number;
   starting_credits: number;
   join_code: string | null;
+  pledge_gate_enabled: boolean;
+  pledge_deadline_hours: number;
   created_at: string;
   updated_at: string;
 }
