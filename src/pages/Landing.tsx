@@ -74,9 +74,16 @@ export default function LandingPage() {
         <p className="text-muted-foreground mb-8 max-w-sm">
           Where friendships are tested and legends are made. Need an invite link to join a tournament.
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground mb-8">
           Ask your tournament organizer for the invite link
         </p>
+        <Link 
+          to="/admin" 
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          <Settings className="h-4 w-4" />
+          Admin Panel
+        </Link>
       </div>
     );
   }
