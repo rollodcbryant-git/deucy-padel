@@ -5,7 +5,8 @@ import { Switch } from '@/components/ui/switch';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { useToast } from '@/hooks/use-toast';
 import type { Player } from '@/lib/types';
-import { UserX, UserCheck, Copy, RotateCcw } from 'lucide-react';
+import { hashPin } from '@/contexts/PlayerContext';
+import { UserX, UserCheck, Copy, RotateCcw, KeyRound } from 'lucide-react';
 
 interface Props {
   players: Player[];
