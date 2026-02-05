@@ -548,8 +548,11 @@ async function processMatchResult(supabase: any, body: any) {
     })
     .eq("id", match_id);
 
-  const stake = tournament.stake_per_player;
-  const pot = stake * 4;
+  // Per-set euro scoring system
+  const winPerSet = tournament.euros_per_set_win || 200; // cents
+  const losePerSet = tournament.euros_per_set_loss || 200; // cents
+  const allowNegative = tournament.allow_negative_balance || false;
+
   const allPlayerIds = [
     match.team_a_player1_id,
     match.team_a_player2_id,
@@ -560,87 +563,53 @@ async function processMatchResult(supabase: any, body: any) {
   const teamAIds = [match.team_a_player1_id, match.team_a_player2_id].filter(Boolean);
   const teamBIds = [match.team_b_player1_id, match.team_b_player2_id].filter(Boolean);
 
-  const stakeEntries = allPlayerIds.map((pid: string) => ({
-    tournament_id: match.tournament_id,
-    player_id: pid,
-    match_id,
-    round_id: match.round_id,
-    type: "MatchStake",
-    amount: -stake,
-    note: "Match stake",
-  }));
-  await supabase.from("credit_ledger_entries").insert(stakeEntries);
+  // Calculate per-player net based on sets
+  // Team A won absoluteSetsA sets, lost absoluteSetsB sets
+  // Team A players: gain = absoluteSetsA * winPerSet, loss = absoluteSetsB * losePerSet
+  const teamANet = (absoluteSetsA * winPerSet) - (absoluteSetsB * losePerSet);
+  const teamBNet = (absoluteSetsB * winPerSet) - (absoluteSetsA * losePerSet);
 
-  let teamAShare = 0;
-  let teamBShare = 0;
+  const ledgerEntries: any[] = [];
 
-  if (is_unfinished) {
-    teamAShare = Math.floor(pot / 2);
-    teamBShare = pot - teamAShare;
-  } else if (absoluteSetsA > absoluteSetsB) {
-    if (absoluteSetsA === 2 && absoluteSetsB === 0) {
-      teamAShare = pot;
-      teamBShare = 0;
-    } else {
-      teamAShare = Math.round(pot * 0.66);
-      teamBShare = pot - teamAShare;
-    }
-  } else {
-    if (absoluteSetsB === 2 && absoluteSetsA === 0) {
-      teamBShare = pot;
-      teamAShare = 0;
-    } else {
-      teamBShare = Math.round(pot * 0.66);
-      teamAShare = pot - teamBShare;
-    }
-  }
-
-  const payoutEntries: any[] = [];
-
-  if (teamAShare > 0) {
-    const perPlayer = Math.floor(teamAShare / teamAIds.length);
-    const remainder = teamAShare - perPlayer * teamAIds.length;
-    teamAIds.forEach((pid: string, i: number) => {
-      payoutEntries.push({
+  // Record per-player ledger entries
+  for (const pid of teamAIds) {
+    if (teamANet !== 0) {
+      ledgerEntries.push({
         tournament_id: match.tournament_id,
         player_id: pid,
         match_id,
         round_id: match.round_id,
-        type: "MatchPayout",
-        amount: perPlayer + (i === 0 ? remainder : 0),
-        note: `Match payout (${absoluteSetsA}-${absoluteSetsB})`,
+        type: teamANet > 0 ? "MatchPayout" : "MatchStake",
+        amount: teamANet,
+        note: `Sets ${absoluteSetsA}-${absoluteSetsB}: ${teamANet > 0 ? '+' : ''}${(teamANet / 100).toFixed(0)}€`,
       });
-    });
+    }
   }
 
-  if (teamBShare > 0) {
-    const perPlayer = Math.floor(teamBShare / teamBIds.length);
-    const remainder = teamBShare - perPlayer * teamBIds.length;
-    teamBIds.forEach((pid: string, i: number) => {
-      payoutEntries.push({
+  for (const pid of teamBIds) {
+    if (teamBNet !== 0) {
+      ledgerEntries.push({
         tournament_id: match.tournament_id,
         player_id: pid,
         match_id,
         round_id: match.round_id,
-        type: "MatchPayout",
-        amount: perPlayer + (i === 0 ? remainder : 0),
-        note: `Match payout (${absoluteSetsA}-${absoluteSetsB})`,
+        type: teamBNet > 0 ? "MatchPayout" : "MatchStake",
+        amount: teamBNet,
+        note: `Sets ${absoluteSetsB}-${absoluteSetsA}: ${teamBNet > 0 ? '+' : ''}${(teamBNet / 100).toFixed(0)}€`,
       });
-    });
+    }
   }
 
-  if (payoutEntries.length > 0) {
-    await supabase.from("credit_ledger_entries").insert(payoutEntries);
+  if (ledgerEntries.length > 0) {
+    await supabase.from("credit_ledger_entries").insert(ledgerEntries);
   }
 
+  // Update player stats and balance
   for (const pid of allPlayerIds) {
-    const isWinnerTeamA = absoluteSetsA > absoluteSetsB;
     const isOnTeamA = teamAIds.includes(pid);
+    const netCredit = isOnTeamA ? teamANet : teamBNet;
+    const isWinnerTeamA = absoluteSetsA > absoluteSetsB;
     const isWinner = (isWinnerTeamA && isOnTeamA) || (!isWinnerTeamA && !isOnTeamA);
-    const payout = isOnTeamA
-      ? Math.floor(teamAShare / teamAIds.length)
-      : Math.floor(teamBShare / teamBIds.length);
-    const netCredit = payout - stake;
 
     const { data: currentPlayer } = await supabase
       .from("players")
@@ -652,10 +621,13 @@ async function processMatchResult(supabase: any, body: any) {
       const setsWon = isOnTeamA ? absoluteSetsA : absoluteSetsB;
       const setsLost = isOnTeamA ? absoluteSetsB : absoluteSetsA;
 
+      let newBalance = currentPlayer.credits_balance + netCredit;
+      if (!allowNegative && newBalance < 0) newBalance = 0;
+
       await supabase
         .from("players")
         .update({
-          credits_balance: currentPlayer.credits_balance + netCredit,
+          credits_balance: newBalance,
           matches_played: currentPlayer.matches_played + 1,
           sets_won: currentPlayer.sets_won + setsWon,
           sets_lost: currentPlayer.sets_lost + setsLost,
