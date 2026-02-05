@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { supabase } from '@/integrations/supabase/client';
 import { usePlayer } from '@/contexts/PlayerContext';
 import type { Tournament } from '@/lib/types';
-import { Users, Trophy, Loader2 } from 'lucide-react';
+import { Users, Trophy, Loader2, Settings } from 'lucide-react';
 
 export default function LandingPage() {
   const [searchParams] = useSearchParams();
