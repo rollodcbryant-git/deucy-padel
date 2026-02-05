@@ -4,6 +4,7 @@ import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { cn } from '@/lib/utils';
 import { Phone, ExternalLink, Check, MapPin } from 'lucide-react';
+import { PlayerLink } from '@/components/ui/PlayerLink';
 import type { MatchWithPlayers, Player } from '@/lib/types';
 
 interface MatchCardProps {
@@ -70,12 +71,11 @@ export function MatchCard({
         {/* Partner section */}
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Your Partner</p>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-lg">
-              {partner?.full_name?.charAt(0) || '?'}
-            </div>
-            <span className="font-semibold">{partner?.full_name || 'TBD'}</span>
-          </div>
+          {partner ? (
+            <PlayerLink player={partner} showAvatar avatarClassName="h-10 w-10" />
+          ) : (
+            <span className="font-semibold text-muted-foreground">TBD</span>
+          )}
         </div>
 
         {/* VS section */}
@@ -91,10 +91,11 @@ export function MatchCard({
           <div className="flex items-center gap-2">
             {opponents.filter(Boolean).map((opponent, i) => (
               <div key={opponent?.id || i} className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center text-lg">
-                  {opponent?.full_name?.charAt(0) || '?'}
-                </div>
-                <span className="font-medium">{opponent?.full_name || 'TBD'}</span>
+                {opponent ? (
+                  <PlayerLink player={opponent} showAvatar avatarClassName="h-10 w-10" className="font-medium" />
+                ) : (
+                  <span className="font-medium text-muted-foreground">TBD</span>
+                )}
                 {i === 0 && opponents[1] && (
                   <span className="text-muted-foreground mx-1">&</span>
                 )}

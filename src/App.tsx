@@ -19,6 +19,7 @@ import LotDetail from "./pages/LotDetail";
 import PledgeDetail from "./pages/PledgeDetail";
 import Pledges from "./pages/Pledges";
 import CompleteEntry from "./pages/CompleteEntry";
+import PlayerProfile from "./pages/PlayerProfile";
 import NotFound from "./pages/NotFound";
 
 // Admin Pages
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/auction/lot/:lotId" element={<LotDetail />} />
             <Route path="/auction/:pledgeId" element={<PledgeDetail />} />
             <Route path="/pledges" element={<Pledges />} />
+            <Route path="/player/:playerId" element={<PlayerProfile />} />
             
             {/* Admin routes */}
             <Route path="/admin" element={<AdminLogin />} />
