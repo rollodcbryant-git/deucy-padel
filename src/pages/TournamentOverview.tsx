@@ -275,6 +275,8 @@ export default function TournamentOverviewPage() {
           )}
         </div>
       </main>
+
+      <BottomNav />
     </div>
   );
 }
