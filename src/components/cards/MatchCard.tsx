@@ -20,7 +20,6 @@ export function MatchCard({
   currentPlayerId,
   onClaimBooking,
   onReportResult,
-  bookingUrl,
   className,
 }: MatchCardProps) {
   const isBookingClaimed = match.status === 'BookingClaimed' || match.booking_claimed_by_player_id;
