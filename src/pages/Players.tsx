@@ -4,6 +4,7 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { Card } from '@/components/ui/card';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { Button } from '@/components/ui/button';
+import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +21,6 @@ export default function PlayersPage() {
       navigate('/');
       return;
     }
-
     if (tournament) {
       loadPlayers();
     }
@@ -28,13 +28,11 @@ export default function PlayersPage() {
 
   const loadPlayers = async () => {
     if (!tournament) return;
-
     const { data } = await supabase
       .from('players')
       .select('*')
       .eq('tournament_id', tournament.id)
       .order('full_name');
-
     setPlayers((data || []) as Player[]);
   };
 
@@ -46,8 +44,6 @@ export default function PlayersPage() {
     );
   }
 
-  
-
   const getStatusVariant = (status: string) => {
     switch (status) {
       case 'Active': return 'success';
@@ -57,10 +53,7 @@ export default function PlayersPage() {
     }
   };
 
-  const formatPhone = (phone: string) => {
-    // Format for WhatsApp link
-    return phone.replace(/\D/g, '');
-  };
+  const formatPhone = (phone: string) => phone.replace(/\D/g, '');
 
   return (
     <>
@@ -81,28 +74,13 @@ export default function PlayersPage() {
           {players.map((p) => (
             <Card
               key={p.id}
-              className={`chaos-card p-4 ${
+              className={`chaos-card p-4 cursor-pointer ${
                 p.id === player.id ? 'border-primary/50' : ''
               } ${p.status !== 'Active' ? 'opacity-60' : ''}`}
+              onClick={() => navigate(`/player/${p.id}`)}
             >
               <div className="flex items-center gap-3">
-                {/* Avatar */}
-                <div className={`
-                  h-12 w-12 rounded-full flex items-center justify-center text-lg font-bold
-                  ${p.id === player.id ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}
-                `}>
-                  {p.avatar_url ? (
-                    <img 
-                      src={p.avatar_url} 
-                      alt={p.full_name}
-                      className="h-full w-full rounded-full object-cover"
-                    />
-                  ) : (
-                    p.full_name.charAt(0).toUpperCase()
-                  )}
-                </div>
-
-                {/* Info */}
+                <PlayerAvatar player={p} className="h-12 w-12" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold truncate">
@@ -120,13 +98,12 @@ export default function PlayersPage() {
                     {p.phone}
                   </p>
                 </div>
-
-                {/* WhatsApp button */}
                 {p.id !== player.id && (
                   <a
                     href={`https://wa.me/${formatPhone(p.phone)}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <Button variant="ghost" size="icon" className="text-primary">
                       <MessageCircle className="h-5 w-5" />
@@ -145,7 +122,6 @@ export default function PlayersPage() {
           )}
         </div>
       </PageLayout>
-
       <BottomNav />
     </>
   );

@@ -83,7 +83,7 @@ export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: Pl
 
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground truncate">
-            by {pledger?.full_name || 'Unknown'}
+            by <span className="hover:text-primary transition-colors">{pledger?.full_name || 'Unknown'}</span>
           </p>
           {estimate && (
             <span className="text-xs font-medium text-primary shrink-0 ml-2">

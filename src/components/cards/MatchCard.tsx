@@ -91,10 +91,11 @@ export function MatchCard({
           <div className="flex items-center gap-2">
             {opponents.filter(Boolean).map((opponent, i) => (
               <div key={opponent?.id || i} className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center text-lg">
-                  {opponent?.full_name?.charAt(0) || '?'}
-                </div>
-                <span className="font-medium">{opponent?.full_name || 'TBD'}</span>
+                {opponent ? (
+                  <PlayerLink player={opponent} showAvatar avatarClassName="h-10 w-10" className="font-medium" />
+                ) : (
+                  <span className="font-medium text-muted-foreground">TBD</span>
+                )}
                 {i === 0 && opponents[1] && (
                   <span className="text-muted-foreground mx-1">&</span>
                 )}
