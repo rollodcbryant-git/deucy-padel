@@ -19,6 +19,7 @@ import LotDetail from "./pages/LotDetail";
 import PledgeDetail from "./pages/PledgeDetail";
 import Pledges from "./pages/Pledges";
 import CompleteEntry from "./pages/CompleteEntry";
+import PlayerProfile from "./pages/PlayerProfile";
 import NotFound from "./pages/NotFound";
 
 // Admin Pages
