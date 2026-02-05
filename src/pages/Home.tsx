@@ -39,39 +39,6 @@ export default function HomePage() {
     }
   }, [session, player, tournament, isLoading, navigate]);
 
-  const checkPledgeStatus = async () => {
-    if (!player || !tournament) return;
-    // Find current live round
-    const { data: liveRounds } = await supabase
-      .from('rounds')
-      .select('id')
-      .eq('tournament_id', tournament.id)
-      .eq('status', 'Live')
-      .limit(1);
-
-    if (liveRounds && liveRounds.length > 0) {
-      const liveRoundId = liveRounds[0].id;
-      const { data: roundPledges } = await supabase
-        .from('pledge_items')
-        .select('id')
-        .eq('pledged_by_player_id', player.id)
-        .eq('round_id', liveRoundId)
-        .limit(1);
-      const hasPledged = (roundPledges || []).length > 0;
-      setHasPledgedCurrentRound(hasPledged);
-      setPledgeGateActive(tournament.pledge_gate_enabled && !hasPledged);
-    } else {
-      // No live round - check for any pledge
-      const { data } = await supabase
-        .from('pledge_items')
-        .select('id')
-        .eq('pledged_by_player_id', player.id)
-        .limit(1);
-      setHasPledgedCurrentRound((data || []).length > 0);
-      setPledgeGateActive(false);
-    }
-  };
-
   const handleOnboardingComplete = async () => {
     setShowOnboarding(false);
     if (player) {
