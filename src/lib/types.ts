@@ -1,0 +1,193 @@
+// Enum types matching database
+export type TournamentStatus = 'Draft' | 'SignupOpen' | 'Live' | 'Finished' | 'AuctionLive' | 'Closed';
+export type PlayerStatus = 'Active' | 'InactiveWarning' | 'Removed';
+export type PlayerGender = 'male' | 'female' | 'other' | 'prefer_not';
+export type RoundStatus = 'Upcoming' | 'Live' | 'Locked' | 'Completed';
+export type MatchStatus = 'Scheduled' | 'BookingClaimed' | 'Played' | 'Overdue' | 'AutoResolved';
+export type CreditType = 'StartingGrant' | 'ParticipationBonus' | 'MatchStake' | 'MatchPayout' | 'Penalty' | 'AdminAdjustment' | 'AuctionHold' | 'AuctionRelease' | 'AuctionSettlement';
+export type PledgeCategory = 'food' | 'drink' | 'object' | 'service' | 'chaos';
+export type PledgeStatus = 'Draft' | 'Approved' | 'Hidden';
+export type AuctionStatus = 'Draft' | 'Live' | 'Ended';
+export type LotStatus = 'Live' | 'Ended';
+export type EscrowStatus = 'Active' | 'Released' | 'Settled';
+
+// Database row types
+export interface Tournament {
+  id: string;
+  name: string;
+  club_name: string | null;
+  booking_url: string | null;
+  status: TournamentStatus;
+  created_by_admin_id: string | null;
+  max_players: number;
+  min_players: number;
+  round_duration_days: number;
+  rounds_count: number | null;
+  playoffs_enabled: boolean;
+  stake_per_player: number;
+  participation_bonus: number;
+  penalty_amount: number;
+  starting_credits: number;
+  join_code: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Player {
+  id: string;
+  tournament_id: string;
+  full_name: string;
+  phone: string;
+  pin_hash: string;
+  avatar_url: string | null;
+  gender: PlayerGender | null;
+  confirmed: boolean;
+  status: PlayerStatus;
+  credits_balance: number;
+  matches_played: number;
+  sets_won: number;
+  sets_lost: number;
+  match_wins: number;
+  match_losses: number;
+  no_shows: number;
+  session_token: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Round {
+  id: string;
+  tournament_id: string;
+  index: number;
+  start_at: string | null;
+  end_at: string | null;
+  status: RoundStatus;
+  is_playoff: boolean;
+  playoff_type: string | null;
+  created_at: string;
+}
+
+export interface Match {
+  id: string;
+  tournament_id: string;
+  round_id: string;
+  team_a_player1_id: string | null;
+  team_a_player2_id: string | null;
+  team_b_player1_id: string | null;
+  team_b_player2_id: string | null;
+  status: MatchStatus;
+  booking_claimed_by_player_id: string | null;
+  booking_claimed_at: string | null;
+  played_at: string | null;
+  sets_a: number;
+  sets_b: number;
+  is_unfinished: boolean;
+  deadline_at: string | null;
+  pot_total_credits: number;
+  is_bye: boolean;
+  bye_player_id: string | null;
+  created_at: string;
+}
+
+export interface CreditLedgerEntry {
+  id: string;
+  tournament_id: string;
+  player_id: string;
+  match_id: string | null;
+  round_id: string | null;
+  type: CreditType;
+  amount: number;
+  note: string | null;
+  created_at: string;
+}
+
+export interface PledgeItem {
+  id: string;
+  tournament_id: string;
+  pledged_by_player_id: string;
+  title: string;
+  description: string | null;
+  category: PledgeCategory;
+  quantity_text: string | null;
+  image_url: string | null;
+  approved: boolean;
+  estimate_low: number | null;
+  estimate_high: number | null;
+  status: PledgeStatus;
+  created_at: string;
+}
+
+export interface Auction {
+  id: string;
+  tournament_id: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  status: AuctionStatus;
+  anti_sniping_enabled: boolean;
+  created_at: string;
+}
+
+export interface AuctionLot {
+  id: string;
+  auction_id: string;
+  pledge_item_id: string;
+  current_bid: number | null;
+  current_winner_player_id: string | null;
+  min_increment: number;
+  ends_at: string | null;
+  extensions_count: number;
+  status: LotStatus;
+  created_at: string;
+}
+
+export interface Bid {
+  id: string;
+  lot_id: string;
+  bidder_player_id: string;
+  amount: number;
+  created_at: string;
+}
+
+export interface EscrowHold {
+  id: string;
+  lot_id: string;
+  bidder_player_id: string;
+  reserved_amount: number;
+  status: EscrowStatus;
+  created_at: string;
+  released_at: string | null;
+}
+
+export interface Notification {
+  id: string;
+  tournament_id: string;
+  player_id: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  created_at: string;
+}
+
+// Extended types with relations
+export interface MatchWithPlayers extends Match {
+  team_a_player1?: Player;
+  team_a_player2?: Player;
+  team_b_player1?: Player;
+  team_b_player2?: Player;
+  bye_player?: Player;
+}
+
+export interface AuctionLotWithDetails extends AuctionLot {
+  pledge_item?: PledgeItem;
+  current_winner?: Player;
+  bids_count?: number;
+}
+
+// Session type for player auth
+export interface PlayerSession {
+  playerId: string;
+  tournamentId: string;
+  playerName: string;
+  token: string;
+}
