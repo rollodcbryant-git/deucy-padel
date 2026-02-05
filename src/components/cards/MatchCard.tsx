@@ -183,8 +183,8 @@ export function MatchCard({
 
         {/* Phone list for match chat */}
         {!isPlayed && (
-          <div className="pt-2 border-t border-border">
-            <p className="text-xs text-muted-foreground mb-2">Match Chat</p>
+          <div className="pt-2 border-t border-border space-y-2">
+            <p className="text-xs text-muted-foreground">Match Chat</p>
             <div className="flex flex-wrap gap-2">
               {allPlayers
                 .filter(p => p.id !== currentPlayerId)
@@ -201,6 +201,23 @@ export function MatchCard({
                   </a>
                 ))}
             </div>
+            {(() => {
+              const others = allPlayers.filter(p => p.id !== currentPlayerId);
+              if (others.length === 0) return null;
+              const names = others.map(p => p.full_name.split(' ')[0]).join(', ');
+              const msg = encodeURIComponent(`Hey ${names}! 🎾 Let's set up our padel match. When works for everyone?`);
+              return (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => window.open(`https://wa.me/?text=${msg}`, '_blank')}
+                >
+                  <Phone className="mr-2 h-4 w-4" />
+                  Start Group Chat
+                </Button>
+              );
+            })()}
           </div>
         )}
       </CardContent>
