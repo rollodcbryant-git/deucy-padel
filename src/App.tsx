@@ -46,8 +46,10 @@ const App = () => (
             <Route path="/matches" element={<Matches />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/players" element={<Players />} />
-            <Route path="/auction" element={<Auction />} />
-            <Route path="/auction/:lotId" element={<LotDetail />} />
+            <Route path="/auction" element={<AuctionHouse />} />
+            <Route path="/auction/live" element={<AuctionLive />} />
+            <Route path="/auction/lot/:lotId" element={<LotDetail />} />
+            <Route path="/auction/:pledgeId" element={<PledgeDetail />} />
             <Route path="/pledges" element={<Pledges />} />
             
             {/* Admin routes */}
