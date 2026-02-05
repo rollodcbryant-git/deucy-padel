@@ -149,7 +149,7 @@ export default function AdminTournamentDetail() {
                 {s.id === 'rounds' && <AdminRoundsSection tournament={tournament} rounds={rounds} matches={matches} onReload={loadData} callEngine={callEngine} isUpdating={isUpdating} />}
                 {s.id === 'matches' && <AdminMatchesSection tournament={tournament} rounds={rounds} matches={matches} players={players} onReload={loadData} callEngine={callEngine} isUpdating={isUpdating} />}
                 {s.id === 'credits' && <AdminCreditsSection tournamentId={tournament.id} players={players} onReload={loadData} />}
-                {s.id === 'pledges' && <AdminPledgesSection pledges={pledges} players={players} onReload={loadData} />}
+                {s.id === 'pledges' && <AdminPledgesSection pledges={pledges} players={players} rounds={rounds} onReload={loadData} />}
                 {s.id === 'auction' && <AdminAuctionSection tournament={tournament} players={players} onReload={loadData} callEngine={callEngine} isUpdating={isUpdating} />}
                 {s.id === 'utilities' && <AdminUtilitiesSection tournament={tournament} onReload={loadData} callEngine={callEngine} isUpdating={isUpdating} />}
               </AccordionContent>
