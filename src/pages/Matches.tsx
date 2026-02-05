@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { supabase } from '@/integrations/supabase/client';
 import type { MatchWithPlayers, Round, Player } from '@/lib/types';
-import { Calendar, Copy } from 'lucide-react';
+import { Calendar, Copy, Lock } from 'lucide-react';
 import { MatchCard } from '@/components/cards/MatchCard';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
