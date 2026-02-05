@@ -65,10 +65,6 @@ export function PledgeForm({ tournamentId, playerId, roundId, existing, onSaved,
       toast({ title: 'Title required', variant: 'destructive' });
       return;
     }
-    if (!description.trim()) {
-      toast({ title: 'Description required', variant: 'destructive' });
-      return;
-    }
     if (!imageUrl) {
       toast({ title: 'Photo required', description: 'Snap a pic of your pledge!', variant: 'destructive' });
       return;
