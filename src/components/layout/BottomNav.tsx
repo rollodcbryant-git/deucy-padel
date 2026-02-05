@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Trophy, Users, Gavel, Home, Calendar } from 'lucide-react';
+import { Trophy, Gavel, Home, Calendar } from 'lucide-react';
 
 interface NavItem {
   path: string;
