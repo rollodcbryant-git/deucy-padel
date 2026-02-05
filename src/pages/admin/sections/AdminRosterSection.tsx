@@ -73,6 +73,23 @@ export default function AdminRosterSection({ players, onReload }: Props) {
 
   return (
     <div className="space-y-3">
+      {/* PIN reset result banner */}
+      {resetPinResult && (
+        <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-2">
+          <p className="text-sm font-medium">New PIN for {resetPinResult.name}:</p>
+          <p className="text-3xl font-mono font-bold text-primary text-center tracking-[0.5em]">{resetPinResult.pin}</p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+              navigator.clipboard.writeText(resetPinResult.pin);
+              toast({ title: 'PIN copied!' });
+            }}>
+              <Copy className="mr-1 h-3 w-3" />Copy
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setResetPinResult(null)}>Dismiss</Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{confirmed.length} confirmed / {players.length} total</p>
         <div className="flex gap-2">
@@ -93,6 +110,9 @@ export default function AdminRosterSection({ players, onReload }: Props) {
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <StatusChip variant={getStatusVariant(p)} size="sm">{getStatusLabel(p)}</StatusChip>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => resetPin(p)} title="Reset PIN">
+                <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
               {p.status === 'Removed' ? (
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => reinstatePlayer(p.id)}>
                   <RotateCcw className="h-3.5 w-3.5 text-primary" />
