@@ -234,7 +234,7 @@ export default function PlayerProfilePage() {
             </div>
           )}
 
-          {pledges.length === 0 && (
+          {visiblePledges.length === 0 && (
             <div className="text-center py-8">
               <div className="text-3xl mb-2">📦</div>
               <p className="text-sm text-muted-foreground">No pledges yet</p>
