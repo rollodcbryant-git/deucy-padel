@@ -1,12 +1,14 @@
 import { cn } from '@/lib/utils';
 
 type ChipVariant = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'live' | 'ended';
+type ChipSize = 'sm' | 'md';
 
 interface StatusChipProps {
   variant: ChipVariant;
   children: React.ReactNode;
   className?: string;
   pulse?: boolean;
+  size?: ChipSize;
 }
 
 const variantStyles: Record<ChipVariant, string> = {
@@ -19,12 +21,18 @@ const variantStyles: Record<ChipVariant, string> = {
   ended: 'bg-muted text-muted-foreground border-border',
 };
 
-export function StatusChip({ variant, children, className, pulse = false }: StatusChipProps) {
+const sizeStyles: Record<ChipSize, string> = {
+  sm: 'text-xs px-2 py-0.5',
+  md: 'text-sm px-3 py-1',
+};
+
+export function StatusChip({ variant, children, className, pulse = false, size = 'md' }: StatusChipProps) {
   return (
     <span
       className={cn(
-        'status-chip border',
+        'inline-flex items-center rounded-full font-medium border',
         variantStyles[variant],
+        sizeStyles[size],
         pulse && variant === 'live' && 'animate-pulse',
         className
       )}

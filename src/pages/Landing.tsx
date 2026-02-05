@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { supabase } from '@/integrations/supabase/client';
 import { usePlayer } from '@/contexts/PlayerContext';
 import type { Tournament } from '@/lib/types';
-import { Users, Trophy, Loader2 } from 'lucide-react';
+import { Users, Trophy, Loader2, Settings } from 'lucide-react';
 
 export default function LandingPage() {
   const [searchParams] = useSearchParams();
@@ -74,9 +74,16 @@ export default function LandingPage() {
         <p className="text-muted-foreground mb-8 max-w-sm">
           Where friendships are tested and legends are made. Need an invite link to join a tournament.
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground mb-8">
           Ask your tournament organizer for the invite link
         </p>
+        <Link 
+          to="/admin" 
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          <Settings className="h-4 w-4" />
+          Admin Panel
+        </Link>
       </div>
     );
   }
@@ -170,6 +177,14 @@ export default function LandingPage() {
         >
           I Already Joined - Sign In
         </Button>
+
+        <Link 
+          to="/admin" 
+          className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors pt-4"
+        >
+          <Settings className="h-4 w-4" />
+          Admin Panel
+        </Link>
       </div>
     </div>
   );
