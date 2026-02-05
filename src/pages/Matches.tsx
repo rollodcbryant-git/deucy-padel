@@ -24,6 +24,7 @@ export default function MatchesPage() {
   const navigate = useNavigate();
   const { player, tournament, session, isLoading, refreshPlayer } = usePlayer();
   const { toast } = useToast();
+  const { pledgeStatus } = usePledgeStatus(player, tournament);
 
   const [rounds, setRounds] = useState<Round[]>([]);
   const [matches, setMatches] = useState<Map<string, MatchWithPlayers[]>>(new Map());
