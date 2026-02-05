@@ -17,14 +17,13 @@ import { OnboardingCarousel } from '@/components/onboarding/OnboardingCarousel';
 export default function HomePage() {
   const navigate = useNavigate();
   const { player, tournament, session, isLoading, logout, refreshPlayer } = usePlayer();
+  const { pledgeStatus } = usePledgeStatus(player, tournament);
 
   const [currentMatch, setCurrentMatch] = useState<MatchWithPlayers | null>(null);
   const [currentRound, setCurrentRound] = useState<Round | null>(null);
   const [leaderboard, setLeaderboard] = useState<Player[]>([]);
   const [playerRank, setPlayerRank] = useState<number>(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [hasPledgedCurrentRound, setHasPledgedCurrentRound] = useState(true);
-  const [pledgeGateActive, setPledgeGateActive] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !session) {
