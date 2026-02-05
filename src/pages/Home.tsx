@@ -183,6 +183,7 @@ export default function HomePage() {
 
   return (
     <>
+      <OnboardingCarousel open={showOnboarding} onComplete={handleOnboardingComplete} />
       <PageLayout
         header={
           <div className="flex items-center justify-between p-4">
