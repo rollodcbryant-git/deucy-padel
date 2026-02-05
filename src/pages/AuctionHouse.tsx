@@ -33,8 +33,23 @@ export default function AuctionHousePage() {
       navigate('/');
       return;
     }
-    if (tournament && player) loadData();
+    if (tournament && player) {
+      loadData();
+      if (!player.has_seen_auction_intro) {
+        setShowIntro(true);
+      }
+    }
   }, [session, tournament, player, isLoading, navigate]);
+
+  const handleIntroComplete = async (action: 'view' | 'pledge' | 'skip') => {
+    setShowIntro(false);
+    if (player) {
+      await supabase.from('players').update({ has_seen_auction_intro: true }).eq('id', player.id);
+    }
+    if (action === 'pledge') {
+      setShowForm(true);
+    }
+  };
 
   const loadData = async () => {
     if (!tournament || !player) return;
