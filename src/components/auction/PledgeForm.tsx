@@ -84,6 +84,7 @@ export function PledgeForm({ tournamentId, playerId, roundId, existing, onSaved,
         await supabase.from('pledge_items').insert({
           tournament_id: tournamentId,
           pledged_by_player_id: playerId,
+          round_id: roundId || null,
           title, category, description, image_url: imageUrl,
           status: 'Draft',
         });
