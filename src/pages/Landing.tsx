@@ -177,6 +177,14 @@ export default function LandingPage() {
         >
           I Already Joined - Sign In
         </Button>
+
+        <Link 
+          to="/admin" 
+          className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors pt-4"
+        >
+          <Settings className="h-4 w-4" />
+          Admin Panel
+        </Link>
       </div>
     </div>
   );

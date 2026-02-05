@@ -17,6 +17,12 @@ import Auction from "./pages/Auction";
 import LotDetail from "./pages/LotDetail";
 import NotFound from "./pages/NotFound";
 
+// Admin Pages
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminTournamentCreate from "./pages/admin/AdminTournamentCreate";
+import AdminTournamentDetail from "./pages/admin/AdminTournamentDetail";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -39,6 +45,12 @@ const App = () => (
             <Route path="/players" element={<Players />} />
             <Route path="/auction" element={<Auction />} />
             <Route path="/auction/:lotId" element={<LotDetail />} />
+            
+            {/* Admin routes */}
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/tournaments/new" element={<AdminTournamentCreate />} />
+            <Route path="/admin/tournaments/:tournamentId" element={<AdminTournamentDetail />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
