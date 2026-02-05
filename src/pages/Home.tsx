@@ -335,6 +335,9 @@ export default function HomePage() {
 
           {/* No match yet */}
           {tournament.status === 'Live' && !currentMatch && !pledgeGateActive && (
+            <Card className="chaos-card">
+              <CardContent className="p-6 text-center">
+                <div className="text-4xl mb-3">⏳</div>
                 <p className="font-semibold">No active match right now</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Check back when the next round starts
