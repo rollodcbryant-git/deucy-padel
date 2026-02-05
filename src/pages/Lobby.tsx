@@ -10,6 +10,7 @@ import { CreditsDisplay } from '@/components/ui/CreditsDisplay';
 import { Settings, Loader2, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJuiceEmoji } from '@/lib/juice-names';
+import { BottomNav } from '@/components/layout/BottomNav';
 import type { Tournament } from '@/lib/types';
 
 interface TournamentWithCount extends Tournament {
@@ -163,7 +164,7 @@ export default function LobbyPage() {
       )}
 
       {/* Tournament list */}
-      <div className="flex-1 p-4 pt-2 space-y-3">
+      <div className="flex-1 p-4 pt-2 pb-24 space-y-3">
         {tournaments.length === 0 && (
           <div className="text-center py-12">
             <div className="text-5xl mb-4">🧃</div>
@@ -281,6 +282,8 @@ export default function LobbyPage() {
           Admin Panel
         </Link>
       </div>
+
+      <BottomNav />
     </div>
   );
 }
