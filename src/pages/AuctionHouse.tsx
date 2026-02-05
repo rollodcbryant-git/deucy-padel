@@ -122,7 +122,6 @@ export default function AuctionHousePage() {
         onSkip={() => handleIntroComplete('skip')}
       />
       <PageLayout
-      <PageLayout
         header={
           <div className="p-4 space-y-2">
             <div className="flex items-center justify-between">
