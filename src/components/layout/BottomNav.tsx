@@ -11,9 +11,12 @@ interface NavItem {
 
 export function BottomNav() {
   const location = useLocation();
-  const { player } = usePlayer();
+  const { player, session } = usePlayer();
 
-  const tournamentId = player?.tournament_id;
+  // Don't render for logged-out users
+  if (!session || !player) return null;
+
+  const tournamentId = player.tournament_id;
 
   const navItems: NavItem[] = [
     { path: '/', label: 'Home', icon: <Home className="h-5 w-5" /> },
