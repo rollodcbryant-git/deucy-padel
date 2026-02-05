@@ -108,6 +108,7 @@ export default function PlayerProfilePage() {
   }
 
   const roundMap = new Map(rounds.map(r => [r.id, r]));
+  const visiblePledges = isSelf ? pledges : pledges.filter(p => p.status === 'Approved');
   const setDiff = profilePlayer.sets_won - profilePlayer.sets_lost;
   const showDecimals = tournament.display_decimals;
 
@@ -174,13 +175,13 @@ export default function PlayerProfilePage() {
           </div>
 
           {/* Pledges section */}
-          {pledges.length > 0 && (
+          {visiblePledges.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                {pledges.length === 1 ? 'Pledge' : 'Pledges'}
+                {isSelf ? 'Your Pledges' : 'Pledges'}
               </h3>
 
-              {pledges.map((pledge) => {
+              {visiblePledges.map((pledge) => {
                 const cat = getCategoryConfig(pledge.category);
                 const round = pledge.round_id ? roundMap.get(pledge.round_id) : null;
                 const estimate = pledge.estimate_low != null || pledge.estimate_high != null;
@@ -232,7 +233,7 @@ export default function PlayerProfilePage() {
             </div>
           )}
 
-          {pledges.length === 0 && (
+          {visiblePledges.length === 0 && (
             <div className="text-center py-8">
               <div className="text-3xl mb-2">📦</div>
               <p className="text-sm text-muted-foreground">No pledges yet</p>
