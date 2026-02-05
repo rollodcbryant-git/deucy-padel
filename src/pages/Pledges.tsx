@@ -132,7 +132,7 @@ export default function PledgesPage() {
     );
   }
 
-  const showAuction = tournament.status === 'AuctionLive';
+  
   const canEdit = !myPledge || myPledge.status === 'Draft';
   const showForm = !myPledge || isEditing;
 
