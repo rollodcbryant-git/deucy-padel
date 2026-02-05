@@ -114,6 +114,14 @@ export default function AuctionHousePage() {
 
   return (
     <>
+      <AuctionIntroModal
+        open={showIntro}
+        hasPledged={hasSubmitted}
+        onViewGallery={() => handleIntroComplete('view')}
+        onAddPledge={() => handleIntroComplete('pledge')}
+        onSkip={() => handleIntroComplete('skip')}
+      />
+      <PageLayout
       <PageLayout
         header={
           <div className="p-4 space-y-2">
