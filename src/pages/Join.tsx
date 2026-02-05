@@ -116,7 +116,7 @@ export default function JoinPage() {
   };
 
   const handleContinue = () => {
-    navigate(`/login?t=${tournamentId}`);
+    navigate(`/complete-entry`);
   };
 
   if (step === 'pin') {
