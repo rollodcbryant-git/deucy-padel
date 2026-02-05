@@ -10,7 +10,7 @@ import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { MatchWithPlayers, Player, Round } from '@/lib/types';
-import { Trophy, Calendar, CheckCircle, LogOut, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Trophy, Calendar, CheckCircle, LogOut, ExternalLink } from 'lucide-react';
 import { MatchCard } from '@/components/cards/MatchCard';
 import { OnboardingCarousel } from '@/components/onboarding/OnboardingCarousel';
 
