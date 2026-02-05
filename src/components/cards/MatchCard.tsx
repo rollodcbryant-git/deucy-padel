@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { cn } from '@/lib/utils';
-import { Phone, ExternalLink, Check } from 'lucide-react';
+import { Phone, ExternalLink, Check, MapPin } from 'lucide-react';
 import type { MatchWithPlayers, Player } from '@/lib/types';
 
 interface MatchCardProps {
@@ -11,7 +11,6 @@ interface MatchCardProps {
   currentPlayerId: string;
   onClaimBooking?: () => void;
   onReportResult?: () => void;
-  bookingUrl?: string;
   className?: string;
 }
 
@@ -20,7 +19,6 @@ export function MatchCard({
   currentPlayerId,
   onClaimBooking,
   onReportResult,
-  bookingUrl,
   className,
 }: MatchCardProps) {
   const isBookingClaimed = match.status === 'BookingClaimed' || match.booking_claimed_by_player_id;
@@ -151,17 +149,23 @@ export function MatchCard({
               </div>
             )}
 
-            {/* Club booking link */}
-            {bookingUrl && (
+            {/* Court location & booking */}
+            <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <p className="text-xs text-muted-foreground leading-snug">
+                  BOIX TEAM TENNIS — Gran Vía de Fernando el Católico, 78, Extramurs, 46008 València
+                </p>
+              </div>
               <Button 
                 variant="outline" 
                 className="w-full touch-target"
-                onClick={() => window.open(bookingUrl, '_blank')}
+                onClick={() => window.open('https://boixteam.es/booking-gran-via', '_blank')}
               >
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Open Club Booking
+                Book Court
               </Button>
-            )}
+            </div>
 
             {/* Report result */}
             {isBookingClaimed && onReportResult && (
