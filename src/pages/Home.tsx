@@ -294,7 +294,7 @@ export default function HomePage() {
           )}
 
           {/* No match yet */}
-          {tournament.status === 'Live' && !currentMatch && !pledgeGateActive && (
+          {tournament.status === 'Live' && !currentMatch && pledgeStatus !== 'missing' && (
             <Card className="chaos-card">
               <CardContent className="p-6 text-center">
                 <div className="text-4xl mb-3">⏳</div>
