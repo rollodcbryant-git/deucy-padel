@@ -102,6 +102,7 @@ export function PledgeForm({ tournamentId, playerId, existing, onSaved, onCancel
         <CardTitle className="text-base">
           {existing ? 'Edit Your Pledge' : 'What are you bringing to the chaos?'}
         </CardTitle>
+        {!existing && <p className="text-xs text-muted-foreground/70">🎁 This becomes a prize in the auction later</p>}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Photo upload */}

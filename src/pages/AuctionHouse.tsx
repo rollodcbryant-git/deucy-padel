@@ -10,6 +10,7 @@ import { usePlayer } from '@/contexts/PlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { PledgeItem, Player } from '@/lib/types';
 import { Gavel, Plus, Pencil, Lock, Shuffle, TrendingDown, Clock } from 'lucide-react';
+import { AuctionIntroModal } from '@/components/onboarding/AuctionIntroModal';
 
 type CategoryFilter = 'all' | 'food' | 'drink' | 'object' | 'service' | 'chaos';
 type SortMode = 'random' | 'expensive' | 'newest';
@@ -24,14 +25,30 @@ export default function AuctionHousePage() {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [sort, setSort] = useState<SortMode>('random');
+  const [showIntro, setShowIntro] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !session) {
       navigate('/');
       return;
     }
-    if (tournament && player) loadData();
+    if (tournament && player) {
+      loadData();
+      if (!player.has_seen_auction_intro) {
+        setShowIntro(true);
+      }
+    }
   }, [session, tournament, player, isLoading, navigate]);
+
+  const handleIntroComplete = async (action: 'view' | 'pledge' | 'skip') => {
+    setShowIntro(false);
+    if (player) {
+      await supabase.from('players').update({ has_seen_auction_intro: true }).eq('id', player.id);
+    }
+    if (action === 'pledge') {
+      setShowForm(true);
+    }
+  };
 
   const loadData = async () => {
     if (!tournament || !player) return;
@@ -97,6 +114,13 @@ export default function AuctionHousePage() {
 
   return (
     <>
+      <AuctionIntroModal
+        open={showIntro}
+        hasPledged={hasSubmitted}
+        onViewGallery={() => handleIntroComplete('view')}
+        onAddPledge={() => handleIntroComplete('pledge')}
+        onSkip={() => handleIntroComplete('skip')}
+      />
       <PageLayout
         header={
           <div className="p-4 space-y-2">

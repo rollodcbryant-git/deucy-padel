@@ -11,6 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { MatchWithPlayers, Player, Round } from '@/lib/types';
 import { Trophy, Calendar, CheckCircle, LogOut, ExternalLink } from 'lucide-react';
 import { MatchCard } from '@/components/cards/MatchCard';
+import { OnboardingCarousel } from '@/components/onboarding/OnboardingCarousel';
+import { PledgeNudgeCard } from '@/components/onboarding/PledgeNudgeCard';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -20,6 +22,8 @@ export default function HomePage() {
   const [currentRound, setCurrentRound] = useState<Round | null>(null);
   const [leaderboard, setLeaderboard] = useState<Player[]>([]);
   const [playerRank, setPlayerRank] = useState<number>(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [hasPledged, setHasPledged] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !session) {
@@ -29,8 +33,26 @@ export default function HomePage() {
 
     if (session && player && tournament) {
       loadData();
+      // Show onboarding on first login
+      if (!player.has_seen_onboarding) {
+        setShowOnboarding(true);
+      }
+      // Check if player has pledged
+      supabase
+        .from('pledge_items')
+        .select('id')
+        .eq('pledged_by_player_id', player.id)
+        .limit(1)
+        .then(({ data }) => setHasPledged((data || []).length > 0));
     }
   }, [session, player, tournament, isLoading, navigate]);
+
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    if (player) {
+      await supabase.from('players').update({ has_seen_onboarding: true }).eq('id', player.id);
+    }
+  };
 
   const loadData = async () => {
     if (!player || !tournament) return;
@@ -161,6 +183,7 @@ export default function HomePage() {
 
   return (
     <>
+      <OnboardingCarousel open={showOnboarding} onComplete={handleOnboardingComplete} />
       <PageLayout
         header={
           <div className="flex items-center justify-between p-4">
@@ -327,6 +350,11 @@ export default function HomePage() {
               ))}
             </div>
           </div>
+
+          {/* Pledge nudge */}
+          {!hasPledged && (
+            <PledgeNudgeCard />
+          )}
         </div>
       </PageLayout>
 

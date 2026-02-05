@@ -441,6 +441,8 @@ export type Database = {
           credits_balance: number
           full_name: string
           gender: Database["public"]["Enums"]["player_gender"] | null
+          has_seen_auction_intro: boolean
+          has_seen_onboarding: boolean
           id: string
           match_losses: number
           match_wins: number
@@ -462,6 +464,8 @@ export type Database = {
           credits_balance?: number
           full_name: string
           gender?: Database["public"]["Enums"]["player_gender"] | null
+          has_seen_auction_intro?: boolean
+          has_seen_onboarding?: boolean
           id?: string
           match_losses?: number
           match_wins?: number
@@ -483,6 +487,8 @@ export type Database = {
           credits_balance?: number
           full_name?: string
           gender?: Database["public"]["Enums"]["player_gender"] | null
+          has_seen_auction_intro?: boolean
+          has_seen_onboarding?: boolean
           id?: string
           match_losses?: number
           match_wins?: number
