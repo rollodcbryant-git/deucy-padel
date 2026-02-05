@@ -153,7 +153,7 @@ export default function MyTournamentPage() {
         </div>
       </header>
 
-      <main className="container max-w-lg mx-auto px-4 py-6 space-y-5">
+      <main className="container max-w-lg mx-auto px-4 py-6 pb-24 space-y-5">
         {/* Balance */}
         <Card className="chaos-card bg-gradient-dark border-primary/20">
           <CardContent className="p-6 flex items-center justify-between">
