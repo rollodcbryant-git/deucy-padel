@@ -13,8 +13,10 @@ import Home from "./pages/Home";
 import Matches from "./pages/Matches";
 import Leaderboard from "./pages/Leaderboard";
 import Players from "./pages/Players";
-import Auction from "./pages/Auction";
+import AuctionHouse from "./pages/AuctionHouse";
+import AuctionLive from "./pages/Auction";
 import LotDetail from "./pages/LotDetail";
+import PledgeDetail from "./pages/PledgeDetail";
 import Pledges from "./pages/Pledges";
 import NotFound from "./pages/NotFound";
 
