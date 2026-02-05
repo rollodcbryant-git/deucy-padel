@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { getJuiceEmoji } from '@/lib/juice-names';
 import { ArrowLeft, Users, Calendar, Trophy, Gavel, User, ChevronRight, Loader2 } from 'lucide-react';
+import { BottomNav } from '@/components/layout/BottomNav';
 import type { Tournament, Round } from '@/lib/types';
 
 export default function TournamentOverviewPage() {
