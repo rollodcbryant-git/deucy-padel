@@ -134,7 +134,7 @@ export default function TournamentOverviewPage() {
         </div>
       </header>
 
-      <main className="container max-w-lg mx-auto px-4 py-6 space-y-6">
+      <main className="container max-w-lg mx-auto px-4 py-6 pb-24 space-y-6">
         {/* Capacity + stats */}
         <Card className="chaos-card">
           <CardContent className="p-4 space-y-3">
