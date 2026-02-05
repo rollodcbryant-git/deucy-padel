@@ -23,7 +23,8 @@ export default function HomePage() {
   const [leaderboard, setLeaderboard] = useState<Player[]>([]);
   const [playerRank, setPlayerRank] = useState<number>(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [hasPledged, setHasPledged] = useState(true);
+  const [hasPledgedCurrentRound, setHasPledgedCurrentRound] = useState(true);
+  const [pledgeGateActive, setPledgeGateActive] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !session) {
