@@ -170,7 +170,7 @@ export default function MatchesPage() {
     );
   }
 
-  
+  const pledgeMissing = pledgeStatus === 'missing';
 
   return (
     <>
