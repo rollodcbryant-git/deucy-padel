@@ -6,25 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { MatchWithPlayers, Player, Round } from '@/lib/types';
 import { Trophy, Calendar, CheckCircle, LogOut, ExternalLink } from 'lucide-react';
 import { MatchCard } from '@/components/cards/MatchCard';
 import { OnboardingCarousel } from '@/components/onboarding/OnboardingCarousel';
-import { PledgeNudgeCard } from '@/components/onboarding/PledgeNudgeCard';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { player, tournament, session, isLoading, logout, refreshPlayer } = usePlayer();
+  const { pledgeStatus } = usePledgeStatus(player, tournament);
 
   const [currentMatch, setCurrentMatch] = useState<MatchWithPlayers | null>(null);
   const [currentRound, setCurrentRound] = useState<Round | null>(null);
   const [leaderboard, setLeaderboard] = useState<Player[]>([]);
   const [playerRank, setPlayerRank] = useState<number>(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [hasPledgedCurrentRound, setHasPledgedCurrentRound] = useState(true);
-  const [pledgeGateActive, setPledgeGateActive] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !session) {
@@ -34,47 +33,11 @@ export default function HomePage() {
 
     if (session && player && tournament) {
       loadData();
-      // Show onboarding on first login
       if (!player.has_seen_onboarding) {
         setShowOnboarding(true);
       }
-      // Check if player has pledged for current round
-      checkPledgeStatus();
     }
   }, [session, player, tournament, isLoading, navigate]);
-
-  const checkPledgeStatus = async () => {
-    if (!player || !tournament) return;
-    // Find current live round
-    const { data: liveRounds } = await supabase
-      .from('rounds')
-      .select('id')
-      .eq('tournament_id', tournament.id)
-      .eq('status', 'Live')
-      .limit(1);
-
-    if (liveRounds && liveRounds.length > 0) {
-      const liveRoundId = liveRounds[0].id;
-      const { data: roundPledges } = await supabase
-        .from('pledge_items')
-        .select('id')
-        .eq('pledged_by_player_id', player.id)
-        .eq('round_id', liveRoundId)
-        .limit(1);
-      const hasPledged = (roundPledges || []).length > 0;
-      setHasPledgedCurrentRound(hasPledged);
-      setPledgeGateActive(tournament.pledge_gate_enabled && !hasPledged);
-    } else {
-      // No live round - check for any pledge
-      const { data } = await supabase
-        .from('pledge_items')
-        .select('id')
-        .eq('pledged_by_player_id', player.id)
-        .limit(1);
-      setHasPledgedCurrentRound((data || []).length > 0);
-      setPledgeGateActive(false);
-    }
-  };
 
   const handleOnboardingComplete = async () => {
     setShowOnboarding(false);
@@ -313,27 +276,25 @@ export default function HomePage() {
             </Card>
           )}
 
-          {/* Pledge gate warning */}
-          {tournament.status === 'Live' && pledgeGateActive && (
+          {/* Persistent pledge-missing banner */}
+          {pledgeStatus === 'missing' && (
             <Card className="chaos-card border-chaos-orange/50 bg-chaos-orange/5">
-              <CardContent className="p-6 text-center">
-                <div className="text-4xl mb-3">🎁</div>
-                <p className="font-semibold text-chaos-orange">Pledge missing for this round</p>
-                <p className="text-sm text-muted-foreground mt-1 mb-4">
-                  Drop a pledge to stay eligible for matches
-                </p>
-                <Button
-                  className="w-full touch-target bg-gradient-primary hover:opacity-90"
-                  onClick={() => navigate('/auction')}
-                >
-                  Add your pledge
+              <CardContent className="p-5 flex items-center gap-4">
+                <div className="text-3xl">🎁</div>
+                <div className="flex-1">
+                  <p className="font-semibold text-chaos-orange">Entry incomplete</p>
+                  <p className="text-xs text-muted-foreground">Add your pledge to be scheduled for matches</p>
+                </div>
+                <Button size="sm" onClick={() => navigate('/complete-entry')}
+                  className="bg-gradient-primary hover:opacity-90 shrink-0">
+                  Add Pledge
                 </Button>
               </CardContent>
             </Card>
           )}
 
           {/* No match yet */}
-          {tournament.status === 'Live' && !currentMatch && !pledgeGateActive && (
+          {tournament.status === 'Live' && !currentMatch && pledgeStatus !== 'missing' && (
             <Card className="chaos-card">
               <CardContent className="p-6 text-center">
                 <div className="text-4xl mb-3">⏳</div>
@@ -398,10 +359,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Pledge nudge */}
-          {!hasPledgedCurrentRound && !pledgeGateActive && (
-            <PledgeNudgeCard />
-          )}
         </div>
       </PageLayout>
 

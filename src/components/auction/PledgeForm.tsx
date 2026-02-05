@@ -65,10 +65,6 @@ export function PledgeForm({ tournamentId, playerId, roundId, existing, onSaved,
       toast({ title: 'Title required', variant: 'destructive' });
       return;
     }
-    if (!description.trim()) {
-      toast({ title: 'Description required', variant: 'destructive' });
-      return;
-    }
     if (!imageUrl) {
       toast({ title: 'Photo required', description: 'Snap a pic of your pledge!', variant: 'destructive' });
       return;
@@ -104,7 +100,7 @@ export function PledgeForm({ tournamentId, playerId, roundId, existing, onSaved,
         <CardTitle className="text-base">
           {existing ? 'Edit Your Pledge' : 'What are you bringing to the chaos?'}
         </CardTitle>
-        {!existing && <p className="text-xs text-muted-foreground/70">🎁 This becomes a prize in the auction later</p>}
+        {!existing && <p className="text-xs text-muted-foreground/70">🎁 This becomes a prize in the Auction House. Credits decide who takes it.</p>}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Photo upload */}
@@ -160,10 +156,11 @@ export function PledgeForm({ tournamentId, playerId, roundId, existing, onSaved,
           </Select>
         </div>
 
-        {/* Description */}
+        {/* Description (optional) */}
         <div className="space-y-2">
-          <Label>Short description *</Label>
-          <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Tell people what makes it special..." rows={3} />
+          <Label>Short description <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <Textarea value={description} onChange={e => setDescription(e.target.value.slice(0, 120))} placeholder="What makes it special..." rows={2} maxLength={120} />
+          <p className="text-xs text-muted-foreground text-right">{description.length}/120</p>
         </div>
 
         {/* Buttons */}

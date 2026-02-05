@@ -18,6 +18,7 @@ import AuctionLive from "./pages/Auction";
 import LotDetail from "./pages/LotDetail";
 import PledgeDetail from "./pages/PledgeDetail";
 import Pledges from "./pages/Pledges";
+import CompleteEntry from "./pages/CompleteEntry";
 import NotFound from "./pages/NotFound";
 
 // Admin Pages
@@ -41,6 +42,8 @@ const App = () => (
             <Route path="/landing" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/join" element={<Join />} />
+            
+            <Route path="/complete-entry" element={<CompleteEntry />} />
             
             {/* Player routes */}
             <Route path="/home" element={<Home />} />

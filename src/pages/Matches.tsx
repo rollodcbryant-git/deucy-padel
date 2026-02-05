@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { usePlayer } from '@/contexts/PlayerContext';
+import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { supabase } from '@/integrations/supabase/client';
 import type { MatchWithPlayers, Round, Player } from '@/lib/types';
-import { Calendar, Copy } from 'lucide-react';
+import { Calendar, Copy, Lock } from 'lucide-react';
 import { MatchCard } from '@/components/cards/MatchCard';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -23,6 +24,7 @@ export default function MatchesPage() {
   const navigate = useNavigate();
   const { player, tournament, session, isLoading, refreshPlayer } = usePlayer();
   const { toast } = useToast();
+  const { pledgeStatus } = usePledgeStatus(player, tournament);
 
   const [rounds, setRounds] = useState<Round[]>([]);
   const [matches, setMatches] = useState<Map<string, MatchWithPlayers[]>>(new Map());
@@ -168,7 +170,7 @@ export default function MatchesPage() {
     );
   }
 
-  
+  const pledgeMissing = pledgeStatus === 'missing';
 
   return (
     <>
@@ -185,6 +187,22 @@ export default function MatchesPage() {
         }
       >
         <div className="space-y-6">
+          {/* Locked banner when pledge missing */}
+          {pledgeMissing && (
+            <Card className="chaos-card border-chaos-orange/50 bg-chaos-orange/5">
+              <CardContent className="p-5 flex items-center gap-4">
+                <Lock className="h-6 w-6 text-chaos-orange shrink-0" />
+                <div className="flex-1">
+                  <p className="font-semibold text-chaos-orange">Locked until pledge submitted</p>
+                  <p className="text-xs text-muted-foreground">Add your pledge to be scheduled for matches</p>
+                </div>
+                <Button size="sm" onClick={() => navigate('/complete-entry')}
+                  className="bg-gradient-primary hover:opacity-90 shrink-0">
+                  Add Pledge
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           {rounds.map((round) => {
             const roundMatches = matches.get(round.id) || [];
             return (

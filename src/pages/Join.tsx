@@ -77,14 +77,14 @@ export default function JoinPage() {
       const pinHash = hashPin(pin);
 
       // Create player
-      const { error } = await supabase.from('players').insert({
+      const { data: newPlayer, error } = await supabase.from('players').insert({
         tournament_id: tournamentId,
         full_name: fullName,
         phone,
         pin_hash: pinHash,
         gender: gender || null,
         credits_balance: tournament?.starting_credits || 1000,
-      });
+      }).select().single();
 
       if (error) {
         throw error;
@@ -92,6 +92,19 @@ export default function JoinPage() {
 
       setGeneratedPin(pin);
       setStep('pin');
+
+      // Auto-login the new player so CompleteEntry page works
+      if (newPlayer) {
+        const token = crypto.randomUUID();
+        await supabase.from('players').update({ session_token: token }).eq('id', newPlayer.id);
+        const session = {
+          playerId: newPlayer.id,
+          tournamentId,
+          playerName: fullName,
+          token,
+        };
+        localStorage.setItem('padel_chaos_session', JSON.stringify(session));
+      }
 
       toast({
         title: 'Welcome to the chaos! 🎾',
@@ -116,7 +129,8 @@ export default function JoinPage() {
   };
 
   const handleContinue = () => {
-    navigate(`/login?t=${tournamentId}`);
+    // Full reload so PlayerContext picks up the new session from localStorage
+    window.location.href = '/complete-entry';
   };
 
   if (step === 'pin') {
