@@ -26,7 +26,6 @@ export default function AuctionHousePage() {
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [sort, setSort] = useState<SortMode>('random');
   const [showIntro, setShowIntro] = useState(false);
-  const [sort, setSort] = useState<SortMode>('random');
 
   useEffect(() => {
     if (!isLoading && !session) {
