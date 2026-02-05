@@ -2,20 +2,17 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { MatchWithPlayers, Round, Player } from '@/lib/types';
-import { Calendar, Check, Phone } from 'lucide-react';
+import { Calendar, Copy } from 'lucide-react';
 import { MatchCard } from '@/components/cards/MatchCard';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -32,97 +29,64 @@ export default function MatchesPage() {
   const [selectedMatch, setSelectedMatch] = useState<MatchWithPlayers | null>(null);
   const [showReportDialog, setShowReportDialog] = useState(false);
 
-  // Report form state
   const [setsA, setSetsA] = useState('0');
   const [setsB, setSetsB] = useState('0');
   const [isUnfinished, setIsUnfinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !session) {
-      navigate('/');
-      return;
-    }
-
-    if (tournament && player) {
-      loadMatches();
-    }
+    if (!isLoading && !session) { navigate('/'); return; }
+    if (tournament && player) loadMatches();
   }, [session, tournament, player, isLoading, navigate]);
 
   const loadMatches = async () => {
     if (!tournament || !player) return;
 
-    // Get all rounds
     const { data: roundsData } = await supabase
-      .from('rounds')
-      .select('*')
-      .eq('tournament_id', tournament.id)
+      .from('rounds').select('*').eq('tournament_id', tournament.id)
       .order('index', { ascending: false });
-
     setRounds((roundsData || []) as Round[]);
 
-    // Get all player's matches
     const { data: matchesData } = await supabase
-      .from('matches')
-      .select('*')
-      .eq('tournament_id', tournament.id)
+      .from('matches').select('*').eq('tournament_id', tournament.id)
       .or(`team_a_player1_id.eq.${player.id},team_a_player2_id.eq.${player.id},team_b_player1_id.eq.${player.id},team_b_player2_id.eq.${player.id},bye_player_id.eq.${player.id}`);
 
     if (!matchesData) return;
 
-    // Get all player IDs
     const playerIds = new Set<string>();
     matchesData.forEach(m => {
-      if (m.team_a_player1_id) playerIds.add(m.team_a_player1_id);
-      if (m.team_a_player2_id) playerIds.add(m.team_a_player2_id);
-      if (m.team_b_player1_id) playerIds.add(m.team_b_player1_id);
-      if (m.team_b_player2_id) playerIds.add(m.team_b_player2_id);
+      [m.team_a_player1_id, m.team_a_player2_id, m.team_b_player1_id, m.team_b_player2_id].forEach(id => { if (id) playerIds.add(id); });
     });
 
-    const { data: players } = await supabase
-      .from('players')
-      .select('*')
-      .in('id', Array.from(playerIds));
-
+    const { data: players } = await supabase.from('players').select('*').in('id', Array.from(playerIds));
     const playerMap = new Map((players || []).map(p => [p.id, p as Player]));
 
-    // Group matches by round
     const matchesByRound = new Map<string, MatchWithPlayers[]>();
     matchesData.forEach(match => {
-      const matchWithPlayers: MatchWithPlayers = {
+      const mwp: MatchWithPlayers = {
         ...match,
         team_a_player1: playerMap.get(match.team_a_player1_id),
         team_a_player2: playerMap.get(match.team_a_player2_id),
         team_b_player1: playerMap.get(match.team_b_player1_id),
         team_b_player2: playerMap.get(match.team_b_player2_id),
       };
-
       const existing = matchesByRound.get(match.round_id) || [];
-      existing.push(matchWithPlayers);
+      existing.push(mwp);
       matchesByRound.set(match.round_id, existing);
     });
-
     setMatches(matchesByRound);
   };
 
   const handleClaimBooking = async (match: MatchWithPlayers) => {
     if (!player) return;
-
-    const { error } = await supabase
-      .from('matches')
-      .update({
-        booking_claimed_by_player_id: player.id,
-        booking_claimed_at: new Date().toISOString(),
-        status: 'BookingClaimed',
-      })
-      .eq('id', match.id);
-
+    const { error } = await supabase.from('matches').update({
+      booking_claimed_by_player_id: player.id,
+      booking_claimed_at: new Date().toISOString(),
+      status: 'BookingClaimed',
+    }).eq('id', match.id);
     if (!error) {
       loadMatches();
-      toast({
-        title: 'Booking claimed! 📅',
-        description: "You're on court duty. Don't forget!",
-      });
+      toast({ title: 'Booking claimed! 📅', description: "You're on court duty. Don't forget!" });
     }
   };
 
@@ -134,73 +98,65 @@ export default function MatchesPage() {
     setShowReportDialog(true);
   };
 
+  const handleCopyContacts = (match: MatchWithPlayers) => {
+    const allPlayers = [
+      match.team_a_player1, match.team_a_player2,
+      match.team_b_player1, match.team_b_player2,
+    ].filter(Boolean) as Player[];
+
+    const text = allPlayers
+      .map(p => `${p.full_name}: ${p.phone}`)
+      .join('\n');
+
+    navigator.clipboard.writeText(text);
+    toast({ title: 'Contacts copied! 📋', description: 'Paste into your WhatsApp group' });
+  };
+
   const submitResult = async () => {
     if (!selectedMatch || !player) return;
 
     const a = parseInt(setsA);
     const b = parseInt(setsB);
 
-    // Validation
     if (isNaN(a) || isNaN(b) || a < 0 || b < 0 || a > 3 || b > 3) {
-      toast({
-        title: 'Invalid score',
-        description: 'Sets must be between 0 and 3',
-        variant: 'destructive',
-      });
+      toast({ title: 'Invalid score', description: 'Sets must be between 0 and 3', variant: 'destructive' });
       return;
     }
 
-    // Valid scores: 2-0, 2-1, 0-2, 1-2, or 1-1 if unfinished
-    const total = a + b;
     const hasWinner = a === 2 || b === 2;
-
     if (!isUnfinished && !hasWinner) {
-      toast({
-        title: 'Invalid score',
-        description: 'One team must win 2 sets (or mark as unfinished)',
-        variant: 'destructive',
-      });
+      toast({ title: 'Invalid score', description: 'One team must win 2 sets (or mark as unfinished)', variant: 'destructive' });
       return;
     }
-
     if (isUnfinished && (a !== 1 || b !== 1)) {
-      toast({
-        title: 'Invalid unfinished score',
-        description: 'Unfinished matches must be 1-1',
-        variant: 'destructive',
-      });
+      toast({ title: 'Invalid unfinished score', description: 'Unfinished matches must be 1-1', variant: 'destructive' });
       return;
     }
 
     setIsSubmitting(true);
-
-    const { error } = await supabase
-      .from('matches')
-      .update({
-        sets_a: a,
-        sets_b: b,
-        is_unfinished: isUnfinished,
-        status: 'Played',
-        played_at: new Date().toISOString(),
-      })
-      .eq('id', selectedMatch.id);
-
-    if (error) {
-      toast({
-        title: 'Failed to submit',
-        description: error.message,
-        variant: 'destructive',
+    try {
+      // Call edge function for credits processing
+      const { data, error } = await supabase.functions.invoke('tournament-engine', {
+        body: {
+          action: 'process_match_result',
+          match_id: selectedMatch.id,
+          sets_a: a,
+          sets_b: b,
+          is_unfinished: isUnfinished,
+          player_id: player.id,
+        },
       });
-    } else {
-      toast({
-        title: 'Score submitted! 🎾',
-        description: 'Scores locked. Friendships pending.',
-      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: 'Score submitted! 🎾', description: 'Scores locked. Credits distributed.' });
       setShowReportDialog(false);
       loadMatches();
       refreshPlayer();
+    } catch (error: any) {
+      toast({ title: 'Failed to submit', description: error.message, variant: 'destructive' });
     }
-
     setIsSubmitting(false);
   };
 
@@ -220,8 +176,7 @@ export default function MatchesPage() {
         header={
           <div className="p-4">
             <h1 className="font-bold text-xl flex items-center gap-2">
-              <Calendar className="h-6 w-6 text-primary" />
-              Your Matches
+              <Calendar className="h-6 w-6 text-primary" />Your Matches
             </h1>
             <p className="text-sm text-muted-foreground">
               {rounds.length} rounds • {Array.from(matches.values()).flat().filter(m => m.status === 'Played').length} played
@@ -232,25 +187,21 @@ export default function MatchesPage() {
         <div className="space-y-6">
           {rounds.map((round) => {
             const roundMatches = matches.get(round.id) || [];
-
             return (
               <div key={round.id} className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="font-semibold">
-                      {round.is_playoff 
+                      {round.is_playoff
                         ? (round.playoff_type === 'final' ? '🏆 Final' : '⚔️ Semi-Final')
-                        : `Round ${round.index}`
-                      }
+                        : `Round ${round.index}`}
                     </h2>
-                    <StatusChip 
+                    <StatusChip
                       variant={round.status === 'Live' ? 'live' : round.status === 'Completed' ? 'success' : 'neutral'}
-                      pulse={round.status === 'Live'}
-                    >
+                      pulse={round.status === 'Live'}>
                       {round.status}
                     </StatusChip>
                   </div>
-
                   {round.end_at && round.status === 'Live' && (
                     <CountdownTimer targetDate={round.end_at} variant="compact" />
                   )}
@@ -258,9 +209,7 @@ export default function MatchesPage() {
 
                 {roundMatches.length === 0 ? (
                   <Card className="chaos-card">
-                    <CardContent className="p-4 text-center text-muted-foreground">
-                      No match this round
-                    </CardContent>
+                    <CardContent className="p-4 text-center text-muted-foreground">No match this round</CardContent>
                   </Card>
                 ) : (
                   roundMatches.map((match) => (
@@ -273,14 +222,22 @@ export default function MatchesPage() {
                         </CardContent>
                       </Card>
                     ) : (
-                      <MatchCard
-                        key={match.id}
-                        match={match}
-                        currentPlayerId={player.id}
-                        onClaimBooking={() => handleClaimBooking(match)}
-                        onReportResult={() => handleReportResult(match)}
-                        bookingUrl={tournament.booking_url || undefined}
-                      />
+                      <div key={match.id} className="space-y-2">
+                        <MatchCard
+                          match={match}
+                          currentPlayerId={player.id}
+                          onClaimBooking={() => handleClaimBooking(match)}
+                          onReportResult={() => handleReportResult(match)}
+                          bookingUrl={tournament.booking_url || undefined}
+                        />
+                        {/* Copy contacts button */}
+                        {match.status !== 'Played' && match.status !== 'AutoResolved' && (
+                          <Button variant="ghost" size="sm" className="w-full text-muted-foreground"
+                            onClick={() => handleCopyContacts(match)}>
+                            <Copy className="mr-1 h-3 w-3" />Copy Match Contacts
+                          </Button>
+                        )}
+                      </div>
                     )
                   ))
                 )}
@@ -303,55 +260,35 @@ export default function MatchesPage() {
       {/* Report Result Dialog */}
       <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
         <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Report Match Result</DialogTitle>
-          </DialogHeader>
-
+          <DialogHeader><DialogTitle>Report Match Result</DialogTitle></DialogHeader>
           <div className="space-y-6 py-4">
             <div className="flex items-center justify-center gap-6">
               <div className="text-center">
                 <Label className="text-xs text-muted-foreground mb-2 block">Your Team</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="3"
-                  value={setsA}
+                <Input type="number" min="0" max="3" value={setsA}
                   onChange={(e) => setSetsA(e.target.value)}
-                  className="text-3xl font-bold text-center w-20 h-16"
-                />
+                  className="text-3xl font-bold text-center w-20 h-16" />
               </div>
-
               <span className="text-2xl text-muted-foreground">-</span>
-
               <div className="text-center">
                 <Label className="text-xs text-muted-foreground mb-2 block">Opponents</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="3"
-                  value={setsB}
+                <Input type="number" min="0" max="3" value={setsB}
                   onChange={(e) => setSetsB(e.target.value)}
-                  className="text-3xl font-bold text-center w-20 h-16"
-                />
+                  className="text-3xl font-bold text-center w-20 h-16" />
               </div>
             </div>
 
             <div className="flex items-center justify-between">
-              <Label htmlFor="unfinished" className="text-sm">
-                Match unfinished (1-1 split)?
-              </Label>
-              <Switch
-                id="unfinished"
-                checked={isUnfinished}
-                onCheckedChange={setIsUnfinished}
-              />
+              <Label htmlFor="unfinished" className="text-sm">Match unfinished (1-1 split)?</Label>
+              <Switch id="unfinished" checked={isUnfinished} onCheckedChange={setIsUnfinished} />
             </div>
 
-            <Button
-              className="w-full touch-target bg-gradient-primary hover:opacity-90"
-              onClick={submitResult}
-              disabled={isSubmitting}
-            >
+            <p className="text-xs text-muted-foreground text-center">
+              💰 Credits will be automatically distributed based on the score
+            </p>
+
+            <Button className="w-full touch-target bg-gradient-primary hover:opacity-90"
+              onClick={submitResult} disabled={isSubmitting}>
               {isSubmitting ? 'Submitting...' : 'Submit Result'}
             </Button>
           </div>

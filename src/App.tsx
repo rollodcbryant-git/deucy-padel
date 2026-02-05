@@ -15,6 +15,7 @@ import Leaderboard from "./pages/Leaderboard";
 import Players from "./pages/Players";
 import Auction from "./pages/Auction";
 import LotDetail from "./pages/LotDetail";
+import Pledges from "./pages/Pledges";
 import NotFound from "./pages/NotFound";
 
 // Admin Pages
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/players" element={<Players />} />
             <Route path="/auction" element={<Auction />} />
             <Route path="/auction/:lotId" element={<LotDetail />} />
+            <Route path="/pledges" element={<Pledges />} />
             
             {/* Admin routes */}
             <Route path="/admin" element={<AdminLogin />} />
