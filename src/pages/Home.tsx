@@ -296,7 +296,6 @@ export default function HomePage() {
                 currentPlayerId={player.id}
                 onClaimBooking={handleClaimBooking}
                 onReportResult={() => navigate('/matches')}
-                bookingUrl={tournament.booking_url || undefined}
               />
             </div>
           )}

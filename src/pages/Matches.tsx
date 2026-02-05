@@ -228,7 +228,6 @@ export default function MatchesPage() {
                           currentPlayerId={player.id}
                           onClaimBooking={() => handleClaimBooking(match)}
                           onReportResult={() => handleReportResult(match)}
-                          bookingUrl={tournament.booking_url || undefined}
                         />
                         {/* Copy contacts button */}
                         {match.status !== 'Played' && match.status !== 'AutoResolved' && (
