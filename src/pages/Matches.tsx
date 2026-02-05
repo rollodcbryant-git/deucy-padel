@@ -168,7 +168,7 @@ export default function MatchesPage() {
     );
   }
 
-  const showAuction = tournament.status === 'AuctionLive';
+  
 
   return (
     <>
