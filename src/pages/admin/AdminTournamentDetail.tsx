@@ -85,7 +85,7 @@ export default function AdminTournamentDetail() {
     });
   };
 
-  const updateTournamentStatus = async (newStatus: string) => {
+  const updateTournamentStatus = async (newStatus: 'Draft' | 'SignupOpen' | 'Live' | 'Finished' | 'AuctionLive' | 'Closed') => {
     if (!tournament) return;
     setIsUpdating(true);
 
@@ -97,7 +97,7 @@ export default function AdminTournamentDetail() {
 
       if (error) throw error;
 
-      setTournament({ ...tournament, status: newStatus as 'Draft' | 'SignupOpen' | 'Live' | 'Finished' | 'AuctionLive' | 'Closed' });
+      setTournament({ ...tournament, status: newStatus });
       toast({
         title: 'Status updated',
         description: `Tournament is now ${newStatus}`,
