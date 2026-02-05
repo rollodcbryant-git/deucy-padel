@@ -10,6 +10,7 @@ import { usePlayer } from '@/contexts/PlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { PledgeItem, Player } from '@/lib/types';
 import { Gavel, Plus, Pencil, Lock, Shuffle, TrendingDown, Clock } from 'lucide-react';
+import { AuctionIntroModal } from '@/components/onboarding/AuctionIntroModal';
 
 type CategoryFilter = 'all' | 'food' | 'drink' | 'object' | 'service' | 'chaos';
 type SortMode = 'random' | 'expensive' | 'newest';
