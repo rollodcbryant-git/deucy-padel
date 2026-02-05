@@ -12,7 +12,7 @@ import Join from "./pages/Join";
 import Home from "./pages/Home";
 import Matches from "./pages/Matches";
 import Leaderboard from "./pages/Leaderboard";
-import Players from "./pages/Players";
+
 import AuctionHouse from "./pages/AuctionHouse";
 import AuctionLive from "./pages/Auction";
 import LotDetail from "./pages/LotDetail";
@@ -50,7 +50,7 @@ const App = () => (
             <Route path="/home" element={<Home />} />
             <Route path="/matches" element={<Matches />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="/players" element={<Players />} />
+            
             <Route path="/auction" element={<AuctionHouse />} />
             <Route path="/auction/live" element={<AuctionLive />} />
             <Route path="/auction/lot/:lotId" element={<LotDetail />} />
