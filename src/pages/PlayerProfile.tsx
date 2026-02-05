@@ -180,7 +180,6 @@ export default function PlayerProfilePage() {
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                 {isSelf ? 'Your Pledges' : 'Pledges'}
               </h3>
-              </h3>
 
               {visiblePledges.map((pledge) => {
                 const cat = getCategoryConfig(pledge.category);
