@@ -23,7 +23,8 @@ export default function HomePage() {
   const [leaderboard, setLeaderboard] = useState<Player[]>([]);
   const [playerRank, setPlayerRank] = useState<number>(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [hasPledged, setHasPledged] = useState(true);
+  const [hasPledgedCurrentRound, setHasPledgedCurrentRound] = useState(true);
+  const [pledgeGateActive, setPledgeGateActive] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !session) {
@@ -37,15 +38,43 @@ export default function HomePage() {
       if (!player.has_seen_onboarding) {
         setShowOnboarding(true);
       }
-      // Check if player has pledged
-      supabase
+      // Check if player has pledged for current round
+      checkPledgeStatus();
+    }
+  }, [session, player, tournament, isLoading, navigate]);
+
+  const checkPledgeStatus = async () => {
+    if (!player || !tournament) return;
+    // Find current live round
+    const { data: liveRounds } = await supabase
+      .from('rounds')
+      .select('id')
+      .eq('tournament_id', tournament.id)
+      .eq('status', 'Live')
+      .limit(1);
+
+    if (liveRounds && liveRounds.length > 0) {
+      const liveRoundId = liveRounds[0].id;
+      const { data: roundPledges } = await supabase
         .from('pledge_items')
         .select('id')
         .eq('pledged_by_player_id', player.id)
-        .limit(1)
-        .then(({ data }) => setHasPledged((data || []).length > 0));
+        .eq('round_id', liveRoundId)
+        .limit(1);
+      const hasPledged = (roundPledges || []).length > 0;
+      setHasPledgedCurrentRound(hasPledged);
+      setPledgeGateActive(tournament.pledge_gate_enabled && !hasPledged);
+    } else {
+      // No live round - check for any pledge
+      const { data } = await supabase
+        .from('pledge_items')
+        .select('id')
+        .eq('pledged_by_player_id', player.id)
+        .limit(1);
+      setHasPledgedCurrentRound((data || []).length > 0);
+      setPledgeGateActive(false);
     }
-  }, [session, player, tournament, isLoading, navigate]);
+  };
 
   const handleOnboardingComplete = async () => {
     setShowOnboarding(false);
@@ -285,8 +314,27 @@ export default function HomePage() {
             </Card>
           )}
 
+          {/* Pledge gate warning */}
+          {tournament.status === 'Live' && pledgeGateActive && (
+            <Card className="chaos-card border-chaos-orange/50 bg-chaos-orange/5">
+              <CardContent className="p-6 text-center">
+                <div className="text-4xl mb-3">🎁</div>
+                <p className="font-semibold text-chaos-orange">Pledge missing for this round</p>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">
+                  Drop a pledge to stay eligible for matches
+                </p>
+                <Button
+                  className="w-full touch-target bg-gradient-primary hover:opacity-90"
+                  onClick={() => navigate('/auction')}
+                >
+                  Add your pledge
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* No match yet */}
-          {tournament.status === 'Live' && !currentMatch && (
+          {tournament.status === 'Live' && !currentMatch && !pledgeGateActive && (
             <Card className="chaos-card">
               <CardContent className="p-6 text-center">
                 <div className="text-4xl mb-3">⏳</div>
@@ -352,7 +400,7 @@ export default function HomePage() {
           </div>
 
           {/* Pledge nudge */}
-          {!hasPledged && (
+          {!hasPledgedCurrentRound && !pledgeGateActive && (
             <PledgeNudgeCard />
           )}
         </div>

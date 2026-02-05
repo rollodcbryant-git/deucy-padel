@@ -6,6 +6,7 @@ interface PledgeCardProps {
   pledge: PledgeItem;
   pledger?: Player;
   isOwner?: boolean;
+  roundIndex?: number;
   onClick?: () => void;
 }
 
@@ -28,7 +29,7 @@ function formatEstimate(low: number | null, high: number | null): string | null 
   return null;
 }
 
-export function PledgeCard({ pledge, pledger, isOwner, onClick }: PledgeCardProps) {
+export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: PledgeCardProps) {
   const cat = getCategoryConfig(pledge.category);
   const estimate = formatEstimate(pledge.estimate_low, pledge.estimate_high);
   const isPending = pledge.status === 'Draft';
@@ -62,6 +63,18 @@ export function PledgeCard({ pledge, pledger, isOwner, onClick }: PledgeCardProp
           <div className="absolute top-2 right-2">
             <StatusChip variant="warning" size="sm">Pending</StatusChip>
           </div>
+        )}
+
+        {roundIndex != null && (
+          <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-background/80 backdrop-blur-sm border border-border px-2 py-0.5 text-[10px] font-bold text-foreground">
+            R{roundIndex}
+          </span>
+        )}
+
+        {!estimate && pledge.status !== 'Draft' && (
+          <span className="absolute top-2 right-2 inline-flex items-center rounded-full bg-muted/80 backdrop-blur-sm px-2 py-0.5 text-[10px] text-muted-foreground">
+            Pending estimate
+          </span>
         )}
       </div>
 

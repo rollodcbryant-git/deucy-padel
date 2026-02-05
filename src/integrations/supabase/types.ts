@@ -526,6 +526,7 @@ export type Database = {
           image_url: string | null
           pledged_by_player_id: string
           quantity_text: string | null
+          round_id: string | null
           status: Database["public"]["Enums"]["pledge_status"]
           title: string
           tournament_id: string
@@ -543,6 +544,7 @@ export type Database = {
           image_url?: string | null
           pledged_by_player_id: string
           quantity_text?: string | null
+          round_id?: string | null
           status?: Database["public"]["Enums"]["pledge_status"]
           title: string
           tournament_id: string
@@ -560,6 +562,7 @@ export type Database = {
           image_url?: string | null
           pledged_by_player_id?: string
           quantity_text?: string | null
+          round_id?: string | null
           status?: Database["public"]["Enums"]["pledge_status"]
           title?: string
           tournament_id?: string
@@ -571,6 +574,13 @@ export type Database = {
             columns: ["pledged_by_player_id"]
             isOneToOne: false
             referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pledge_items_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
             referencedColumns: ["id"]
           },
           {
@@ -640,6 +650,8 @@ export type Database = {
           participation_bonus: number
           penalty_amount: number
           playoffs_enabled: boolean
+          pledge_deadline_hours: number
+          pledge_gate_enabled: boolean
           round_duration_days: number
           rounds_count: number | null
           stake_per_player: number
@@ -660,6 +672,8 @@ export type Database = {
           participation_bonus?: number
           penalty_amount?: number
           playoffs_enabled?: boolean
+          pledge_deadline_hours?: number
+          pledge_gate_enabled?: boolean
           round_duration_days?: number
           rounds_count?: number | null
           stake_per_player?: number
@@ -680,6 +694,8 @@ export type Database = {
           participation_bonus?: number
           penalty_amount?: number
           playoffs_enabled?: boolean
+          pledge_deadline_hours?: number
+          pledge_gate_enabled?: boolean
           round_duration_days?: number
           rounds_count?: number | null
           stake_per_player?: number

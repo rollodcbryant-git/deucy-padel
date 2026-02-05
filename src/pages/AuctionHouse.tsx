@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
-import { PledgeCard, getCategoryConfig } from '@/components/auction/PledgeCard';
+import { PledgeCard } from '@/components/auction/PledgeCard';
 import { PledgeForm } from '@/components/auction/PledgeForm';
 import { StatusChip } from '@/components/ui/StatusChip';
+import { Progress } from '@/components/ui/progress';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { supabase } from '@/integrations/supabase/client';
-import type { PledgeItem, Player } from '@/lib/types';
+import type { PledgeItem, Player, Round } from '@/lib/types';
 import { Gavel, Plus, Pencil, Lock, Shuffle, TrendingDown, Clock } from 'lucide-react';
 import { AuctionIntroModal } from '@/components/onboarding/AuctionIntroModal';
 
@@ -21,11 +22,16 @@ export default function AuctionHousePage() {
 
   const [pledges, setPledges] = useState<PledgeItem[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [myPledge, setMyPledge] = useState<PledgeItem | null>(null);
+  const [rounds, setRounds] = useState<Round[]>([]);
+  const [myCurrentRoundPledge, setMyCurrentRoundPledge] = useState<PledgeItem | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [sort, setSort] = useState<SortMode>('random');
+  const [roundFilter, setRoundFilter] = useState<string>('all');
   const [showIntro, setShowIntro] = useState(false);
+
+  const currentRound = useMemo(() => rounds.find(r => r.status === 'Live') || null, [rounds]);
+  const roundMap = useMemo(() => new Map(rounds.map(r => [r.id, r])), [rounds]);
 
   useEffect(() => {
     if (!isLoading && !session) {
@@ -53,29 +59,54 @@ export default function AuctionHousePage() {
   const loadData = async () => {
     if (!tournament || !player) return;
 
-    const [pledgeRes, playerRes] = await Promise.all([
+    const [pledgeRes, playerRes, roundRes] = await Promise.all([
       supabase.from('pledge_items').select('*').eq('tournament_id', tournament.id).order('created_at', { ascending: false }),
       supabase.from('players').select('*').eq('tournament_id', tournament.id),
+      supabase.from('rounds').select('*').eq('tournament_id', tournament.id).order('index', { ascending: true }),
     ]);
 
     const allPledges = (pledgeRes.data || []) as PledgeItem[];
+    const allRounds = (roundRes.data || []) as Round[];
     setPlayers((playerRes.data || []) as Player[]);
+    setRounds(allRounds);
 
-    // Separate my pledge
-    const mine = allPledges.find(p => p.pledged_by_player_id === player.id) || null;
-    setMyPledge(mine);
+    // Find current round
+    const liveRound = allRounds.find(r => r.status === 'Live');
 
-    // Public pledges: approved ones + owner's own pending
+    // Find my pledge for the current round
+    const mine = liveRound
+      ? allPledges.find(p => p.pledged_by_player_id === player.id && p.round_id === liveRound.id) || null
+      : allPledges.find(p => p.pledged_by_player_id === player.id && !p.round_id) || null;
+    setMyCurrentRoundPledge(mine);
+
+    // Visible pledges: approved/submitted ones + owner's own drafts
     const visible = allPledges.filter(p =>
-      p.status === 'Approved' || (p.pledged_by_player_id === player.id && p.status === 'Draft')
+      p.status === 'Approved' || p.status === 'Draft'
     );
     setPledges(visible);
   };
 
   const playerMap = useMemo(() => new Map(players.map(p => [p.id, p])), [players]);
+  const activePlayers = useMemo(() => players.filter(p => p.status === 'Active'), [players]);
+
+  // Round pledge progress
+  const currentRoundPledgeCount = useMemo(() => {
+    if (!currentRound) return 0;
+    return pledges.filter(p => p.round_id === currentRound.id).length;
+  }, [pledges, currentRound]);
 
   const filteredPledges = useMemo(() => {
-    let items = filter === 'all' ? pledges : pledges.filter(p => p.category === filter);
+    let items = pledges;
+
+    // Round filter
+    if (roundFilter !== 'all') {
+      items = items.filter(p => p.round_id === roundFilter || (!p.round_id && roundFilter === 'none'));
+    }
+
+    // Category filter
+    if (filter !== 'all') {
+      items = items.filter(p => p.category === filter);
+    }
 
     switch (sort) {
       case 'expensive':
@@ -89,7 +120,7 @@ export default function AuctionHousePage() {
         break;
     }
     return items;
-  }, [pledges, filter, sort]);
+  }, [pledges, filter, sort, roundFilter]);
 
   if (isLoading || !player || !tournament) {
     return (
@@ -99,8 +130,8 @@ export default function AuctionHousePage() {
     );
   }
 
-  const canEdit = myPledge && myPledge.status === 'Draft';
-  const hasSubmitted = !!myPledge;
+  const canEdit = myCurrentRoundPledge && myCurrentRoundPledge.status === 'Draft';
+  const hasSubmittedThisRound = !!myCurrentRoundPledge;
   const auctionLive = tournament.status === 'AuctionLive';
 
   const categories: { key: CategoryFilter; label: string }[] = [
@@ -116,7 +147,7 @@ export default function AuctionHousePage() {
     <>
       <AuctionIntroModal
         open={showIntro}
-        hasPledged={hasSubmitted}
+        hasPledged={hasSubmittedThisRound}
         onViewGallery={() => handleIntroComplete('view')}
         onAddPledge={() => handleIntroComplete('pledge')}
         onSkip={() => handleIntroComplete('skip')}
@@ -139,12 +170,38 @@ export default function AuctionHousePage() {
             <p className="text-sm text-muted-foreground">
               Bring your pledge. Win your credits. Spend them irresponsibly.
             </p>
+
+            {/* Round pledge progress */}
+            {currentRound && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    Round {currentRound.index}: {currentRoundPledgeCount}/{activePlayers.length} pledges
+                  </span>
+                  <span className="font-medium text-primary">
+                    {currentRoundPledgeCount === activePlayers.length ? '✅ All in!' : `${activePlayers.length - currentRoundPledgeCount} missing`}
+                  </span>
+                </div>
+                <Progress value={activePlayers.length > 0 ? (currentRoundPledgeCount / activePlayers.length) * 100 : 0} className="h-2" />
+              </div>
+            )}
           </div>
         }
       >
         <div className="space-y-4">
-          {/* My pledge status / CTA */}
-          {!hasSubmitted && !showForm && (
+          {/* My pledge status / CTA for current round */}
+          {!hasSubmittedThisRound && !showForm && currentRound && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="w-full rounded-xl border-2 border-dashed border-primary/40 hover:border-primary/70 transition-colors p-6 text-center space-y-2"
+            >
+              <Plus className="h-8 w-8 mx-auto text-primary" />
+              <p className="font-semibold text-primary">Submit Round {currentRound.index} pledge</p>
+              <p className="text-xs text-muted-foreground">Required to play this round</p>
+            </button>
+          )}
+
+          {!hasSubmittedThisRound && !showForm && !currentRound && (
             <button
               onClick={() => setShowForm(true)}
               className="w-full rounded-xl border-2 border-dashed border-primary/40 hover:border-primary/70 transition-colors p-6 text-center space-y-2"
@@ -155,7 +212,7 @@ export default function AuctionHousePage() {
             </button>
           )}
 
-          {hasSubmitted && !showForm && myPledge.status === 'Draft' && (
+          {hasSubmittedThisRound && !showForm && myCurrentRoundPledge.status === 'Draft' && (
             <div className="rounded-xl bg-chaos-orange/10 border border-chaos-orange/30 p-4 flex items-center justify-between">
               <div className="space-y-0.5">
                 <p className="text-sm font-medium">Your pledge is pending approval ⏳</p>
@@ -167,9 +224,11 @@ export default function AuctionHousePage() {
             </div>
           )}
 
-          {hasSubmitted && myPledge.status === 'Approved' && (
+          {hasSubmittedThisRound && myCurrentRoundPledge.status === 'Approved' && (
             <div className="rounded-xl bg-primary/10 border border-primary/30 p-4">
-              <p className="text-sm font-medium text-primary">Your pledge is live in the gallery ✅</p>
+              <p className="text-sm font-medium text-primary">
+                {currentRound ? `Round ${currentRound.index} pledge is live ✅` : 'Your pledge is live ✅'}
+              </p>
               <p className="text-xs text-muted-foreground">It becomes a biddable lot when the auction starts</p>
             </div>
           )}
@@ -178,13 +237,39 @@ export default function AuctionHousePage() {
             <PledgeForm
               tournamentId={tournament.id}
               playerId={player.id}
-              existing={canEdit ? myPledge : null}
+              roundId={currentRound?.id}
+              existing={canEdit ? myCurrentRoundPledge : null}
               onSaved={() => { setShowForm(false); loadData(); }}
               onCancel={() => setShowForm(false)}
             />
           )}
 
-          {/* Filters */}
+          {/* Round filter */}
+          {rounds.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              <Button
+                variant={roundFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                className={roundFilter === 'all' ? 'bg-gradient-primary shrink-0' : 'shrink-0'}
+                onClick={() => setRoundFilter('all')}
+              >
+                All rounds
+              </Button>
+              {rounds.map(r => (
+                <Button
+                  key={r.id}
+                  variant={roundFilter === r.id ? 'default' : 'outline'}
+                  size="sm"
+                  className={roundFilter === r.id ? 'bg-gradient-primary shrink-0' : 'shrink-0'}
+                  onClick={() => setRoundFilter(r.id)}
+                >
+                  R{r.index}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {/* Category filters */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             {categories.map(c => (
               <Button
@@ -221,15 +306,19 @@ export default function AuctionHousePage() {
 
           {/* Gallery grid */}
           <div className="grid grid-cols-2 gap-3">
-            {filteredPledges.map(pledge => (
-              <PledgeCard
-                key={pledge.id}
-                pledge={pledge}
-                pledger={playerMap.get(pledge.pledged_by_player_id)}
-                isOwner={pledge.pledged_by_player_id === player.id}
-                onClick={() => navigate(`/auction/${pledge.id}`)}
-              />
-            ))}
+            {filteredPledges.map(pledge => {
+              const pledgeRound = pledge.round_id ? roundMap.get(pledge.round_id) : null;
+              return (
+                <PledgeCard
+                  key={pledge.id}
+                  pledge={pledge}
+                  pledger={playerMap.get(pledge.pledged_by_player_id)}
+                  isOwner={pledge.pledged_by_player_id === player.id}
+                  roundIndex={pledgeRound?.index}
+                  onClick={() => navigate(`/auction/${pledge.id}`)}
+                />
+              );
+            })}
           </div>
 
           {filteredPledges.length === 0 && (
