@@ -15,6 +15,7 @@ import Leaderboard from "./pages/Leaderboard";
 import Players from "./pages/Players";
 import Auction from "./pages/Auction";
 import LotDetail from "./pages/LotDetail";
+import Pledges from "./pages/Pledges";
 import NotFound from "./pages/NotFound";
 
 // Admin Pages
