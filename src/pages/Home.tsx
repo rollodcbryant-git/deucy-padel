@@ -157,7 +157,7 @@ export default function HomePage() {
     return null;
   }
 
-  const showAuction = tournament.status === 'AuctionLive';
+  
 
   return (
     <>
@@ -330,7 +330,7 @@ export default function HomePage() {
         </div>
       </PageLayout>
 
-      <BottomNav showAuction={showAuction} />
+      <BottomNav />
     </>
   );
 }

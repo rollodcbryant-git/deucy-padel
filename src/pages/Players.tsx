@@ -46,7 +46,7 @@ export default function PlayersPage() {
     );
   }
 
-  const showAuction = tournament.status === 'AuctionLive';
+  
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -146,7 +146,7 @@ export default function PlayersPage() {
         </div>
       </PageLayout>
 
-      <BottomNav showAuction={showAuction} />
+      <BottomNav />
     </>
   );
 }

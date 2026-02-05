@@ -168,7 +168,7 @@ export default function MatchesPage() {
     );
   }
 
-  const showAuction = tournament.status === 'AuctionLive';
+  
 
   return (
     <>
@@ -255,7 +255,7 @@ export default function MatchesPage() {
         </div>
       </PageLayout>
 
-      <BottomNav showAuction={showAuction} />
+      <BottomNav />
 
       {/* Report Result Dialog */}
       <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>

@@ -13,8 +13,10 @@ import Home from "./pages/Home";
 import Matches from "./pages/Matches";
 import Leaderboard from "./pages/Leaderboard";
 import Players from "./pages/Players";
-import Auction from "./pages/Auction";
+import AuctionHouse from "./pages/AuctionHouse";
+import AuctionLive from "./pages/Auction";
 import LotDetail from "./pages/LotDetail";
+import PledgeDetail from "./pages/PledgeDetail";
 import Pledges from "./pages/Pledges";
 import NotFound from "./pages/NotFound";
 
@@ -44,8 +46,10 @@ const App = () => (
             <Route path="/matches" element={<Matches />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/players" element={<Players />} />
-            <Route path="/auction" element={<Auction />} />
-            <Route path="/auction/:lotId" element={<LotDetail />} />
+            <Route path="/auction" element={<AuctionHouse />} />
+            <Route path="/auction/live" element={<AuctionLive />} />
+            <Route path="/auction/lot/:lotId" element={<LotDetail />} />
+            <Route path="/auction/:pledgeId" element={<PledgeDetail />} />
             <Route path="/pledges" element={<Pledges />} />
             
             {/* Admin routes */}

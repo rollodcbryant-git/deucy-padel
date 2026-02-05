@@ -1,40 +1,28 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Trophy, Users, Gavel, Home, Calendar, Gift } from 'lucide-react';
+import { Trophy, Users, Gavel, Home, Calendar } from 'lucide-react';
 
 interface NavItem {
   path: string;
   label: string;
   icon: React.ReactNode;
-  showWhen?: 'always' | 'auction' | 'no-auction';
 }
 
 const navItems: NavItem[] = [
   { path: '/home', label: 'Home', icon: <Home className="h-5 w-5" /> },
   { path: '/matches', label: 'Matches', icon: <Calendar className="h-5 w-5" /> },
   { path: '/leaderboard', label: 'Ranking', icon: <Trophy className="h-5 w-5" /> },
-  { path: '/pledges', label: 'Pledges', icon: <Gift className="h-5 w-5" />, showWhen: 'no-auction' },
+  { path: '/auction', label: 'Auction', icon: <Gavel className="h-5 w-5" /> },
   { path: '/players', label: 'Players', icon: <Users className="h-5 w-5" /> },
-  { path: '/auction', label: 'Auction', icon: <Gavel className="h-5 w-5" />, showWhen: 'auction' },
 ];
 
-interface BottomNavProps {
-  showAuction?: boolean;
-}
-
-export function BottomNav({ showAuction = false }: BottomNavProps) {
+export function BottomNav() {
   const location = useLocation();
-
-  const visibleItems = navItems.filter((item) => {
-    if (item.showWhen === 'auction') return showAuction;
-    if (item.showWhen === 'no-auction') return !showAuction;
-    return true;
-  });
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border safe-bottom">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
-        {visibleItems.map((item) => {
+        {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link

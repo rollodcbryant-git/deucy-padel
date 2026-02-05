@@ -51,7 +51,7 @@ export default function LeaderboardPage() {
     );
   }
 
-  const showAuction = tournament.status === 'AuctionLive';
+  
 
   const getRankIcon = (index: number) => {
     if (index === 0) return <Trophy className="h-5 w-5 text-chaos-orange" />;
@@ -141,7 +141,7 @@ export default function LeaderboardPage() {
         </div>
       </PageLayout>
 
-      <BottomNav showAuction={showAuction} />
+      <BottomNav />
     </>
   );
 }

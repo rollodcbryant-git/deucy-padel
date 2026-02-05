@@ -509,6 +509,7 @@ export type Database = {
       }
       pledge_items: {
         Row: {
+          admin_note: string | null
           approved: boolean
           category: Database["public"]["Enums"]["pledge_category"]
           created_at: string
@@ -522,8 +523,10 @@ export type Database = {
           status: Database["public"]["Enums"]["pledge_status"]
           title: string
           tournament_id: string
+          updated_at: string
         }
         Insert: {
+          admin_note?: string | null
           approved?: boolean
           category: Database["public"]["Enums"]["pledge_category"]
           created_at?: string
@@ -537,8 +540,10 @@ export type Database = {
           status?: Database["public"]["Enums"]["pledge_status"]
           title: string
           tournament_id: string
+          updated_at?: string
         }
         Update: {
+          admin_note?: string | null
           approved?: boolean
           category?: Database["public"]["Enums"]["pledge_category"]
           created_at?: string
@@ -552,6 +557,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["pledge_status"]
           title?: string
           tournament_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
