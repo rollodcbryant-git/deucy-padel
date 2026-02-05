@@ -98,7 +98,7 @@ export default function AdminTournamentDetail() {
 
       if (error) throw error;
 
-      setTournament({ ...tournament, status: newStatus as Tournament['status'] });
+      setTournament({ ...tournament, status: newStatus as 'Draft' | 'SignupOpen' | 'Live' | 'Finished' | 'AuctionLive' | 'Closed' });
       toast({
         title: 'Status updated',
         description: `Tournament is now ${newStatus}`,
