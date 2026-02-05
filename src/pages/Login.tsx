@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Phone, Lock } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { hashPin } from '@/contexts/PlayerContext';
+import { ArrowLeft, Phone, Lock, KeyRound } from 'lucide-react';
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
@@ -18,25 +20,21 @@ export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [resetPhone, setResetPhone] = useState('');
+  const [newPin, setNewPin] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!tournamentId) {
-      toast({
-        title: 'Error',
-        description: 'No tournament specified',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: 'No tournament specified', variant: 'destructive' });
       return;
     }
 
     if (pin.length !== 4) {
-      toast({
-        title: 'Invalid PIN',
-        description: 'PIN must be 4 digits',
-        variant: 'destructive',
-      });
+      toast({ title: 'Invalid PIN', description: 'PIN must be 4 digits', variant: 'destructive' });
       return;
     }
 
@@ -45,17 +43,48 @@ export default function LoginPage() {
     setIsLoading(false);
 
     if (result.success) {
-      toast({
-        title: 'Welcome back! 🎾',
-        description: 'Time to cause some chaos.',
-      });
+      toast({ title: 'Welcome back! 🎾', description: 'Time to cause some chaos.' });
       navigate('/home');
     } else {
-      toast({
-        title: 'Login failed',
-        description: result.error || 'Invalid phone or PIN',
-        variant: 'destructive',
-      });
+      toast({ title: 'Login failed', description: result.error || 'Invalid phone or PIN', variant: 'destructive' });
+    }
+  };
+
+  const handleResetPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tournamentId || !resetPhone.trim()) return;
+
+    setIsResetting(true);
+    try {
+      // Find the player by phone in this tournament
+      const { data: player, error } = await supabase
+        .from('players')
+        .select('id, full_name')
+        .eq('tournament_id', tournamentId)
+        .eq('phone', resetPhone.trim())
+        .single();
+
+      if (error || !player) {
+        toast({ title: 'Not found', description: 'No player found with that phone number in this tournament.', variant: 'destructive' });
+        setIsResetting(false);
+        return;
+      }
+
+      // Generate new 4-digit PIN
+      const generated = String(Math.floor(1000 + Math.random() * 9000));
+      const pinHash = hashPin(generated);
+
+      await supabase
+        .from('players')
+        .update({ pin_hash: pinHash, session_token: null })
+        .eq('id', player.id);
+
+      setNewPin(generated);
+      toast({ title: 'PIN reset!', description: `New PIN generated for ${player.full_name}` });
+    } catch {
+      toast({ title: 'Error', description: 'Something went wrong', variant: 'destructive' });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -69,58 +98,142 @@ export default function LoginPage() {
           <p className="text-muted-foreground">Enter your phone and PIN to continue</p>
         </div>
 
-        {/* Login Form */}
-        <Card className="chaos-card">
-          <CardHeader>
-            <CardTitle className="text-lg">Sign In</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+34 612 345 678"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="pl-10 touch-target"
-                    required
-                  />
-                </div>
-              </div>
+        {!showReset ? (
+          <>
+            {/* Login Form */}
+            <Card className="chaos-card">
+              <CardHeader>
+                <CardTitle className="text-lg">Sign In</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="+34 612 345 678"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="pl-10 touch-target"
+                        required
+                      />
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="pin">4-Digit PIN</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="pin"
-                    type="password"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={4}
-                    placeholder="••••"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    className="pl-10 touch-target text-center tracking-[0.5em] text-lg"
-                    required
-                  />
-                </div>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pin">4-Digit PIN</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="pin"
+                        type="password"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={4}
+                        placeholder="••••"
+                        value={pin}
+                        onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                        className="pl-10 touch-target text-center tracking-[0.5em] text-lg"
+                        required
+                      />
+                    </div>
+                  </div>
 
-              <Button 
-                type="submit" 
-                className="w-full touch-target bg-gradient-primary hover:opacity-90"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing in...' : 'Sign In'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                  <Button 
+                    type="submit" 
+                    className="w-full touch-target bg-gradient-primary hover:opacity-90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Signing in...' : 'Sign In'}
+                  </Button>
+                </form>
+
+                <Button
+                  variant="link"
+                  className="w-full mt-2 text-muted-foreground"
+                  onClick={() => { setShowReset(true); setNewPin(null); }}
+                >
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Forgot your PIN?
+                </Button>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          /* Reset PIN Form */
+          <Card className="chaos-card">
+            <CardHeader>
+              <CardTitle className="text-lg">Reset PIN</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {newPin ? (
+                <div className="text-center space-y-4">
+                  <p className="text-sm text-muted-foreground">Your new PIN is:</p>
+                  <p className="text-4xl font-mono font-bold text-primary tracking-[0.5em]">{newPin}</p>
+                  <p className="text-sm text-muted-foreground">⚠️ Save this PIN! It won't be shown again.</p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      navigator.clipboard.writeText(newPin);
+                      toast({ title: 'PIN copied!' });
+                    }}
+                  >
+                    Copy PIN
+                  </Button>
+                  <Button
+                    className="w-full bg-gradient-primary"
+                    onClick={() => { setShowReset(false); setNewPin(null); setPin(''); }}
+                  >
+                    Back to Sign In
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleResetPin} className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Enter the phone number you signed up with and we'll generate a new PIN.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="resetPhone">Phone Number</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="resetPhone"
+                        type="tel"
+                        placeholder="+34 612 345 678"
+                        value={resetPhone}
+                        onChange={(e) => setResetPhone(e.target.value)}
+                        className="pl-10 touch-target"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full touch-target bg-gradient-primary hover:opacity-90"
+                    disabled={isResetting}
+                  >
+                    {isResetting ? 'Resetting...' : 'Reset My PIN'}
+                  </Button>
+                </form>
+              )}
+
+              {!newPin && (
+                <Button
+                  variant="ghost"
+                  className="w-full mt-2"
+                  onClick={() => setShowReset(false)}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Sign In
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Back link */}
         <Button
