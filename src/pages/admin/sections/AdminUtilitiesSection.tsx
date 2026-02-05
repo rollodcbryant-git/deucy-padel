@@ -1,8 +1,9 @@
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { Tournament } from '@/lib/types';
-import { Database, Trash2, Archive, Copy, ExternalLink } from 'lucide-react';
+import { Database, Trash2, Archive, Copy, ExternalLink, Eye } from 'lucide-react';
 
 interface Props {
   tournament: Tournament;
