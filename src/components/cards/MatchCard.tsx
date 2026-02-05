@@ -151,17 +151,23 @@ export function MatchCard({
               </div>
             )}
 
-            {/* Club booking link */}
-            {bookingUrl && (
+            {/* Court location & booking */}
+            <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <p className="text-xs text-muted-foreground leading-snug">
+                  BOIX TEAM TENNIS — Gran Vía de Fernando el Católico, 78, Extramurs, 46008 València
+                </p>
+              </div>
               <Button 
                 variant="outline" 
                 className="w-full touch-target"
-                onClick={() => window.open(bookingUrl, '_blank')}
+                onClick={() => window.open('https://boixteam.es/booking-gran-via', '_blank')}
               >
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Open Club Booking
+                Book Court
               </Button>
-            )}
+            </div>
 
             {/* Report result */}
             {isBookingClaimed && onReportResult && (
