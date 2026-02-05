@@ -13,12 +13,13 @@ import { Camera, X, Loader2 } from 'lucide-react';
 interface PledgeFormProps {
   tournamentId: string;
   playerId: string;
+  roundId?: string | null;
   existing?: PledgeItem | null;
   onSaved: () => void;
   onCancel?: () => void;
 }
 
-export function PledgeForm({ tournamentId, playerId, existing, onSaved, onCancel }: PledgeFormProps) {
+export function PledgeForm({ tournamentId, playerId, roundId, existing, onSaved, onCancel }: PledgeFormProps) {
   const { toast } = useToast();
   const [title, setTitle] = useState(existing?.title || '');
   const [category, setCategory] = useState<PledgeCategory>(existing?.category as PledgeCategory || 'food');
