@@ -152,8 +152,8 @@ export default function AdminTournamentCreate() {
                   <Input
                     id="min_players"
                     type="number"
-                    min={4}
-                    max={100}
+                    min={8}
+                    max={24}
                     value={formData.min_players}
                     onChange={(e) => updateField('min_players', parseInt(e.target.value))}
                     className="touch-target"
