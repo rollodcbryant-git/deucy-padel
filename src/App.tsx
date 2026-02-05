@@ -9,6 +9,7 @@ import { PlayerProvider } from "@/contexts/PlayerContext";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Join from "./pages/Join";
+import Lobby from "./pages/Lobby";
 import Home from "./pages/Home";
 import Matches from "./pages/Matches";
 import Leaderboard from "./pages/Leaderboard";
@@ -39,7 +40,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<Login />} />
+            <Route path="/" element={<Lobby />} />
+            <Route path="/lobby" element={<Lobby />} />
             <Route path="/landing" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/join" element={<Join />} />
