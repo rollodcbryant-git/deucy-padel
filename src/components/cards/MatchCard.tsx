@@ -4,6 +4,7 @@ import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { cn } from '@/lib/utils';
 import { Phone, ExternalLink, Check, MapPin } from 'lucide-react';
+import { PlayerLink } from '@/components/ui/PlayerLink';
 import type { MatchWithPlayers, Player } from '@/lib/types';
 
 interface MatchCardProps {
