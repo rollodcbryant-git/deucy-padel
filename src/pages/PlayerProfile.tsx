@@ -108,6 +108,7 @@ export default function PlayerProfilePage() {
   }
 
   const roundMap = new Map(rounds.map(r => [r.id, r]));
+  const visiblePledges = isSelf ? pledges : pledges.filter(p => p.status === 'Approved');
   const setDiff = profilePlayer.sets_won - profilePlayer.sets_lost;
   const showDecimals = tournament.display_decimals;
 
