@@ -93,6 +93,19 @@ export default function JoinPage() {
       setGeneratedPin(pin);
       setStep('pin');
 
+      // Auto-login the new player so CompleteEntry page works
+      if (newPlayer) {
+        const token = crypto.randomUUID();
+        await supabase.from('players').update({ session_token: token }).eq('id', newPlayer.id);
+        const session = {
+          playerId: newPlayer.id,
+          tournamentId,
+          playerName: fullName,
+          token,
+        };
+        localStorage.setItem('padel_chaos_session', JSON.stringify(session));
+      }
+
       toast({
         title: 'Welcome to the chaos! 🎾',
         description: 'Save your PIN - you\'ll need it to log in.',
