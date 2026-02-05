@@ -14,15 +14,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { PledgeItem, PledgeCategory } from '@/lib/types';
 import { Gift, Plus, Check, Pencil } from 'lucide-react';
+import { formatEuros } from '@/lib/euros';
 
 const getCategoryEmoji = (category: string) => {
   switch (category) {
-    case 'food': return '🍕';
-    case 'drink': return '🍷';
-    case 'object': return '🎁';
-    case 'service': return '💆';
-    case 'chaos': return '🎲';
-    default: return '📦';
+    case 'food': return '🍕'; case 'drink': return '🍷'; case 'object': return '🎁'; case 'service': return '💆'; case 'chaos': return '🎲'; default: return '📦';
   }
 };
 
@@ -36,7 +32,6 @@ export default function PledgesPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Form state
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<PledgeCategory>('food');
   const [description, setDescription] = useState('');
@@ -54,15 +49,7 @@ export default function PledgesPage() {
 
   const loadPledges = async () => {
     if (!tournament || !player) return;
-
-    // Load my pledge
-    const { data: mine } = await supabase
-      .from('pledge_items')
-      .select('*')
-      .eq('tournament_id', tournament.id)
-      .eq('pledged_by_player_id', player.id)
-      .maybeSingle();
-
+    const { data: mine } = await supabase.from('pledge_items').select('*').eq('tournament_id', tournament.id).eq('pledged_by_player_id', player.id).maybeSingle();
     if (mine) {
       setMyPledge(mine as PledgeItem);
       setTitle(mine.title);
@@ -70,15 +57,7 @@ export default function PledgesPage() {
       setDescription(mine.description || '');
       setQuantityText(mine.quantity_text || '');
     }
-
-    // Load all approved pledges
-    const { data: all } = await supabase
-      .from('pledge_items')
-      .select('*')
-      .eq('tournament_id', tournament.id)
-      .in('status', ['Approved', 'Draft'])
-      .order('created_at', { ascending: false });
-
+    const { data: all } = await supabase.from('pledge_items').select('*').eq('tournament_id', tournament.id).in('status', ['Approved', 'Draft']).order('created_at', { ascending: false });
     setAllPledges((all || []) as PledgeItem[]);
   };
 
@@ -88,32 +67,20 @@ export default function PledgesPage() {
       toast({ title: 'Title required', variant: 'destructive' });
       return;
     }
-
     setIsSaving(true);
     try {
       if (myPledge) {
-        // Update
         if (myPledge.status === 'Approved') {
           toast({ title: 'Already approved', description: "Can't edit after admin approval", variant: 'destructive' });
           return;
         }
-        await supabase
-          .from('pledge_items')
-          .update({ title, category, description: description || null, quantity_text: quantityText || null })
-          .eq('id', myPledge.id);
+        await supabase.from('pledge_items').update({ title, category, description: description || null, quantity_text: quantityText || null }).eq('id', myPledge.id);
       } else {
-        // Create
         await supabase.from('pledge_items').insert({
-          tournament_id: tournament.id,
-          pledged_by_player_id: player.id,
-          title,
-          category,
-          description: description || null,
-          quantity_text: quantityText || null,
-          status: 'Draft',
+          tournament_id: tournament.id, pledged_by_player_id: player.id, title, category,
+          description: description || null, quantity_text: quantityText || null, status: 'Draft',
         });
       }
-
       toast({ title: myPledge ? 'Pledge updated! 🎁' : 'Pledge submitted! 🎁' });
       setIsEditing(false);
       loadPledges();
@@ -132,7 +99,6 @@ export default function PledgesPage() {
     );
   }
 
-  
   const canEdit = !myPledge || myPledge.status === 'Draft';
   const showForm = !myPledge || isEditing;
 
@@ -142,20 +108,15 @@ export default function PledgesPage() {
         header={
           <div className="p-4">
             <h1 className="font-bold text-xl flex items-center gap-2">
-              <Gift className="h-6 w-6 text-chaos-orange" />
-              Pledges
+              <Gift className="h-6 w-6 text-chaos-orange" /> Pledges
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Everyone brings something to the chaos
-            </p>
+            <p className="text-sm text-muted-foreground">Everyone brings something to the chaos</p>
           </div>
         }
       >
         <div className="space-y-6">
-          {/* My Pledge */}
           <div className="space-y-3">
             <h2 className="font-semibold text-lg">Your Pledge</h2>
-
             {myPledge && !isEditing ? (
               <Card className="chaos-card border-primary/30">
                 <CardContent className="p-4 space-y-3">
@@ -167,28 +128,19 @@ export default function PledgesPage() {
                         <p className="text-sm text-muted-foreground capitalize">{myPledge.category}</p>
                       </div>
                     </div>
-                    <StatusChip
-                      variant={myPledge.status === 'Approved' ? 'success' : 'neutral'}
-                      size="sm"
-                    >
+                    <StatusChip variant={myPledge.status === 'Approved' ? 'success' : 'neutral'} size="sm">
                       {myPledge.status}
                     </StatusChip>
                   </div>
-
-                  {myPledge.description && (
-                    <p className="text-sm text-muted-foreground">{myPledge.description}</p>
-                  )}
-
+                  {myPledge.description && <p className="text-sm text-muted-foreground">{myPledge.description}</p>}
                   {myPledge.estimate_low && myPledge.estimate_high && (
                     <p className="text-sm text-primary">
-                      💰 Estimate: {myPledge.estimate_low} - {myPledge.estimate_high} credits
+                      Estimate: {formatEuros(myPledge.estimate_low)} – {formatEuros(myPledge.estimate_high)}
                     </p>
                   )}
-
                   {canEdit && (
                     <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                      <Pencil className="mr-1 h-3 w-3" />
-                      Edit
+                      <Pencil className="mr-1 h-3 w-3" /> Edit
                     </Button>
                   )}
                 </CardContent>
@@ -196,28 +148,17 @@ export default function PledgesPage() {
             ) : showForm ? (
               <Card className="chaos-card">
                 <CardHeader>
-                  <CardTitle className="text-base">
-                    {myPledge ? 'Edit Your Pledge' : 'Submit Your Pledge'}
-                  </CardTitle>
+                  <CardTitle className="text-base">{myPledge ? 'Edit Your Pledge' : 'Submit Your Pledge'}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label>What are you pledging? *</Label>
-                    <Input
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Homemade churros"
-                      className="touch-target"
-                      required
-                    />
+                    <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Homemade churros" className="touch-target" required />
                   </div>
-
                   <div className="space-y-2">
                     <Label>Category</Label>
                     <Select value={category} onValueChange={(v) => setCategory(v as PledgeCategory)}>
-                      <SelectTrigger className="touch-target">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger className="touch-target"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="food">🍕 Food</SelectItem>
                         <SelectItem value="drink">🍷 Drink</SelectItem>
@@ -227,50 +168,27 @@ export default function PledgesPage() {
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div className="space-y-2">
                     <Label>Description (optional)</Label>
-                    <Textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Tell people what makes it special..."
-                      rows={3}
-                    />
+                    <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell people what makes it special..." rows={3} />
                   </div>
-
                   <div className="space-y-2">
                     <Label>Quantity (optional)</Label>
-                    <Input
-                      value={quantityText}
-                      onChange={(e) => setQuantityText(e.target.value)}
-                      placeholder="e.g., 1 bottle, 6 servings"
-                      className="touch-target"
-                    />
+                    <Input value={quantityText} onChange={(e) => setQuantityText(e.target.value)} placeholder="e.g., 1 bottle, 6 servings" className="touch-target" />
                   </div>
-
                   <div className="flex gap-2">
-                    <Button
-                      onClick={handleSave}
-                      disabled={isSaving || !title.trim()}
-                      className="flex-1 touch-target bg-gradient-primary hover:opacity-90"
-                    >
+                    <Button onClick={handleSave} disabled={isSaving || !title.trim()} className="flex-1 touch-target bg-gradient-primary hover:opacity-90">
                       {isSaving ? 'Saving...' : myPledge ? 'Update Pledge' : 'Submit Pledge'}
                     </Button>
-                    {isEditing && (
-                      <Button variant="outline" onClick={() => setIsEditing(false)} className="touch-target">
-                        Cancel
-                      </Button>
-                    )}
+                    {isEditing && <Button variant="outline" onClick={() => setIsEditing(false)} className="touch-target">Cancel</Button>}
                   </div>
                 </CardContent>
               </Card>
             ) : null}
           </div>
 
-          {/* All Pledges */}
           <div className="space-y-3">
             <h2 className="font-semibold text-lg">All Pledges ({allPledges.length})</h2>
-
             {allPledges.length === 0 ? (
               <Card className="chaos-card">
                 <CardContent className="p-6 text-center">
@@ -280,23 +198,15 @@ export default function PledgesPage() {
               </Card>
             ) : (
               allPledges.map((pledge) => (
-                <Card
-                  key={pledge.id}
-                  className={`chaos-card ${pledge.pledged_by_player_id === player.id ? 'border-primary/30' : ''}`}
-                >
+                <Card key={pledge.id} className={`chaos-card ${pledge.pledged_by_player_id === player.id ? 'border-primary/30' : ''}`}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{getCategoryEmoji(pledge.category)}</span>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{pledge.title}</p>
-                        {pledge.description && (
-                          <p className="text-sm text-muted-foreground truncate">{pledge.description}</p>
-                        )}
+                        {pledge.description && <p className="text-sm text-muted-foreground truncate">{pledge.description}</p>}
                       </div>
-                      <StatusChip
-                        variant={pledge.status === 'Approved' ? 'success' : 'neutral'}
-                        size="sm"
-                      >
+                      <StatusChip variant={pledge.status === 'Approved' ? 'success' : 'neutral'} size="sm">
                         {pledge.status === 'Approved' ? <Check className="h-3 w-3" /> : pledge.status}
                       </StatusChip>
                     </div>
@@ -307,7 +217,6 @@ export default function PledgesPage() {
           </div>
         </div>
       </PageLayout>
-
       <BottomNav />
     </>
   );

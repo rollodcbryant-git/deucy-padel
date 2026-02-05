@@ -27,7 +27,15 @@ export default function AdminSetupSection({ tournament, onReload }: Props) {
     participation_bonus: tournament.participation_bonus,
     penalty_amount: tournament.penalty_amount,
     playoffs_enabled: tournament.playoffs_enabled,
+    euros_per_set_win: tournament.euros_per_set_win,
+    euros_per_set_loss: tournament.euros_per_set_loss,
+    allow_negative_balance: tournament.allow_negative_balance,
+    display_decimals: tournament.display_decimals,
   });
+
+  // Helper to display cents as euros for input
+  const centsToEuros = (cents: number) => (cents / 100).toString();
+  const eurosToCents = (euros: string) => Math.round(parseFloat(euros || '0') * 100);
 
   const save = async () => {
     setSaving(true);
@@ -42,6 +50,10 @@ export default function AdminSetupSection({ tournament, onReload }: Props) {
       participation_bonus: form.participation_bonus,
       penalty_amount: form.penalty_amount,
       playoffs_enabled: form.playoffs_enabled,
+      euros_per_set_win: form.euros_per_set_win,
+      euros_per_set_loss: form.euros_per_set_loss,
+      allow_negative_balance: form.allow_negative_balance,
+      display_decimals: form.display_decimals,
     }).eq('id', tournament.id);
     setSaving(false);
     if (error) {
@@ -72,6 +84,24 @@ export default function AdminSetupSection({ tournament, onReload }: Props) {
     </div>
   );
 
+  // Euro field: displays/edits in euros, stores as cents
+  const euroField = (label: string, key: keyof typeof form) => (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
+        <Input
+          type="number"
+          value={centsToEuros(form[key] as number)}
+          onChange={e => setForm(f => ({ ...f, [key]: eurosToCents(e.target.value) }))}
+          className="h-9 pl-7"
+          step="0.5"
+          min="0"
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3">
@@ -87,16 +117,34 @@ export default function AdminSetupSection({ tournament, onReload }: Props) {
 
       <p className="text-xs text-muted-foreground">Player range: 8–24. Auto-recommended rounds: 8-12→3, 13-18→4, 19-24→5</p>
 
-      <div className="grid grid-cols-2 gap-3">
-        {field('Starting Credits', 'starting_credits', 'number')}
-        {field('Stake / Player', 'stake_per_player', 'number')}
-        {field('Participation Bonus', 'participation_bonus', 'number')}
-        {field('Penalty Amount', 'penalty_amount', 'number')}
+      {/* Euro Economy Settings */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">€ Economy</p>
+        <div className="grid grid-cols-2 gap-3">
+          {euroField('Starting Balance', 'starting_credits')}
+          {euroField('Per Set Win', 'euros_per_set_win')}
+          {euroField('Per Set Loss', 'euros_per_set_loss')}
+          {euroField('Penalty Amount', 'penalty_amount')}
+        </div>
       </div>
 
-      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-        <Label className="text-sm">Playoffs enabled</Label>
-        <Switch checked={form.playoffs_enabled} onCheckedChange={v => setForm(f => ({ ...f, playoffs_enabled: v }))} />
+      <div className="space-y-3">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+          <Label className="text-sm">Allow negative balance</Label>
+          <Switch checked={form.allow_negative_balance} onCheckedChange={v => setForm(f => ({ ...f, allow_negative_balance: v }))} />
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+          <Label className="text-sm">Show decimals (€20.00 vs €20)</Label>
+          <Switch checked={form.display_decimals} onCheckedChange={v => setForm(f => ({ ...f, display_decimals: v }))} />
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+          <Label className="text-sm">Playoffs enabled</Label>
+          <Switch checked={form.playoffs_enabled} onCheckedChange={v => setForm(f => ({ ...f, playoffs_enabled: v }))} />
+        </div>
+      </div>
+
+      <div className="p-3 rounded-lg bg-muted/20 text-xs text-muted-foreground">
+        ℹ️ All amounts stored as cents internally. "In-app € balance only — no real money."
       </div>
 
       <div className="flex gap-2">

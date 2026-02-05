@@ -107,7 +107,7 @@ export default function AdminTournamentDetail() {
     { id: 'roster', icon: Users, label: 'Roster', badge: `${confirmed}/${players.length}` },
     { id: 'rounds', icon: Calendar, label: 'Rounds', badge: `${rounds.length}` },
     { id: 'matches', icon: Swords, label: 'Matches', badge: liveRound ? `R${liveRound.index}` : '—' },
-    { id: 'credits', icon: Coins, label: 'Credits & Ledger' },
+    { id: 'credits', icon: Coins, label: '€ Balance & Ledger' },
     { id: 'pledges', icon: Gift, label: 'Pledges', badge: `${pledges.length}` },
     { id: 'auction', icon: Gavel, label: 'Auction' },
     { id: 'utilities', icon: Wrench, label: 'Utilities' },
@@ -138,9 +138,7 @@ export default function AdminTournamentDetail() {
                 <div className="flex items-center gap-3 text-sm">
                   <s.icon className="h-4 w-4 text-primary flex-shrink-0" />
                   <span className="font-medium">{s.label}</span>
-                  {s.badge && (
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{s.badge}</span>
-                  )}
+                  {s.badge && <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{s.badge}</span>}
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">

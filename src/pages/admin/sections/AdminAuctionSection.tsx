@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Tournament, Auction, AuctionLot, PledgeItem, Player } from '@/lib/types';
 import { Gavel, Pause, Copy, EyeOff, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatEuros } from '@/lib/euros';
 
 interface Props {
   tournament: Tournament;
@@ -22,9 +23,7 @@ export default function AdminAuctionSection({ tournament, players, onReload, cal
 
   const playerMap = new Map(players.map(p => [p.id, p]));
 
-  useEffect(() => {
-    loadAuction();
-  }, [tournament.id]);
+  useEffect(() => { loadAuction(); }, [tournament.id]);
 
   const loadAuction = async () => {
     const { data: a } = await supabase.from('auctions').select('*').eq('tournament_id', tournament.id).maybeSingle();
@@ -38,7 +37,7 @@ export default function AdminAuctionSection({ tournament, players, onReload, cal
   const exportWinners = () => {
     const block = lots
       .filter(l => l.current_winner_player_id && l.status === 'Ended')
-      .map(l => `${l.pledge_item?.title || '?'}: ${playerMap.get(l.current_winner_player_id!)?.full_name || '?'} (${l.current_bid}c)`)
+      .map(l => `${l.pledge_item?.title || '?'}: ${playerMap.get(l.current_winner_player_id!)?.full_name || '?'} (${formatEuros(l.current_bid || 0)})`)
       .join('\n');
     navigator.clipboard.writeText(block || 'No winners yet');
     toast({ title: 'Winners list copied' });
@@ -59,7 +58,6 @@ export default function AdminAuctionSection({ tournament, players, onReload, cal
 
   return (
     <div className="space-y-3">
-      {/* Controls */}
       {tournament.status === 'Finished' && !auction && (
         <Button className="w-full bg-gradient-hot" onClick={() => callEngine('start_auction')} disabled={isUpdating}>
           <Gavel className="mr-2 h-4 w-4" />Start 24h Auction
@@ -88,7 +86,6 @@ export default function AdminAuctionSection({ tournament, players, onReload, cal
         </div>
       )}
 
-      {/* Lots */}
       {lots.length > 0 && (
         <div className="space-y-2 max-h-80 overflow-y-auto">
           {lots.map(lot => (
@@ -98,7 +95,7 @@ export default function AdminAuctionSection({ tournament, players, onReload, cal
                 <StatusChip variant={lot.status === 'Live' ? 'live' : 'ended'} size="sm">{lot.status}</StatusChip>
               </div>
               <p className="text-xs text-muted-foreground">
-                Bid: {lot.current_bid ?? '—'}c
+                Bid: {lot.current_bid != null ? formatEuros(lot.current_bid) : '—'}
                 {lot.current_winner_player_id && ` · ${playerMap.get(lot.current_winner_player_id)?.full_name || '?'}`}
               </p>
               {lot.status === 'Live' && (
