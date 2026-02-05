@@ -16,18 +16,8 @@ const navItems: NavItem[] = [
   { path: '/players', label: 'Players', icon: <Users className="h-5 w-5" /> },
 ];
 
-interface BottomNavProps {
-  showAuction?: boolean;
-}
-
-export function BottomNav({ showAuction = false }: BottomNavProps) {
+export function BottomNav() {
   const location = useLocation();
-
-  const visibleItems = navItems.filter((item) => {
-    if (item.showWhen === 'auction') return showAuction;
-    if (item.showWhen === 'no-auction') return !showAuction;
-    return true;
-  });
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border safe-bottom">
