@@ -13,6 +13,7 @@ import type { MatchWithPlayers, Player, Round } from '@/lib/types';
 import { Trophy, Calendar, CheckCircle, LogOut, ExternalLink } from 'lucide-react';
 import { MatchCard } from '@/components/cards/MatchCard';
 import { OnboardingCarousel } from '@/components/onboarding/OnboardingCarousel';
+import { formatEuros } from '@/lib/euros';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -50,7 +51,6 @@ export default function HomePage() {
     if (!player || !tournament) return;
 
     try {
-      // Get current round
       const { data: rounds } = await supabase
         .from('rounds')
         .select('*')
@@ -61,7 +61,6 @@ export default function HomePage() {
       if (rounds && rounds.length > 0) {
         setCurrentRound(rounds[0] as Round);
 
-        // Get player's match in current round
         const { data: matches } = await supabase
           .from('matches')
           .select('*')
@@ -70,8 +69,6 @@ export default function HomePage() {
 
         if (matches && matches.length > 0) {
           const match = matches[0];
-          
-          // Load player details for the match
           const playerIds = [
             match.team_a_player1_id,
             match.team_a_player2_id,
@@ -96,7 +93,6 @@ export default function HomePage() {
         }
       }
 
-      // Get leaderboard (top 10)
       const { data: topPlayers } = await supabase
         .from('players')
         .select('*')
@@ -107,7 +103,6 @@ export default function HomePage() {
 
       setLeaderboard((topPlayers || []) as Player[]);
 
-      // Calculate player's rank
       const { count } = await supabase
         .from('players')
         .select('*', { count: 'exact', head: true })
@@ -123,12 +118,10 @@ export default function HomePage() {
 
   const handleConfirmParticipation = async () => {
     if (!player) return;
-
     const { error } = await supabase
       .from('players')
       .update({ confirmed: true })
       .eq('id', player.id);
-
     if (!error) {
       await refreshPlayer();
     }
@@ -136,7 +129,6 @@ export default function HomePage() {
 
   const handleClaimBooking = async () => {
     if (!currentMatch || !player) return;
-
     const { error } = await supabase
       .from('matches')
       .update({
@@ -145,7 +137,6 @@ export default function HomePage() {
         status: 'BookingClaimed',
       })
       .eq('id', currentMatch.id);
-
     if (!error) {
       loadData();
     }
@@ -171,8 +162,6 @@ export default function HomePage() {
     return null;
   }
 
-  
-
   return (
     <>
       <OnboardingCarousel open={showOnboarding} onComplete={handleOnboardingComplete} />
@@ -195,7 +184,7 @@ export default function HomePage() {
         }
       >
         <div className="space-y-6">
-          {/* Credits display */}
+          {/* Balance display */}
           <Card className="chaos-card bg-gradient-dark border-primary/20">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -207,6 +196,8 @@ export default function HomePage() {
                   amount={player.credits_balance}
                   variant="large"
                   rank={playerRank}
+                  showDisclaimer
+                  showDecimals={tournament.display_decimals}
                 />
               </div>
             </CardContent>
