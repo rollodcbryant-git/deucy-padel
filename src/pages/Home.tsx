@@ -11,6 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { MatchWithPlayers, Player, Round } from '@/lib/types';
 import { Trophy, Calendar, CheckCircle, LogOut, ExternalLink } from 'lucide-react';
 import { MatchCard } from '@/components/cards/MatchCard';
+import { OnboardingCarousel } from '@/components/onboarding/OnboardingCarousel';
+import { PledgeNudgeCard } from '@/components/onboarding/PledgeNudgeCard';
 
 export default function HomePage() {
   const navigate = useNavigate();
