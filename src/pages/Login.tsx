@@ -79,7 +79,7 @@ export default function LoginPage() {
 
     if (result.success) {
       toast({ title: 'Welcome back! 🎾', description: 'Time to cause some chaos.' });
-      navigate('/home');
+      navigate('/');
     } else {
       toast({ title: 'Login failed', description: result.error || 'Invalid phone or PIN', variant: 'destructive' });
     }
