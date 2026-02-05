@@ -156,10 +156,11 @@ export function PledgeForm({ tournamentId, playerId, roundId, existing, onSaved,
           </Select>
         </div>
 
-        {/* Description */}
+        {/* Description (optional) */}
         <div className="space-y-2">
-          <Label>Short description *</Label>
-          <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Tell people what makes it special..." rows={3} />
+          <Label>Short description <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <Textarea value={description} onChange={e => setDescription(e.target.value.slice(0, 120))} placeholder="What makes it special..." rows={2} maxLength={120} />
+          <p className="text-xs text-muted-foreground text-right">{description.length}/120</p>
         </div>
 
         {/* Buttons */}
