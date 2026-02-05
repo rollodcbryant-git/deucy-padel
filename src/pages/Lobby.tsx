@@ -10,6 +10,7 @@ import { CreditsDisplay } from '@/components/ui/CreditsDisplay';
 import { Settings, Loader2, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJuiceEmoji } from '@/lib/juice-names';
+import { BottomNav } from '@/components/layout/BottomNav';
 import type { Tournament } from '@/lib/types';
 
 interface TournamentWithCount extends Tournament {
