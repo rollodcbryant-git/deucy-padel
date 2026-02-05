@@ -638,10 +638,14 @@ export type Database = {
       }
       tournaments: {
         Row: {
+          allow_negative_balance: boolean
           booking_url: string | null
           club_name: string | null
           created_at: string
           created_by_admin_id: string | null
+          display_decimals: boolean
+          euros_per_set_loss: number
+          euros_per_set_win: number
           id: string
           join_code: string | null
           max_players: number
@@ -660,10 +664,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_negative_balance?: boolean
           booking_url?: string | null
           club_name?: string | null
           created_at?: string
           created_by_admin_id?: string | null
+          display_decimals?: boolean
+          euros_per_set_loss?: number
+          euros_per_set_win?: number
           id?: string
           join_code?: string | null
           max_players?: number
@@ -682,10 +690,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_negative_balance?: boolean
           booking_url?: string | null
           club_name?: string | null
           created_at?: string
           created_by_admin_id?: string | null
+          display_decimals?: boolean
+          euros_per_set_loss?: number
+          euros_per_set_win?: number
           id?: string
           join_code?: string | null
           max_players?: number
