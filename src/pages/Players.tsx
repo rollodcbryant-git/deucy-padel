@@ -146,7 +146,7 @@ export default function PlayersPage() {
         </div>
       </PageLayout>
 
-      <BottomNav showAuction={showAuction} />
+      <BottomNav />
     </>
   );
 }

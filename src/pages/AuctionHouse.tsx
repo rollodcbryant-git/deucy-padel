@@ -228,7 +228,7 @@ export default function AuctionHousePage() {
         </div>
       </PageLayout>
 
-      <BottomNav showAuction={auctionLive} />
+      <BottomNav />
     </>
   );
 }

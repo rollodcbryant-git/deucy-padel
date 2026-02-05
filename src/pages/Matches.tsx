@@ -255,7 +255,7 @@ export default function MatchesPage() {
         </div>
       </PageLayout>
 
-      <BottomNav showAuction={showAuction} />
+      <BottomNav />
 
       {/* Report Result Dialog */}
       <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>

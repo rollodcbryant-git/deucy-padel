@@ -141,7 +141,7 @@ export default function LeaderboardPage() {
         </div>
       </PageLayout>
 
-      <BottomNav showAuction={showAuction} />
+      <BottomNav />
     </>
   );
 }

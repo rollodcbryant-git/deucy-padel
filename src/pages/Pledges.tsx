@@ -308,7 +308,7 @@ export default function PledgesPage() {
         </div>
       </PageLayout>
 
-      <BottomNav showAuction={showAuction} />
+      <BottomNav />
     </>
   );
 }

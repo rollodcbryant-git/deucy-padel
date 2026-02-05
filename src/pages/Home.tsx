@@ -330,7 +330,7 @@ export default function HomePage() {
         </div>
       </PageLayout>
 
-      <BottomNav showAuction={showAuction} />
+      <BottomNav />
     </>
   );
 }

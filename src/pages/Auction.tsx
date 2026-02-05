@@ -316,7 +316,7 @@ export default function AuctionPage() {
         </div>
       </PageLayout>
 
-      <BottomNav showAuction={true} />
+      <BottomNav />
     </>
   );
 }
