@@ -15,7 +15,15 @@ interface Props {
 
 export default function AdminRosterSection({ players, onReload }: Props) {
   const { toast } = useToast();
+  const [resetPinResult, setResetPinResult] = useState<{ name: string; pin: string } | null>(null);
 
+  const resetPin = async (player: Player) => {
+    const generated = String(Math.floor(1000 + Math.random() * 9000));
+    const pinHash = hashPin(generated);
+    await supabase.from('players').update({ pin_hash: pinHash, session_token: null }).eq('id', player.id);
+    setResetPinResult({ name: player.full_name, pin: generated });
+    toast({ title: `PIN reset for ${player.full_name}` });
+  };
   const toggleConfirm = async (id: string, confirmed: boolean) => {
     await supabase.from('players').update({ confirmed }).eq('id', id);
     onReload();
