@@ -28,7 +28,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!isLoading && !session) {
-      navigate('/');
+      navigate('/login');
       return;
     }
 
