@@ -6,7 +6,6 @@ interface NavItem {
   path: string;
   label: string;
   icon: React.ReactNode;
-  showWhen?: 'always' | 'auction' | 'no-auction';
 }
 
 const navItems: NavItem[] = [
