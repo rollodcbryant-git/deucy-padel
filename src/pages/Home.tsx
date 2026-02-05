@@ -314,11 +314,27 @@ export default function HomePage() {
             </Card>
           )}
 
-          {/* No match yet */}
-          {tournament.status === 'Live' && !currentMatch && (
-            <Card className="chaos-card">
+          {/* Pledge gate warning */}
+          {tournament.status === 'Live' && pledgeGateActive && (
+            <Card className="chaos-card border-chaos-orange/50 bg-chaos-orange/5">
               <CardContent className="p-6 text-center">
-                <div className="text-4xl mb-3">⏳</div>
+                <div className="text-4xl mb-3">🎁</div>
+                <p className="font-semibold text-chaos-orange">Pledge missing for this round</p>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">
+                  Drop a pledge to stay eligible for matches
+                </p>
+                <Button
+                  className="w-full touch-target bg-gradient-primary hover:opacity-90"
+                  onClick={() => navigate('/auction')}
+                >
+                  Add your pledge
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* No match yet */}
+          {tournament.status === 'Live' && !currentMatch && !pledgeGateActive && (
                 <p className="font-semibold">No active match right now</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Check back when the next round starts
