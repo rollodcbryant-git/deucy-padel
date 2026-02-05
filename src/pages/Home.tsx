@@ -24,7 +24,6 @@ export default function HomePage() {
   const [playerRank, setPlayerRank] = useState<number>(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [hasPledged, setHasPledged] = useState(true);
-  const [playerRank, setPlayerRank] = useState<number>(0);
 
   useEffect(() => {
     if (!isLoading && !session) {
