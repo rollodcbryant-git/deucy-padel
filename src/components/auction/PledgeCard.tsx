@@ -29,7 +29,7 @@ function formatEstimate(low: number | null, high: number | null): string | null 
   return null;
 }
 
-export function PledgeCard({ pledge, pledger, isOwner, onClick }: PledgeCardProps) {
+export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: PledgeCardProps) {
   const cat = getCategoryConfig(pledge.category);
   const estimate = formatEstimate(pledge.estimate_low, pledge.estimate_high);
   const isPending = pledge.status === 'Draft';
