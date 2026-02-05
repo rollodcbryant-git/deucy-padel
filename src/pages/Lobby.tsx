@@ -281,6 +281,8 @@ export default function LobbyPage() {
           Admin Panel
         </Link>
       </div>
+
+      <BottomNav />
     </div>
   );
 }
