@@ -145,7 +145,7 @@ export default function AdminTournamentDetail() {
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
                 {s.id === 'setup' && <AdminSetupSection tournament={tournament} onReload={loadData} />}
-                {s.id === 'roster' && <AdminRosterSection players={players} onReload={loadData} />}
+                {s.id === 'roster' && <AdminRosterSection players={players} tournament={tournament} onReload={loadData} />}
                 {s.id === 'rounds' && <AdminRoundsSection tournament={tournament} rounds={rounds} matches={matches} onReload={loadData} callEngine={callEngine} isUpdating={isUpdating} />}
                 {s.id === 'matches' && <AdminMatchesSection tournament={tournament} rounds={rounds} matches={matches} players={players} onReload={loadData} callEngine={callEngine} isUpdating={isUpdating} />}
                 {s.id === 'credits' && <AdminCreditsSection tournamentId={tournament.id} players={players} onReload={loadData} />}
