@@ -33,12 +33,9 @@ export default function HomePage() {
 
     if (session && player && tournament) {
       loadData();
-      // Show onboarding on first login
       if (!player.has_seen_onboarding) {
         setShowOnboarding(true);
       }
-      // Check if player has pledged for current round
-      checkPledgeStatus();
     }
   }, [session, player, tournament, isLoading, navigate]);
 
