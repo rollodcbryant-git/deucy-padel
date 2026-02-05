@@ -129,7 +129,8 @@ export default function JoinPage() {
   };
 
   const handleContinue = () => {
-    navigate(`/complete-entry`);
+    // Full reload so PlayerContext picks up the new session from localStorage
+    window.location.href = '/complete-entry';
   };
 
   if (step === 'pin') {
