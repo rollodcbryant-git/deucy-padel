@@ -47,6 +47,14 @@ Deno.serve(async (req) => {
     switch (action) {
       case "start_tournament":
         return await startTournament(supabase, body);
+      case "create_round":
+        return await createRound(supabase, body);
+      case "generate_matches":
+        return await generateMatchesAction(supabase, body);
+      case "auto_create_round_and_matches":
+        return await autoCreateRoundAndMatches(supabase, body);
+      case "end_round_now":
+        return await endRoundNow(supabase, body);
       case "process_match_result":
         return await processMatchResult(supabase, body);
       case "check_advance_round":
@@ -81,7 +89,6 @@ function jsonResponse(data: any, status = 200) {
 async function startTournament(supabase: any, body: any) {
   const { tournament_id } = body;
 
-  // Load tournament
   const { data: tournament, error: tErr } = await supabase
     .from("tournaments")
     .select("*")
@@ -90,7 +97,6 @@ async function startTournament(supabase: any, body: any) {
   if (tErr) throw new Error(`Tournament not found: ${tErr.message}`);
   if (tournament.status !== "SignupOpen") throw new Error("Tournament must be in SignupOpen status");
 
-  // Get confirmed players
   const { data: players, error: pErr } = await supabase
     .from("players")
     .select("*")
@@ -105,13 +111,12 @@ async function startTournament(supabase: any, body: any) {
 
   const roundsCount = calculateRoundsCount(players.length);
 
-  // Update tournament
   await supabase
     .from("tournaments")
     .update({ status: "Live", rounds_count: roundsCount })
     .eq("id", tournament_id);
 
-  // Grant starting credits via ledger
+  // Grant starting credits
   const creditEntries = players.map((p: any) => ({
     tournament_id,
     player_id: p.id,
@@ -121,7 +126,6 @@ async function startTournament(supabase: any, body: any) {
   }));
   await supabase.from("credit_ledger_entries").insert(creditEntries);
 
-  // Update player balances
   for (const p of players) {
     await supabase
       .from("players")
@@ -157,7 +161,6 @@ async function startTournament(supabase: any, body: any) {
   }));
   await supabase.from("credit_ledger_entries").insert(bonusEntries);
 
-  // Update balances with bonus
   for (const p of players) {
     await supabase
       .from("players")
@@ -167,7 +170,6 @@ async function startTournament(supabase: any, body: any) {
       .eq("id", p.id);
   }
 
-  // Generate matches
   const matchResult = await generateMatchesForRound(supabase, tournament, round, players);
 
   return jsonResponse({
@@ -179,7 +181,201 @@ async function startTournament(supabase: any, body: any) {
 }
 
 // ============================================================
-// GENERATE MATCHES FOR A ROUND
+// CREATE ROUND (standalone - no matches yet)
+// ============================================================
+async function createRound(supabase: any, body: any) {
+  const { tournament_id } = body;
+
+  const { data: tournament } = await supabase
+    .from("tournaments")
+    .select("*")
+    .eq("id", tournament_id)
+    .single();
+  if (!tournament) throw new Error("Tournament not found");
+  if (tournament.status !== "Live") throw new Error("Tournament must be Live");
+
+  // Check no existing Live round
+  const { data: liveRounds } = await supabase
+    .from("rounds")
+    .select("id")
+    .eq("tournament_id", tournament_id)
+    .eq("status", "Live");
+  if (liveRounds && liveRounds.length > 0) throw new Error("A live round already exists");
+
+  // Get completed rounds count
+  const { data: allRounds } = await supabase
+    .from("rounds")
+    .select("*")
+    .eq("tournament_id", tournament_id)
+    .eq("is_playoff", false);
+  const nextIndex = (allRounds || []).length + 1;
+
+  const roundsCount = tournament.rounds_count || calculateRoundsCount(0);
+  if (nextIndex > roundsCount) throw new Error("All rounds already completed");
+
+  const now = new Date();
+  const endAt = new Date(now.getTime() + tournament.round_duration_days * 24 * 60 * 60 * 1000);
+
+  const { data: round, error: rErr } = await supabase
+    .from("rounds")
+    .insert({
+      tournament_id,
+      index: nextIndex,
+      start_at: now.toISOString(),
+      end_at: endAt.toISOString(),
+      status: "Live",
+    })
+    .select()
+    .single();
+  if (rErr) throw rErr;
+
+  // Grant participation bonus
+  const { data: activePlayers } = await supabase
+    .from("players")
+    .select("*")
+    .eq("tournament_id", tournament_id)
+    .eq("status", "Active")
+    .eq("confirmed", true);
+
+  if (activePlayers && activePlayers.length > 0) {
+    const bonusEntries = activePlayers.map((p: any) => ({
+      tournament_id,
+      player_id: p.id,
+      round_id: round.id,
+      type: "ParticipationBonus",
+      amount: tournament.participation_bonus,
+      note: `Round ${nextIndex} participation bonus`,
+    }));
+    await supabase.from("credit_ledger_entries").insert(bonusEntries);
+
+    for (const p of activePlayers) {
+      await supabase
+        .from("players")
+        .update({ credits_balance: p.credits_balance + tournament.participation_bonus })
+        .eq("id", p.id);
+    }
+  }
+
+  return jsonResponse({
+    success: true,
+    round_index: nextIndex,
+    round_id: round.id,
+    ends_at: endAt.toISOString(),
+  });
+}
+
+// ============================================================
+// GENERATE MATCHES (standalone - for existing round with no matches)
+// ============================================================
+async function generateMatchesAction(supabase: any, body: any) {
+  const { tournament_id, round_id } = body;
+
+  const { data: tournament } = await supabase
+    .from("tournaments")
+    .select("*")
+    .eq("id", tournament_id)
+    .single();
+  if (!tournament) throw new Error("Tournament not found");
+
+  const { data: round } = await supabase
+    .from("rounds")
+    .select("*")
+    .eq("id", round_id)
+    .single();
+  if (!round) throw new Error("Round not found");
+  if (round.status !== "Live") throw new Error("Round must be Live");
+
+  // Check if matches already exist
+  const { data: existingMatches } = await supabase
+    .from("matches")
+    .select("id")
+    .eq("round_id", round_id);
+  if (existingMatches && existingMatches.length > 0) {
+    throw new Error("Matches already exist for this round. Use regenerate instead.");
+  }
+
+  const { data: players } = await supabase
+    .from("players")
+    .select("*")
+    .eq("tournament_id", tournament_id)
+    .eq("status", "Active")
+    .eq("confirmed", true);
+
+  if (!players || players.length < 8) {
+    throw new Error(`Need at least 8 confirmed active players (have ${players?.length || 0})`);
+  }
+
+  const result = await generateMatchesForRound(supabase, tournament, round, players);
+
+  return jsonResponse({
+    success: true,
+    matches_created: result.matchCount,
+    byes: result.byes.length,
+  });
+}
+
+// ============================================================
+// AUTO CREATE ROUND + MATCHES (one-click)
+// ============================================================
+async function autoCreateRoundAndMatches(supabase: any, body: any) {
+  const { tournament_id } = body;
+
+  // First create the round
+  const roundResult = await createRound(supabase, body);
+  const roundData = await roundResult.json();
+  if (!roundData.success) return jsonResponse(roundData, 400);
+
+  // Then generate matches
+  const matchResult = await generateMatchesAction(supabase, {
+    tournament_id,
+    round_id: roundData.round_id,
+  });
+  const matchData = await matchResult.json();
+
+  return jsonResponse({
+    success: true,
+    round_index: roundData.round_index,
+    round_id: roundData.round_id,
+    ends_at: roundData.ends_at,
+    matches_created: matchData.matches_created,
+    byes: matchData.byes,
+  });
+}
+
+// ============================================================
+// END ROUND NOW (admin override)
+// ============================================================
+async function endRoundNow(supabase: any, body: any) {
+  const { tournament_id, round_id } = body;
+
+  const { data: tournament } = await supabase
+    .from("tournaments")
+    .select("*")
+    .eq("id", tournament_id)
+    .single();
+  if (!tournament) throw new Error("Tournament not found");
+
+  const { data: round } = await supabase
+    .from("rounds")
+    .select("*")
+    .eq("id", round_id)
+    .single();
+  if (!round) throw new Error("Round not found");
+  if (round.status !== "Live") throw new Error("Round must be Live to end");
+
+  // Set end_at to now so check_advance_round treats it as expired
+  const now = new Date();
+  await supabase
+    .from("rounds")
+    .update({ end_at: now.toISOString() })
+    .eq("id", round_id);
+
+  // Now run the advance logic which handles penalties + next round creation
+  return await checkAdvanceRound(supabase, { tournament_id });
+}
+
+// ============================================================
+// GENERATE MATCHES FOR A ROUND (internal helper)
 // ============================================================
 async function generateMatchesForRound(
   supabase: any,
@@ -187,7 +383,6 @@ async function generateMatchesForRound(
   round: any,
   players: any[]
 ) {
-  // Get partner history from previous matches
   const { data: pastMatches } = await supabase
     .from("matches")
     .select("*")
@@ -196,7 +391,6 @@ async function generateMatchesForRound(
 
   const partnerHistory = new Map<string, Set<string>>();
   for (const m of pastMatches || []) {
-    // Team A partners
     if (m.team_a_player1_id && m.team_a_player2_id) {
       if (!partnerHistory.has(m.team_a_player1_id))
         partnerHistory.set(m.team_a_player1_id, new Set());
@@ -205,7 +399,6 @@ async function generateMatchesForRound(
       partnerHistory.get(m.team_a_player1_id)!.add(m.team_a_player2_id);
       partnerHistory.get(m.team_a_player2_id)!.add(m.team_a_player1_id);
     }
-    // Team B partners
     if (m.team_b_player1_id && m.team_b_player2_id) {
       if (!partnerHistory.has(m.team_b_player1_id))
         partnerHistory.set(m.team_b_player1_id, new Set());
@@ -216,7 +409,6 @@ async function generateMatchesForRound(
     }
   }
 
-  // Check bye history
   const { data: pastByes } = await supabase
     .from("matches")
     .select("bye_player_id")
@@ -227,9 +419,7 @@ async function generateMatchesForRound(
   let activePlayers = shuffleArray(players);
   const byes: any[] = [];
 
-  // Remove players for byes until divisible by 4
   while (activePlayers.length % 4 !== 0) {
-    // Prefer giving bye to someone who hasn't had one
     const noBye = activePlayers.filter((p) => !byeHistory.has(p.id));
     const byePlayer =
       noBye.length > 0
@@ -239,7 +429,6 @@ async function generateMatchesForRound(
     activePlayers = activePlayers.filter((p) => p.id !== byePlayer.id);
   }
 
-  // Create bye matches
   for (const bp of byes) {
     await supabase.from("matches").insert({
       tournament_id: tournament.id,
@@ -251,7 +440,6 @@ async function generateMatchesForRound(
     });
   }
 
-  // Generate matches in groups of 4
   const matches: any[] = [];
   for (let i = 0; i < activePlayers.length; i += 4) {
     const group = activePlayers.slice(i, i + 4);
@@ -279,7 +467,6 @@ function findBestTeamAssignment(
   group: any[],
   partnerHistory: Map<string, Set<string>>
 ) {
-  // 3 possible assignments for 4 players
   const assignments = [
     { teamA: [0, 1], teamB: [2, 3] },
     { teamA: [0, 2], teamB: [1, 3] },
@@ -296,15 +483,12 @@ function findBestTeamAssignment(
     const p1B = group[assignment.teamB[0]];
     const p2B = group[assignment.teamB[1]];
 
-    // Penalize repeated partners
     if (partnerHistory.get(p1A.id)?.has(p2A.id)) score -= 10;
     if (partnerHistory.get(p1B.id)?.has(p2B.id)) score -= 10;
 
-    // Prefer mixed gender
     if (p1A.gender && p2A.gender && p1A.gender !== p2A.gender) score += 3;
     if (p1B.gender && p2B.gender && p1B.gender !== p2B.gender) score += 3;
 
-    // Penalize two women together
     if (p1A.gender === "female" && p2A.gender === "female") score -= 5;
     if (p1B.gender === "female" && p2B.gender === "female") score -= 5;
 
@@ -346,17 +530,13 @@ async function processMatchResult(supabase: any, body: any) {
     .eq("id", match.tournament_id)
     .single();
 
-  // Determine if player is Team A or Team B to correctly assign sets
   const isTeamA =
     match.team_a_player1_id === player_id ||
     match.team_a_player2_id === player_id;
 
-  // Sets from player perspective: sets_a = player's team, sets_b = opponents
-  // Convert to absolute Team A / Team B
-  const absoluteSetsA = isTeamA ? sets_a : sets_b;
-  const absoluteSetsB = isTeamA ? sets_b : sets_a;
+  const absoluteSetsA = player_id ? (isTeamA ? sets_a : sets_b) : sets_a;
+  const absoluteSetsB = player_id ? (isTeamA ? sets_b : sets_a) : sets_b;
 
-  // Update match
   await supabase
     .from("matches")
     .update({
@@ -368,7 +548,6 @@ async function processMatchResult(supabase: any, body: any) {
     })
     .eq("id", match_id);
 
-  // Process credits
   const stake = tournament.stake_per_player;
   const pot = stake * 4;
   const allPlayerIds = [
@@ -381,7 +560,6 @@ async function processMatchResult(supabase: any, body: any) {
   const teamAIds = [match.team_a_player1_id, match.team_a_player2_id].filter(Boolean);
   const teamBIds = [match.team_b_player1_id, match.team_b_player2_id].filter(Boolean);
 
-  // Deduct stakes
   const stakeEntries = allPlayerIds.map((pid: string) => ({
     tournament_id: match.tournament_id,
     player_id: pid,
@@ -393,37 +571,30 @@ async function processMatchResult(supabase: any, body: any) {
   }));
   await supabase.from("credit_ledger_entries").insert(stakeEntries);
 
-  // Calculate payouts
   let teamAShare = 0;
   let teamBShare = 0;
 
   if (is_unfinished) {
-    // 1-1 split
     teamAShare = Math.floor(pot / 2);
     teamBShare = pot - teamAShare;
   } else if (absoluteSetsA > absoluteSetsB) {
-    // Team A wins
     if (absoluteSetsA === 2 && absoluteSetsB === 0) {
       teamAShare = pot;
       teamBShare = 0;
     } else {
-      // 2-1
       teamAShare = Math.round(pot * 0.66);
       teamBShare = pot - teamAShare;
     }
   } else {
-    // Team B wins
     if (absoluteSetsB === 2 && absoluteSetsA === 0) {
       teamBShare = pot;
       teamAShare = 0;
     } else {
-      // 2-1
       teamBShare = Math.round(pot * 0.66);
       teamAShare = pot - teamBShare;
     }
   }
 
-  // Distribute payouts
   const payoutEntries: any[] = [];
 
   if (teamAShare > 0) {
@@ -462,7 +633,6 @@ async function processMatchResult(supabase: any, body: any) {
     await supabase.from("credit_ledger_entries").insert(payoutEntries);
   }
 
-  // Update player balances and stats
   for (const pid of allPlayerIds) {
     const isWinnerTeamA = absoluteSetsA > absoluteSetsB;
     const isOnTeamA = teamAIds.includes(pid);
@@ -496,7 +666,6 @@ async function processMatchResult(supabase: any, body: any) {
     }
   }
 
-  // Check if round should advance
   await checkRoundCompletion(supabase, match.round_id, match.tournament_id);
 
   return jsonResponse({ success: true, pot, teamAShare, teamBShare });
@@ -517,7 +686,6 @@ async function checkRoundCompletion(
     .in("status", ["Scheduled", "BookingClaimed"]);
 
   if (remaining && remaining.length === 0) {
-    // All matches resolved - complete round
     await supabase
       .from("rounds")
       .update({ status: "Completed" })
@@ -526,7 +694,7 @@ async function checkRoundCompletion(
 }
 
 // ============================================================
-// CHECK AND ADVANCE ROUND (admin trigger or cron)
+// CHECK AND ADVANCE ROUND
 // ============================================================
 async function checkAdvanceRound(supabase: any, body: any) {
   const { tournament_id } = body;
@@ -538,7 +706,6 @@ async function checkAdvanceRound(supabase: any, body: any) {
     .single();
   if (!tournament) throw new Error("Tournament not found");
 
-  // Find current live round
   const { data: liveRounds } = await supabase
     .from("rounds")
     .select("*")
@@ -550,8 +717,6 @@ async function checkAdvanceRound(supabase: any, body: any) {
   }
 
   const currentRound = liveRounds[0];
-
-  // Check for overdue matches
   const now = new Date();
   const { data: overdueMatches } = await supabase
     .from("matches")
@@ -563,7 +728,6 @@ async function checkAdvanceRound(supabase: any, body: any) {
   let penaltiesApplied = 0;
 
   if (isRoundExpired && overdueMatches && overdueMatches.length > 0) {
-    // Apply penalties to overdue matches
     for (const match of overdueMatches) {
       const playerIds = [
         match.team_a_player1_id,
@@ -572,13 +736,11 @@ async function checkAdvanceRound(supabase: any, body: any) {
         match.team_b_player2_id,
       ].filter(Boolean);
 
-      // Mark match as auto-resolved
       await supabase
         .from("matches")
         .update({ status: "AutoResolved" })
         .eq("id", match.id);
 
-      // Apply penalties
       const penaltyEntries = playerIds.map((pid: string) => ({
         tournament_id,
         player_id: pid,
@@ -590,7 +752,6 @@ async function checkAdvanceRound(supabase: any, body: any) {
       }));
       await supabase.from("credit_ledger_entries").insert(penaltyEntries);
 
-      // Update player balances and no_shows
       for (const pid of playerIds) {
         const { data: player } = await supabase
           .from("players")
@@ -633,7 +794,6 @@ async function checkAdvanceRound(supabase: any, body: any) {
   const roundsCount = tournament.rounds_count || calculateRoundsCount(0);
 
   if (completedRegularRounds < roundsCount) {
-    // Create next round
     const { data: activePlayers } = await supabase
       .from("players")
       .select("*")
@@ -660,7 +820,6 @@ async function checkAdvanceRound(supabase: any, body: any) {
         .select()
         .single();
 
-      // Grant participation bonus
       const bonusEntries = activePlayers.map((p: any) => ({
         tournament_id,
         player_id: p.id,
@@ -680,7 +839,6 @@ async function checkAdvanceRound(supabase: any, body: any) {
           .eq("id", p.id);
       }
 
-      // Generate matches
       await generateMatchesForRound(supabase, tournament, newRound, activePlayers);
 
       return jsonResponse({
@@ -690,7 +848,6 @@ async function checkAdvanceRound(supabase: any, body: any) {
       });
     }
   } else {
-    // All rounds complete - update to Finished
     await supabase
       .from("tournaments")
       .update({ status: "Finished" })
@@ -727,7 +884,6 @@ async function regenerateMatches(supabase: any, body: any) {
   if (!round || round.status !== "Live")
     throw new Error("Round must be Live to regenerate");
 
-  // Check no match has been played
   const { data: playedMatches } = await supabase
     .from("matches")
     .select("id")
@@ -738,10 +894,8 @@ async function regenerateMatches(supabase: any, body: any) {
     throw new Error("Cannot regenerate - some matches already played");
   }
 
-  // Delete existing matches for this round
   await supabase.from("matches").delete().eq("round_id", round_id);
 
-  // Get active players
   const { data: players } = await supabase
     .from("players")
     .select("*")
@@ -781,7 +935,6 @@ async function startAuction(supabase: any, body: any) {
   const now = new Date();
   const endsAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-  // Create auction
   const { data: auction, error: aErr } = await supabase
     .from("auctions")
     .insert({
@@ -794,16 +947,13 @@ async function startAuction(supabase: any, body: any) {
     .single();
   if (aErr) throw aErr;
 
-  // Get approved pledges
   const { data: pledges } = await supabase
     .from("pledge_items")
     .select("*")
     .eq("tournament_id", tournament_id)
     .eq("status", "Approved");
 
-  // Create lots
   const lots = (pledges || []).map((p: any) => {
-    // Min increment based on estimate
     const estimate = p.estimate_low || 50;
     let minIncrement = 5;
     if (estimate >= 600) minIncrement = 50;
@@ -823,7 +973,6 @@ async function startAuction(supabase: any, body: any) {
     await supabase.from("auction_lots").insert(lots);
   }
 
-  // Update tournament status
   await supabase
     .from("tournaments")
     .update({ status: "AuctionLive" })
@@ -849,7 +998,6 @@ async function settleAuction(supabase: any, body: any) {
     .single();
   if (!auction) throw new Error("No auction found");
 
-  // Get all lots
   const { data: lots } = await supabase
     .from("auction_lots")
     .select("*")
@@ -858,14 +1006,12 @@ async function settleAuction(supabase: any, body: any) {
 
   let settled = 0;
   for (const lot of lots || []) {
-    // End the lot
     await supabase
       .from("auction_lots")
       .update({ status: "Ended" })
       .eq("id", lot.id);
 
     if (lot.current_winner_player_id && lot.current_bid) {
-      // Settle escrow - mark as settled
       await supabase
         .from("escrow_holds")
         .update({ status: "Settled" })
@@ -873,7 +1019,6 @@ async function settleAuction(supabase: any, body: any) {
         .eq("bidder_player_id", lot.current_winner_player_id)
         .eq("status", "Active");
 
-      // Deduct credits from winner
       const { data: winner } = await supabase
         .from("players")
         .select("*")
@@ -888,7 +1033,6 @@ async function settleAuction(supabase: any, body: any) {
           })
           .eq("id", winner.id);
 
-        // Ledger entry
         await supabase.from("credit_ledger_entries").insert({
           tournament_id,
           player_id: winner.id,
@@ -901,7 +1045,6 @@ async function settleAuction(supabase: any, body: any) {
       settled++;
     }
 
-    // Release any remaining active escrow holds for other bidders
     await supabase
       .from("escrow_holds")
       .update({ status: "Released", released_at: new Date().toISOString() })
@@ -909,7 +1052,6 @@ async function settleAuction(supabase: any, body: any) {
       .eq("status", "Active");
   }
 
-  // Update auction and tournament
   await supabase
     .from("auctions")
     .update({ status: "Ended" })
@@ -942,7 +1084,6 @@ async function seedDemo(supabase: any, body: any) {
   const pin = "1234";
   const pinHash = hashPin(pin);
 
-  // Create players
   const playerInserts = demoPlayers.map((p) => ({
     tournament_id,
     full_name: p.full_name,
@@ -959,7 +1100,6 @@ async function seedDemo(supabase: any, body: any) {
     .select();
   if (pErr) throw pErr;
 
-  // Create pledges
   const categories = ["food", "drink", "object", "service", "chaos", "food", "drink", "object"];
   const pledgeTitles = [
     "Homemade Paella",
@@ -987,7 +1127,6 @@ async function seedDemo(supabase: any, body: any) {
 
   await supabase.from("pledge_items").insert(pledgeInserts);
 
-  // Start tournament
   const startResult = await startTournament(supabase, { tournament_id });
   const startData = await startResult.json();
 
