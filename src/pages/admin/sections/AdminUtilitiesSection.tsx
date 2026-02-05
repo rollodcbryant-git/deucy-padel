@@ -14,7 +14,34 @@ interface Props {
 
 export default function AdminUtilitiesSection({ tournament, onReload, callEngine, isUpdating }: Props) {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
+  const previewAsPlayer = async () => {
+    const { data: players } = await supabase
+      .from('players')
+      .select('*')
+      .eq('tournament_id', tournament.id)
+      .eq('status', 'Active')
+      .limit(1);
+    
+    if (!players || players.length === 0) {
+      toast({ title: 'No active players to preview as', variant: 'destructive' });
+      return;
+    }
+
+    const player = players[0];
+    const token = crypto.randomUUID();
+    await supabase.from('players').update({ session_token: token }).eq('id', player.id);
+
+    const session = {
+      playerId: player.id,
+      tournamentId: tournament.id,
+      playerName: player.full_name,
+      token,
+    };
+    localStorage.setItem('padel_chaos_session', JSON.stringify(session));
+    navigate('/home');
+  };
   const getPublishedUrl = () => {
     const origin = window.location.origin;
     if (origin.includes('preview--') || origin.includes('lovable.dev')) {
