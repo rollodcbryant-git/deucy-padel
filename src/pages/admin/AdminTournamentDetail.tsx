@@ -76,8 +76,17 @@ export default function AdminTournamentDetail() {
     }
   };
 
+  const getPublishedUrl = () => {
+    const origin = window.location.origin;
+    // If we're on a preview/editor URL, use the published domain instead
+    if (origin.includes('preview--') || origin.includes('lovable.dev')) {
+      return 'https://padel-chaos-cup.lovable.app';
+    }
+    return origin;
+  };
+
   const copyInviteLink = () => {
-    const link = `${window.location.origin}/?t=${tournamentId}`;
+    const link = `${getPublishedUrl()}/?t=${tournamentId}`;
     navigator.clipboard.writeText(link);
     toast({
       title: 'Copied!',
