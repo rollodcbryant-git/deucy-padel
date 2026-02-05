@@ -240,6 +240,8 @@ export default function MyTournamentPage() {
           </Button>
         )}
       </main>
+
+      <BottomNav />
     </div>
   );
 }
