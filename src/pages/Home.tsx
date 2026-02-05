@@ -359,10 +359,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Pledge nudge */}
-          {!hasPledgedCurrentRound && !pledgeGateActive && (
-            <PledgeNudgeCard />
-          )}
         </div>
       </PageLayout>
 
