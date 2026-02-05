@@ -6,6 +6,7 @@ interface PledgeCardProps {
   pledge: PledgeItem;
   pledger?: Player;
   isOwner?: boolean;
+  roundIndex?: number;
   onClick?: () => void;
 }
 
