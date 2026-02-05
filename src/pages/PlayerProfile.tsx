@@ -182,7 +182,7 @@ export default function PlayerProfilePage() {
               </h3>
               </h3>
 
-              {pledges.map((pledge) => {
+              {visiblePledges.map((pledge) => {
                 const cat = getCategoryConfig(pledge.category);
                 const round = pledge.round_id ? roundMap.get(pledge.round_id) : null;
                 const estimate = pledge.estimate_low != null || pledge.estimate_high != null;
