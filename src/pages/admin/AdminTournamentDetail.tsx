@@ -21,7 +21,6 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function AdminTournamentDetail() {
   const { tournamentId } = useParams<{ tournamentId: string }>();
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
