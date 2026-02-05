@@ -70,7 +70,7 @@ export default function LandingPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
         <div className="text-6xl mb-6">🎾</div>
-        <h1 className="text-3xl font-bold text-gradient-primary mb-4">Padel Chaos Cup</h1>
+        <h1 className="text-3xl font-bold text-gradient-primary mb-4">Deucy</h1>
         <p className="text-muted-foreground mb-8 max-w-sm">
           Where friendships are tested and legends are made. Need an invite link to join a tournament.
         </p>

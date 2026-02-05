@@ -153,7 +153,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="text-6xl mb-4">🎾</div>
-          <h1 className="text-3xl font-bold text-gradient-primary">Padel Chaos Cup</h1>
+          <h1 className="text-3xl font-bold text-gradient-primary">Deucy</h1>
           <p className="text-muted-foreground">Enter your phone and PIN to continue</p>
         </div>
 
