@@ -4,20 +4,13 @@ import { PageLayout } from '@/components/layout/PageLayout';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { StatusChip } from '@/components/ui/StatusChip';
-import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { supabase } from '@/integrations/supabase/client';
 import type { MatchWithPlayers, Round, Player } from '@/lib/types';
-import { Calendar, Copy, Lock } from 'lucide-react';
-import { MatchCard } from '@/components/cards/MatchCard';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
+import { Calendar, Lock } from 'lucide-react';
+import { TournamentProgressAccordion } from '@/components/tournament/TournamentProgressAccordion';
+import { ReportResultDialog } from '@/components/tournament/ReportResultDialog';
 import { useToast } from '@/hooks/use-toast';
 
 export default function MatchesPage() {
@@ -31,11 +24,6 @@ export default function MatchesPage() {
   const [selectedMatch, setSelectedMatch] = useState<MatchWithPlayers | null>(null);
   const [showReportDialog, setShowReportDialog] = useState(false);
 
-  const [setsA, setSetsA] = useState('0');
-  const [setsB, setSetsB] = useState('0');
-  const [isUnfinished, setIsUnfinished] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   useEffect(() => {
     if (!isLoading && !session) { navigate('/'); return; }
     if (tournament && player) loadMatches();
@@ -46,7 +34,7 @@ export default function MatchesPage() {
 
     const { data: roundsData } = await supabase
       .from('rounds').select('*').eq('tournament_id', tournament.id)
-      .order('index', { ascending: false });
+      .order('index', { ascending: true });
     setRounds((roundsData || []) as Round[]);
 
     const { data: matchesData } = await supabase
@@ -94,9 +82,6 @@ export default function MatchesPage() {
 
   const handleReportResult = (match: MatchWithPlayers) => {
     setSelectedMatch(match);
-    setSetsA('0');
-    setSetsB('0');
-    setIsUnfinished(false);
     setShowReportDialog(true);
   };
 
@@ -114,52 +99,27 @@ export default function MatchesPage() {
     toast({ title: 'Contacts copied! 📋', description: 'Paste into your WhatsApp group' });
   };
 
-  const submitResult = async () => {
+  const handleSubmitResult = async (setsA: number, setsB: number, isUnfinished: boolean) => {
     if (!selectedMatch || !player) return;
 
-    const a = parseInt(setsA);
-    const b = parseInt(setsB);
+    const { data, error } = await supabase.functions.invoke('tournament-engine', {
+      body: {
+        action: 'process_match_result',
+        match_id: selectedMatch.id,
+        sets_a: setsA,
+        sets_b: setsB,
+        is_unfinished: isUnfinished,
+        player_id: player.id,
+      },
+    });
 
-    if (isNaN(a) || isNaN(b) || a < 0 || b < 0 || a > 3 || b > 3) {
-      toast({ title: 'Invalid score', description: 'Sets must be between 0 and 3', variant: 'destructive' });
-      return;
-    }
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
 
-    const hasWinner = a === 2 || b === 2;
-    if (!isUnfinished && !hasWinner) {
-      toast({ title: 'Invalid score', description: 'One team must win 2 sets (or mark as unfinished)', variant: 'destructive' });
-      return;
-    }
-    if (isUnfinished && (a !== 1 || b !== 1)) {
-      toast({ title: 'Invalid unfinished score', description: 'Unfinished matches must be 1-1', variant: 'destructive' });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // Call edge function for credits processing
-      const { data, error } = await supabase.functions.invoke('tournament-engine', {
-        body: {
-          action: 'process_match_result',
-          match_id: selectedMatch.id,
-          sets_a: a,
-          sets_b: b,
-          is_unfinished: isUnfinished,
-          player_id: player.id,
-        },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      toast({ title: 'Score submitted! 🎾', description: 'Scores locked. Credits distributed.' });
-      setShowReportDialog(false);
-      loadMatches();
-      refreshPlayer();
-    } catch (error: any) {
-      toast({ title: 'Failed to submit', description: error.message, variant: 'destructive' });
-    }
-    setIsSubmitting(false);
+    toast({ title: 'Score submitted! 🎾', description: 'Scores locked. Credits distributed.' });
+    setShowReportDialog(false);
+    loadMatches();
+    refreshPlayer();
   };
 
   if (isLoading || !player || !tournament) {
@@ -180,13 +140,10 @@ export default function MatchesPage() {
             <h1 className="font-bold text-xl flex items-center gap-2">
               <Calendar className="h-6 w-6 text-primary" />Your Matches
             </h1>
-            <p className="text-sm text-muted-foreground">
-              {rounds.length} rounds • {Array.from(matches.values()).flat().filter(m => m.status === 'Played').length} played
-            </p>
           </div>
         }
       >
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Locked banner when pledge missing */}
           {pledgeMissing && (
             <Card className="chaos-card border-chaos-orange/50 bg-chaos-orange/5">
@@ -203,64 +160,17 @@ export default function MatchesPage() {
               </CardContent>
             </Card>
           )}
-          {rounds.map((round) => {
-            const roundMatches = matches.get(round.id) || [];
-            return (
-              <div key={round.id} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-semibold">
-                      {round.is_playoff
-                        ? (round.playoff_type === 'final' ? '🏆 Final' : '⚔️ Semi-Final')
-                        : `Round ${round.index}`}
-                    </h2>
-                    <StatusChip
-                      variant={round.status === 'Live' ? 'live' : round.status === 'Completed' ? 'success' : 'neutral'}
-                      pulse={round.status === 'Live'}>
-                      {round.status}
-                    </StatusChip>
-                  </div>
-                  {round.end_at && round.status === 'Live' && (
-                    <CountdownTimer targetDate={round.end_at} variant="compact" />
-                  )}
-                </div>
 
-                {roundMatches.length === 0 ? (
-                  <Card className="chaos-card">
-                    <CardContent className="p-4 text-center text-muted-foreground">No match this round</CardContent>
-                  </Card>
-                ) : (
-                  roundMatches.map((match) => (
-                    match.is_bye ? (
-                      <Card key={match.id} className="chaos-card border-accent/30">
-                        <CardContent className="p-4 text-center">
-                          <div className="text-2xl mb-2">😎</div>
-                          <p className="text-accent font-medium">Bye Round</p>
-                          <p className="text-sm text-muted-foreground">Enjoy the rest!</p>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <div key={match.id} className="space-y-2">
-                        <MatchCard
-                          match={match}
-                          currentPlayerId={player.id}
-                          onClaimBooking={() => handleClaimBooking(match)}
-                          onReportResult={() => handleReportResult(match)}
-                        />
-                        {/* Copy contacts button */}
-                        {match.status !== 'Played' && match.status !== 'AutoResolved' && (
-                          <Button variant="ghost" size="sm" className="w-full text-muted-foreground"
-                            onClick={() => handleCopyContacts(match)}>
-                            <Copy className="mr-1 h-3 w-3" />Copy Match Contacts
-                          </Button>
-                        )}
-                      </div>
-                    )
-                  ))
-                )}
-              </div>
-            );
-          })}
+          {/* Tournament Progress Accordion */}
+          <TournamentProgressAccordion
+            tournament={tournament}
+            player={player}
+            rounds={rounds}
+            matchesByRound={matches}
+            onClaimBooking={handleClaimBooking}
+            onReportResult={handleReportResult}
+            onCopyContacts={handleCopyContacts}
+          />
 
           {rounds.length === 0 && (
             <div className="text-center py-12">
@@ -274,43 +184,11 @@ export default function MatchesPage() {
 
       <BottomNav />
 
-      {/* Report Result Dialog */}
-      <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Report Match Result</DialogTitle></DialogHeader>
-          <div className="space-y-6 py-4">
-            <div className="flex items-center justify-center gap-6">
-              <div className="text-center">
-                <Label className="text-xs text-muted-foreground mb-2 block">Your Team</Label>
-                <Input type="number" min="0" max="3" value={setsA}
-                  onChange={(e) => setSetsA(e.target.value)}
-                  className="text-3xl font-bold text-center w-20 h-16" />
-              </div>
-              <span className="text-2xl text-muted-foreground">-</span>
-              <div className="text-center">
-                <Label className="text-xs text-muted-foreground mb-2 block">Opponents</Label>
-                <Input type="number" min="0" max="3" value={setsB}
-                  onChange={(e) => setSetsB(e.target.value)}
-                  className="text-3xl font-bold text-center w-20 h-16" />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="unfinished" className="text-sm">Match unfinished (1-1 split)?</Label>
-              <Switch id="unfinished" checked={isUnfinished} onCheckedChange={setIsUnfinished} />
-            </div>
-
-            <p className="text-xs text-muted-foreground text-center">
-              💰 Credits will be automatically distributed based on the score
-            </p>
-
-            <Button className="w-full touch-target bg-gradient-primary hover:opacity-90"
-              onClick={submitResult} disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Submit Result'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ReportResultDialog
+        open={showReportDialog}
+        onOpenChange={setShowReportDialog}
+        onSubmit={handleSubmitResult}
+      />
     </>
   );
 }
