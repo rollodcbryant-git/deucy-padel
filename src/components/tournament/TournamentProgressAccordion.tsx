@@ -52,15 +52,16 @@ export function TournamentProgressAccordion({
 
       {isExpanded && (
         <div className="animate-in slide-in-from-top-2 duration-200">
-          <RoundTimeline
-            summaries={summaries}
-            currentPlayerId={player.id}
-            onClaimBooking={onClaimBooking}
-            onReportResult={onReportResult}
-            onCopyContacts={onCopyContacts}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
+           <RoundTimeline
+             summaries={summaries}
+             currentPlayerId={player.id}
+             tournament={tournament}
+             onClaimBooking={onClaimBooking}
+             onReportResult={onReportResult}
+             onCopyContacts={onCopyContacts}
+           />
+         </div>
+       )}
+     </div>
+   );
+ }

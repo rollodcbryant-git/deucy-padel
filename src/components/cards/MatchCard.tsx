@@ -3,13 +3,17 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { cn } from '@/lib/utils';
-import { Phone, ExternalLink, Check, MapPin } from 'lucide-react';
+import { Phone, ExternalLink, Check, MapPin, MessageCircle } from 'lucide-react';
 import { PlayerLink } from '@/components/ui/PlayerLink';
-import type { MatchWithPlayers, Player } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import type { MatchWithPlayers, Player, Round, Tournament } from '@/lib/types';
+import { format } from 'date-fns';
 
 interface MatchCardProps {
   match: MatchWithPlayers;
   currentPlayerId: string;
+  round?: Round;
+  tournament?: Tournament;
   onClaimBooking?: () => void;
   onReportResult?: () => void;
   className?: string;
@@ -18,10 +22,13 @@ interface MatchCardProps {
 export function MatchCard({
   match,
   currentPlayerId,
+  round,
+  tournament,
   onClaimBooking,
   onReportResult,
   className,
 }: MatchCardProps) {
+  const { toast } = useToast();
   const isBookingClaimed = match.status === 'BookingClaimed' || match.booking_claimed_by_player_id;
   const isPlayed = match.status === 'Played';
   const isOverdue = match.status === 'Overdue' || match.status === 'AutoResolved';
@@ -183,7 +190,7 @@ export function MatchCard({
 
         {/* Phone list for match chat */}
         {!isPlayed && (
-          <div className="pt-2 border-t border-border">
+          <div className="pt-2 border-t border-border space-y-3">
             <p className="text-xs text-muted-foreground mb-2">Match Chat</p>
             <div className="flex flex-wrap gap-2">
               {allPlayers
@@ -201,6 +208,59 @@ export function MatchCard({
                   </a>
                 ))}
             </div>
+
+            {/* WhatsApp group creation */}
+            {allPlayers.length >= 2 && (() => {
+              const roundLabel = round
+                ? (round.is_playoff ? (round.playoff_type === 'final' ? 'Final' : 'Semi-Final') : `Round ${round.index}`)
+                : 'Match';
+              const deadlineText = match.deadline_at
+                ? format(new Date(match.deadline_at), 'EEE d MMM, HH:mm')
+                : 'TBD';
+              const bookingUrl = tournament?.booking_url || 'https://boixteam.es/booking-gran-via';
+              const tournamentName = tournament?.name || 'Deucy';
+
+              const groupMsg = [
+                `${tournamentName} – ${roundLabel} 🥤`,
+                '',
+                `Team A: ${match.team_a_player1?.full_name || 'TBD'} + ${match.team_a_player2?.full_name || 'TBD'}`,
+                `Team B: ${match.team_b_player1?.full_name || 'TBD'} + ${match.team_b_player2?.full_name || 'TBD'}`,
+                '',
+                `⏰ Deadline: ${deadlineText}`,
+                `🎾 Book court: ${bookingUrl}`,
+                '',
+                "Let's pick a time – who's booking?",
+              ].join('\n');
+
+              const handleCreateGroup = () => {
+                // Copy message first
+                navigator.clipboard.writeText(groupMsg).then(() => {
+                  toast({ title: 'Message copied! 📋', description: 'Paste it in your new WhatsApp group' });
+                });
+                // Open WhatsApp to first other player with the message pre-filled
+                const firstOther = allPlayers.find(p => p.id !== currentPlayerId);
+                if (firstOther) {
+                  const phone = firstOther.phone.replace(/\D/g, '');
+                  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(groupMsg)}`, '_blank');
+                }
+              };
+
+              return (
+                <div className="space-y-1.5">
+                  <Button
+                    variant="outline"
+                    className="w-full touch-target"
+                    onClick={handleCreateGroup}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Create WhatsApp Group
+                  </Button>
+                  <p className="text-[10px] text-muted-foreground text-center leading-tight">
+                    Opens WhatsApp & copies a group message with all players
+                  </p>
+                </div>
+              );
+            })()}
           </div>
         )}
       </CardContent>

@@ -14,12 +14,13 @@ import { MatchCard } from '@/components/cards/MatchCard';
 import { formatEuros } from '@/lib/euros';
 import { cn } from '@/lib/utils';
 import { Copy, Trophy, ShoppingBag, BarChart3 } from 'lucide-react';
-import type { MatchWithPlayers, Player } from '@/lib/types';
+import type { MatchWithPlayers, Player, Tournament } from '@/lib/types';
 import type { RoundSummary } from '@/hooks/useRoundSummaries';
 
 interface RoundTimelineProps {
   summaries: RoundSummary[];
   currentPlayerId: string;
+  tournament?: Tournament;
   onClaimBooking: (match: MatchWithPlayers) => void;
   onReportResult: (match: MatchWithPlayers) => void;
   onCopyContacts: (match: MatchWithPlayers) => void;
@@ -28,6 +29,7 @@ interface RoundTimelineProps {
 export function RoundTimeline({
   summaries,
   currentPlayerId,
+  tournament,
   onClaimBooking,
   onReportResult,
   onCopyContacts,
@@ -66,6 +68,7 @@ export function RoundTimeline({
             key={summary.round.id}
             summary={summary}
             currentPlayerId={currentPlayerId}
+            tournament={tournament}
             onClaimBooking={onClaimBooking}
             onReportResult={onReportResult}
             onCopyContacts={onCopyContacts}
@@ -89,12 +92,14 @@ export function RoundTimeline({
 function RoundAccordionItem({
   summary,
   currentPlayerId,
+  tournament,
   onClaimBooking,
   onReportResult,
   onCopyContacts,
 }: {
   summary: RoundSummary;
   currentPlayerId: string;
+  tournament?: Tournament;
   onClaimBooking: (match: MatchWithPlayers) => void;
   onReportResult: (match: MatchWithPlayers) => void;
   onCopyContacts: (match: MatchWithPlayers) => void;
@@ -168,6 +173,8 @@ function RoundAccordionItem({
                   <MatchCard
                     match={match}
                     currentPlayerId={currentPlayerId}
+                    round={round}
+                    tournament={tournament}
                     onClaimBooking={() => onClaimBooking(match)}
                     onReportResult={() => onReportResult(match)}
                   />
