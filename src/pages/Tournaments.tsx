@@ -35,14 +35,16 @@ export default function TournamentsPage() {
       const { data: tournamentsData } = await supabase
         .from('tournaments')
         .select('*')
-        .in('status', ['SignupOpen', 'Live', 'AuctionLive', 'Finished', 'Closed', 'Draft'])
+        .in('status', ['Draft', 'SignupOpen', 'Live', 'AuctionLive', 'Finished', 'Closed'])
         .order('created_at', { ascending: false });
 
       if (!tournamentsData) { setLoading(false); return; }
 
-      const results: TournamentWithMeta[] = await Promise.all(
-        (tournamentsData as Tournament[])
-          .filter(t => t.status !== 'Draft') // hide drafts from players
+      // Show Draft tournaments that have a signup_open_at date (Coming Soon teasers)
+      // and all non-Draft tournaments
+      const visible = (tournamentsData as Tournament[]).filter(t =>
+        t.status !== 'Draft' || t.signup_open_at !== null
+      );
           .map(async (t) => {
             const { count } = await supabase
               .from('players')
