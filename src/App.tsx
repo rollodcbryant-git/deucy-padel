@@ -48,7 +48,8 @@ const App = () => (
             <Route path="/complete-entry" element={<CompleteEntry />} />
             
             {/* Player routes */}
-            <Route path="/home" element={<Home />} />
+            <Route path="/tournaments" element={<Tournaments />} />
+            <Route path="/home" element={<Tournaments />} />
             <Route path="/matches" element={<Matches />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             
