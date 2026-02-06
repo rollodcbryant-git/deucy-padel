@@ -136,9 +136,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2">
-          
-          <h1 className="text-3xl font-bold text-gradient-primary">Deucy</h1>
+        <div className="text-center space-y-3 py-4">
+          <h1 className="text-4xl font-bold text-gradient-primary">Deucy</h1>
           <p className="text-muted-foreground">Enter your phone and PIN to continue</p>
         </div>
 
