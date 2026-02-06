@@ -19,7 +19,8 @@ interface TournamentWithMeta {
 
 export default function TournamentsPage() {
   const navigate = useNavigate();
-  const { player, tournament: enrolledTournament, session, isLoading, logout } = usePlayer();
+  const { player, tournament: enrolledTournament, session, isLoading, logout, refreshPlayer } = usePlayer();
+  const { toast } = useToast();
 
   const [tournaments, setTournaments] = useState<TournamentWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
