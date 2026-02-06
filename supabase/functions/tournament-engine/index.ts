@@ -926,7 +926,7 @@ async function startAuction(supabase: any, body: any) {
       starts_at: now.toISOString(),
       ends_at: endsAt.toISOString(),
       status: "Live",
-      duration_hours: hours,
+      duration_hours: Math.max(1, Math.round(hours)),
     })
     .select()
     .single();
