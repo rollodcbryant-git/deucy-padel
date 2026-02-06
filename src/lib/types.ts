@@ -48,7 +48,7 @@ export interface Tournament {
 
 export interface Player {
   id: string;
-  tournament_id: string;
+  tournament_id: string | null;
   full_name: string;
   phone: string;
   pin_hash: string;
@@ -203,7 +203,7 @@ export interface AuctionLotWithDetails extends AuctionLot {
 // Session type for player auth
 export interface PlayerSession {
   playerId: string;
-  tournamentId: string;
+  tournamentId: string | null;
   playerName: string;
   token: string;
 }
