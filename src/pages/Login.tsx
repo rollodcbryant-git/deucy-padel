@@ -27,10 +27,8 @@ export default function LoginPage() {
   const [newPin, setNewPin] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
 
-  // Tournament discovery
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(tournamentIdParam);
-  const [loadingTournaments, setLoadingTournaments] = useState(!tournamentIdParam);
+  // Tournament ID from URL (optional, for direct join links)
+  const [selectedTournamentId] = useState<string | null>(tournamentIdParam);
 
   // Redirect if already logged in
   useEffect(() => {
