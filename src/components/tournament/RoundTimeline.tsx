@@ -14,7 +14,7 @@ import { MatchCard } from '@/components/cards/MatchCard';
 import { formatEuros } from '@/lib/euros';
 import { cn } from '@/lib/utils';
 import { Copy, Trophy, ShoppingBag, BarChart3 } from 'lucide-react';
-import type { MatchWithPlayers, Player } from '@/lib/types';
+import type { MatchWithPlayers, Player, Tournament } from '@/lib/types';
 import type { RoundSummary } from '@/hooks/useRoundSummaries';
 
 interface RoundTimelineProps {
