@@ -1,0 +1,1 @@
+ALTER TABLE public.pledge_items ADD COLUMN price_euro integer NULL;

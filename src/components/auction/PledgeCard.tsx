@@ -33,6 +33,7 @@ function formatEstimate(low: number | null, high: number | null): string | null 
 export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: PledgeCardProps) {
   const cat = getCategoryConfig(pledge.category);
   const estimate = formatEstimate(pledge.estimate_low, pledge.estimate_high);
+  const priceLabel = (pledge as any).price_euro ? formatEuros((pledge as any).price_euro) : 'TBD';
   const isPending = pledge.status === 'Draft';
 
   return (
@@ -79,18 +80,22 @@ export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: Pl
         )}
       </div>
 
-      <CardContent className="p-3 space-y-1">
+      <CardContent className="p-3 space-y-1.5">
         <p className="font-semibold text-sm truncate">{pledge.title}</p>
 
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground truncate">
-            by <span className="hover:text-primary transition-colors">{pledger?.full_name || 'Unknown'}</span>
-          </p>
-          {estimate && (
-            <span className="text-xs font-medium text-primary shrink-0 ml-2">
-              {estimate}
-            </span>
-          )}
+        <p className="text-xs text-muted-foreground truncate">
+          by <span className="hover:text-primary transition-colors">{pledger?.full_name || 'Unknown'}</span>
+        </p>
+
+        <div className="space-y-0.5">
+          <div>
+            <p className="text-[10px] text-muted-foreground leading-tight">Expert estimate</p>
+            <p className="text-xs font-medium text-primary">{estimate || 'TBD'}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground leading-tight">Price</p>
+            <p className="text-xs font-medium text-primary">{priceLabel}</p>
+          </div>
         </div>
       </CardContent>
     </Card>

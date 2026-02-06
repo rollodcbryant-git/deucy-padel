@@ -525,6 +525,7 @@ export type Database = {
           id: string
           image_url: string | null
           pledged_by_player_id: string
+          price_euro: number | null
           quantity_text: string | null
           round_id: string | null
           status: Database["public"]["Enums"]["pledge_status"]
@@ -543,6 +544,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           pledged_by_player_id: string
+          price_euro?: number | null
           quantity_text?: string | null
           round_id?: string | null
           status?: Database["public"]["Enums"]["pledge_status"]
@@ -561,6 +563,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           pledged_by_player_id?: string
+          price_euro?: number | null
           quantity_text?: string | null
           round_id?: string | null
           status?: Database["public"]["Enums"]["pledge_status"]

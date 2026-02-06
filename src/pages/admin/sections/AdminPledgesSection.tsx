@@ -21,6 +21,7 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
   const [editingPledge, setEditingPledge] = useState<string | null>(null);
   const [estLow, setEstLow] = useState(0);
   const [estHigh, setEstHigh] = useState(0);
+  const [priceEuro, setPriceEuro] = useState(0);
   const [adminNote, setAdminNote] = useState('');
   const [selectedRound, setSelectedRound] = useState<string>('all');
 
@@ -67,8 +68,9 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
 
   const saveEstimates = async (id: string) => {
     await supabase.from('pledge_items').update({
-      estimate_low: estLow,
-      estimate_high: estHigh,
+      estimate_low: estLow * 100,
+      estimate_high: estHigh * 100,
+      price_euro: priceEuro ? priceEuro * 100 : null,
       admin_note: adminNote || null,
     }).eq('id', id);
     setEditingPledge(null);
@@ -198,18 +200,33 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {pledge.category} · by {playerMap.get(pledge.pledged_by_player_id)?.full_name || '?'}
-                    {pledge.estimate_low != null && ` · ${pledge.estimate_low}–${pledge.estimate_high}c`}
+                    {pledge.estimate_low != null && ` · €${Math.round((pledge.estimate_low || 0) / 100)}–€${Math.round((pledge.estimate_high || 0) / 100)}`}
                   </p>
                 </div>
               </div>
 
               {editingPledge === pledge.id && (
-                <div className="space-y-2 bg-muted/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <Input type="number" value={estLow} onChange={e => setEstLow(Number(e.target.value))} placeholder="Low" className="h-8 w-20" />
-                    <span className="text-muted-foreground text-xs">–</span>
-                    <Input type="number" value={estHigh} onChange={e => setEstHigh(Number(e.target.value))} placeholder="High" className="h-8 w-20" />
-                    <span className="text-xs text-muted-foreground">credits</span>
+                <div className="space-y-3 bg-muted/50 rounded-lg p-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Expert estimate (€)</label>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">€</span>
+                        <Input type="number" value={estLow} onChange={e => setEstLow(Number(e.target.value))} placeholder="Min" className="h-8 pl-6" />
+                      </div>
+                      <span className="text-muted-foreground text-xs">–</span>
+                      <div className="relative flex-1">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">€</span>
+                        <Input type="number" value={estHigh} onChange={e => setEstHigh(Number(e.target.value))} placeholder="Max" className="h-8 pl-6" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Price (€)</label>
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">€</span>
+                      <Input type="number" value={priceEuro} onChange={e => setPriceEuro(Number(e.target.value))} placeholder="Starting price" className="h-8 pl-6 w-32" />
+                    </div>
                   </div>
                   <Textarea
                     value={adminNote}
@@ -231,8 +248,9 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
                 </Button>
                 <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => {
                   setEditingPledge(pledge.id);
-                  setEstLow(pledge.estimate_low || 0);
-                  setEstHigh(pledge.estimate_high || 0);
+                  setEstLow(Math.round((pledge.estimate_low || 0) / 100));
+                  setEstHigh(Math.round((pledge.estimate_high || 0) / 100));
+                  setPriceEuro(Math.round(((pledge as any).price_euro || 0) / 100));
                   setAdminNote((pledge as any).admin_note || '');
                 }}>
                   <Edit className="mr-1 h-3 w-3" />Estimates
