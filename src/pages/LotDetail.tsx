@@ -310,5 +310,7 @@ export default function LotDetailPage() {
         </div>
       )}
     </PageLayout>
+    <BottomNav />
+    </>
   );
 }

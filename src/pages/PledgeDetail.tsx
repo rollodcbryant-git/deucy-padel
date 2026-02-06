@@ -161,5 +161,7 @@ export default function PledgeDetailPage() {
         )}
       </div>
     </PageLayout>
+    <BottomNav />
+    </>
   );
 }

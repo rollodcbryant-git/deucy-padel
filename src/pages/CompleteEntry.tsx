@@ -147,6 +147,7 @@ export default function CompleteEntryPage() {
           </p>
         )}
       </div>
+      <BottomNav />
     </div>
   );
 }
