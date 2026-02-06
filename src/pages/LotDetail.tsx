@@ -1,6 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { BottomNav } from '@/components/layout/BottomNav';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
@@ -159,9 +158,8 @@ export default function LotDetailPage() {
   const showDecimals = tournament.display_decimals;
 
   return (
-    <>
     <PageLayout
-      hasBottomNav={true}
+      hasBottomNav={false}
       header={
         <div className="flex items-center gap-3 p-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/auction')}>
@@ -311,7 +309,5 @@ export default function LotDetailPage() {
         </div>
       )}
     </PageLayout>
-    <BottomNav />
-    </>
   );
 }

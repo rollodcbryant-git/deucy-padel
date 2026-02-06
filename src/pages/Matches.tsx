@@ -10,7 +10,7 @@ import { usePlayer } from '@/contexts/PlayerContext';
 import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { supabase } from '@/integrations/supabase/client';
 import type { MatchWithPlayers, Round, Player } from '@/lib/types';
-import { Calendar, Lock } from 'lucide-react';
+import { Calendar, Copy, Lock } from 'lucide-react';
 import { MatchCard } from '@/components/cards/MatchCard';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -240,13 +240,21 @@ export default function MatchesPage() {
                         </CardContent>
                       </Card>
                     ) : (
-                      <MatchCard
-                        key={match.id}
-                        match={match}
-                        currentPlayerId={player.id}
-                        onClaimBooking={() => handleClaimBooking(match)}
-                        onReportResult={() => handleReportResult(match)}
-                      />
+                      <div key={match.id} className="space-y-2">
+                        <MatchCard
+                          match={match}
+                          currentPlayerId={player.id}
+                          onClaimBooking={() => handleClaimBooking(match)}
+                          onReportResult={() => handleReportResult(match)}
+                        />
+                        {/* Copy contacts button */}
+                        {match.status !== 'Played' && match.status !== 'AutoResolved' && (
+                          <Button variant="ghost" size="sm" className="w-full text-muted-foreground"
+                            onClick={() => handleCopyContacts(match)}>
+                            <Copy className="mr-1 h-3 w-3" />Copy Match Contacts
+                          </Button>
+                        )}
+                      </div>
                     )
                   ))
                 )}

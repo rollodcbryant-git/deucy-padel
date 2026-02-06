@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { PledgeForm } from '@/components/auction/PledgeForm';
-import { BottomNav } from '@/components/layout/BottomNav';
 import { CheckCircle, Gift, ArrowRight } from 'lucide-react';
 
 export default function CompleteEntryPage() {
@@ -138,7 +137,7 @@ export default function CompleteEntryPage() {
 
         {/* Continue */}
         {isComplete ? (
-          <Button className="w-full touch-target bg-gradient-primary hover:opacity-90" onClick={() => navigate('/')}>
+          <Button className="w-full touch-target bg-gradient-primary hover:opacity-90" onClick={() => navigate('/home')}>
             Let's Go <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         ) : (
@@ -147,7 +146,6 @@ export default function CompleteEntryPage() {
           </p>
         )}
       </div>
-      <BottomNav />
     </div>
   );
 }

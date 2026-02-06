@@ -35,10 +35,6 @@ export interface Tournament {
   euros_per_set_loss: number; // cents lost per set lost
   allow_negative_balance: boolean;
   display_decimals: boolean;
-  series_id: string | null;
-  series_order: number;
-  started_at: string | null;
-  ended_at: string | null;
   created_at: string;
   updated_at: string;
 }

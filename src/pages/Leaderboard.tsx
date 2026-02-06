@@ -92,7 +92,7 @@ export default function LeaderboardPage() {
                 <div className="flex-1">
                   <p className="font-semibold text-primary">{player.full_name} (you)</p>
                   <p className="text-xs text-muted-foreground">
-                    {player.match_wins}W - {player.match_losses}L • Sets: {player.sets_won - player.sets_lost > 0 ? '+' : ''}{player.sets_won - player.sets_lost}
+                    {player.match_wins}W - {player.match_losses}L • Sets: +{player.sets_won - player.sets_lost}
                   </p>
                 </div>
                 <CreditsDisplay amount={player.credits_balance} variant="compact" />
@@ -122,7 +122,7 @@ export default function LeaderboardPage() {
                       {p.id === player.id && <span className="text-primary ml-1">(you)</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {p.match_wins}W - {p.match_losses}L • Sets: {p.sets_won - p.sets_lost > 0 ? '+' : ''}{p.sets_won - p.sets_lost}
+                      {p.match_wins}W - {p.match_losses}L • Sets: {p.sets_won - p.sets_lost >= 0 ? '+' : ''}{p.sets_won - p.sets_lost}
                     </p>
                   </div>
                   <CreditsDisplay amount={p.credits_balance} variant="compact" />

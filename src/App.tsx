@@ -9,9 +9,7 @@ import { PlayerProvider } from "@/contexts/PlayerContext";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Join from "./pages/Join";
-import Lobby from "./pages/Lobby";
-import TournamentOverview from "./pages/TournamentOverview";
-import MyTournament from "./pages/MyTournament";
+import Home from "./pages/Home";
 import Matches from "./pages/Matches";
 import Leaderboard from "./pages/Leaderboard";
 
@@ -40,20 +38,16 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Home = Tournament Lobby */}
-            <Route path="/" element={<Lobby />} />
-            <Route path="/lobby" element={<Lobby />} />
+            {/* Public routes */}
+            <Route path="/" element={<Login />} />
             <Route path="/landing" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/join" element={<Join />} />
             
-            {/* Tournament drill-down */}
-            <Route path="/tournament/:tournamentId" element={<TournamentOverview />} />
-            <Route path="/tournament/:tournamentId/me" element={<MyTournament />} />
-            
             <Route path="/complete-entry" element={<CompleteEntry />} />
             
-            {/* In-tournament pages (use player context for tournament) */}
+            {/* Player routes */}
+            <Route path="/home" element={<Home />} />
             <Route path="/matches" element={<Matches />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             

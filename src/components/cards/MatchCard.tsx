@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { cn } from '@/lib/utils';
-import { Phone, Check } from 'lucide-react';
+import { Phone, ExternalLink, Check, MapPin } from 'lucide-react';
 import { PlayerLink } from '@/components/ui/PlayerLink';
 import type { MatchWithPlayers, Player } from '@/lib/types';
 
@@ -150,6 +150,23 @@ export function MatchCard({
               </div>
             )}
 
+            {/* Court location & booking */}
+            <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <p className="text-xs text-muted-foreground leading-snug">
+                  BOIX TEAM TENNIS — Gran Vía de Fernando el Católico, 78, Extramurs, 46008 València
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                className="w-full touch-target"
+                onClick={() => window.open('https://boixteam.es/booking-gran-via', '_blank')}
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Book Court
+              </Button>
+            </div>
 
             {/* Report result */}
             {isBookingClaimed && onReportResult && (
@@ -166,8 +183,8 @@ export function MatchCard({
 
         {/* Phone list for match chat */}
         {!isPlayed && (
-          <div className="pt-2 border-t border-border space-y-2">
-            <p className="text-xs text-muted-foreground">Match Chat</p>
+          <div className="pt-2 border-t border-border">
+            <p className="text-xs text-muted-foreground mb-2">Match Chat</p>
             <div className="flex flex-wrap gap-2">
               {allPlayers
                 .filter(p => p.id !== currentPlayerId)
@@ -184,23 +201,6 @@ export function MatchCard({
                   </a>
                 ))}
             </div>
-            {(() => {
-              const others = allPlayers.filter(p => p.id !== currentPlayerId);
-              if (others.length === 0) return null;
-              const names = others.map(p => p.full_name.split(' ')[0]).join(', ');
-              const msg = encodeURIComponent(`Hey ${names}! 🎾 Let's set up our padel match. When works for everyone?`);
-              return (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => window.open(`https://wa.me/?text=${msg}`, '_blank')}
-                >
-                  <Phone className="mr-2 h-4 w-4" />
-                  Start Group Chat
-                </Button>
-              );
-            })()}
           </div>
         )}
       </CardContent>
