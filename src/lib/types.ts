@@ -239,3 +239,21 @@ export interface MatchBet {
 export interface MatchBetWithPlayer extends MatchBet {
   player?: Player;
 }
+
+// Waitlist
+export type WaitlistStatus = 'waiting' | 'invited' | 'assigned' | 'confirmed' | 'removed' | 'no_response' | 'dropped';
+
+export interface WaitlistEntry {
+  id: string;
+  full_name: string;
+  phone: string;
+  note: string | null;
+  tournament_id: string | null;
+  status: WaitlistStatus;
+  priority: boolean;
+  assigned_tournament_id: string | null;
+  assigned_at: string | null;
+  invite_expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}

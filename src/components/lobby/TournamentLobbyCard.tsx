@@ -6,7 +6,8 @@ import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Users, ChevronDown, Zap, Award, Shield } from 'lucide-react';
 import { formatEuros } from '@/lib/euros';
-import type { Tournament, Round, TournamentTier } from '@/lib/types';
+import { WaitlistStatusBadge } from '@/components/waitlist/WaitlistStatusBadge';
+import type { Tournament, Round, TournamentTier, WaitlistEntry } from '@/lib/types';
 
 type LobbyStatus = 'live' | 'filling' | 'finished' | 'coming_soon' | 'ready';
 
@@ -20,6 +21,12 @@ interface TournamentLobbyCardProps {
   isJoining?: boolean;
   onJoin: () => void;
   onView: () => void;
+  // Waitlist props
+  waitlistEntry?: WaitlistEntry | null;
+  waitlistPosition?: number | null;
+  onJoinWaitlist?: () => void;
+  onLeaveWaitlist?: () => void;
+  waitlistLoading?: boolean;
 }
 
 function getLobbyStatus(tournament: Tournament): LobbyStatus {
@@ -64,6 +71,11 @@ export function TournamentLobbyCard({
   isJoining,
   onJoin,
   onView,
+  waitlistEntry,
+  waitlistPosition,
+  onJoinWaitlist,
+  onLeaveWaitlist,
+  waitlistLoading,
 }: TournamentLobbyCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const lobbyStatus = getLobbyStatus(tournament);
@@ -72,6 +84,8 @@ export function TournamentLobbyCard({
   const tier = tournament.tier || 'League';
   const roundsCount = tournament.rounds_count || 3;
   const totalWeeks = Math.ceil((roundsCount * tournament.round_duration_days) / 7);
+
+  const isOnThisWaitlist = waitlistEntry && waitlistEntry.tournament_id === tournament.id;
 
   return (
     <Card className={`chaos-card transition-all ${isEnrolled ? 'border-primary/40 bg-primary/5' : ''}`}>
@@ -135,17 +149,35 @@ export function TournamentLobbyCard({
                 <Button size="sm" variant="outline" className="h-7 text-xs border-primary/30 text-primary" onClick={onView}>
                   View
                 </Button>
-              ) : lobbyStatus === 'filling' && !isFull && !isEnrolledElsewhere ? (
+              ) : lobbyStatus === 'filling' && !isFull && !isEnrolledElsewhere && !waitlistEntry ? (
                 <Button size="sm" className="h-7 text-xs bg-gradient-primary hover:opacity-90" onClick={onJoin} disabled={isJoining}>
                   {isJoining ? 'Joining…' : 'Join'}
                 </Button>
-              ) : lobbyStatus === 'filling' && isFull ? (
-                <span className="text-xs text-muted-foreground font-medium">Full</span>
+              ) : lobbyStatus === 'filling' && isFull && !isOnThisWaitlist && !isEnrolledElsewhere && !waitlistEntry ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs border-primary/30 text-primary"
+                  onClick={onJoinWaitlist}
+                  disabled={waitlistLoading}
+                >
+                  Join Waitlist
+                </Button>
               ) : lobbyStatus === 'live' && !isEnrolled ? (
                 <span className="text-[10px] text-muted-foreground">Live now</span>
               ) : null}
             </div>
           </div>
+
+          {/* Waitlist status */}
+          {isOnThisWaitlist && onLeaveWaitlist && (
+            <WaitlistStatusBadge
+              entry={waitlistEntry}
+              position={waitlistPosition ?? null}
+              onLeave={onLeaveWaitlist}
+              loading={waitlistLoading}
+            />
+          )}
 
           {/* Enrolled notices */}
           {isEnrolledElsewhere && lobbyStatus === 'filling' && !isFull && (
@@ -169,7 +201,6 @@ export function TournamentLobbyCard({
         {/* Expanded details */}
         <CollapsibleContent>
           <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
-            {/* Duration */}
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
                 <p className="text-muted-foreground">Duration</p>
@@ -181,7 +212,6 @@ export function TournamentLobbyCard({
               </div>
             </div>
 
-            {/* Stakes */}
             <div className="grid grid-cols-3 gap-3 text-xs">
               <div>
                 <p className="text-muted-foreground">Starting €</p>
@@ -199,7 +229,6 @@ export function TournamentLobbyCard({
               )}
             </div>
 
-            {/* Phases */}
             <div className="text-xs space-y-1">
               <p className="text-muted-foreground font-medium">Phases</p>
               <ol className="space-y-0.5 text-muted-foreground">
@@ -218,13 +247,11 @@ export function TournamentLobbyCard({
               </ol>
             </div>
 
-            {/* Pledge requirement */}
             <div className="text-xs flex items-center gap-2">
               <span className="text-muted-foreground">Pledges per round:</span>
               <span className="font-medium">{tournament.pledge_gate_enabled ? 'Required' : 'Optional'}</span>
             </div>
 
-            {/* Flavour text based on tier */}
             {tier === 'Major' && (
               <p className="text-[11px] text-chaos-orange/80 italic">🔥 Major event — bigger stakes, bigger glory</p>
             )}
