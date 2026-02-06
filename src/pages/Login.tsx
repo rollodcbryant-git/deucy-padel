@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { hashPin } from '@/contexts/PlayerContext';
 import { Phone, Lock, KeyRound, Settings, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { Tournament } from '@/lib/types';
+
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
