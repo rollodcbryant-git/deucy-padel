@@ -4,13 +4,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { PlayerProvider } from "@/contexts/PlayerContext";
+import { Navigate } from "react-router-dom";
 
 // Pages
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Join from "./pages/Join";
-import Home from "./pages/Home";
 import Matches from "./pages/Matches";
+import AllTournaments from "./pages/AllTournaments";
 import Leaderboard from "./pages/Leaderboard";
 
 import AuctionHouse from "./pages/AuctionHouse";
@@ -48,8 +49,9 @@ const App = () => (
             <Route path="/complete-entry" element={<CompleteEntry />} />
             
             {/* Player routes */}
-            <Route path="/home" element={<Home />} />
+            <Route path="/home" element={<Navigate to="/matches" replace />} />
             <Route path="/matches" element={<Matches />} />
+            <Route path="/tournaments" element={<AllTournaments />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             
             <Route path="/auction" element={<AuctionHouse />} />

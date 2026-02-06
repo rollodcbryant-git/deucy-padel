@@ -11,6 +11,7 @@ interface TournamentProgressAccordionProps {
   player: Player;
   rounds: Round[];
   matchesByRound: Map<string, MatchWithPlayers[]>;
+  playerRank: number;
   onClaimBooking: (match: MatchWithPlayers) => void;
   onReportResult: (match: MatchWithPlayers) => void;
   onCopyContacts: (match: MatchWithPlayers) => void;
@@ -21,6 +22,7 @@ export function TournamentProgressAccordion({
   player,
   rounds,
   matchesByRound,
+  playerRank,
   onClaimBooking,
   onReportResult,
   onCopyContacts,
@@ -46,6 +48,7 @@ export function TournamentProgressAccordion({
         player={player}
         rounds={rounds}
         totalPlayers={totalPlayers}
+        playerRank={playerRank}
         isExpanded={isExpanded}
         onToggle={() => setIsExpanded(!isExpanded)}
       />
