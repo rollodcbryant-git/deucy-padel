@@ -29,6 +29,7 @@ interface RoundTimelineProps {
 export function RoundTimeline({
   summaries,
   currentPlayerId,
+  tournament,
   onClaimBooking,
   onReportResult,
   onCopyContacts,
