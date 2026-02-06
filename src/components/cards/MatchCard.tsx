@@ -12,6 +12,8 @@ import { format } from 'date-fns';
 interface MatchCardProps {
   match: MatchWithPlayers;
   currentPlayerId: string;
+  round?: Round;
+  tournament?: Tournament;
   onClaimBooking?: () => void;
   onReportResult?: () => void;
   className?: string;
