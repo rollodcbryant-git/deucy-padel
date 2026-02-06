@@ -137,7 +137,7 @@ export default function CompleteEntryPage() {
 
         {/* Continue */}
         {isConfirmed && (
-          <Button className="w-full touch-target bg-gradient-primary hover:opacity-90" onClick={() => navigate('/home')}>
+          <Button className="w-full touch-target bg-gradient-primary hover:opacity-90" onClick={() => navigate('/tournaments')}>
             {hasPledge ? "Let's Go" : 'Skip for now'} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}
