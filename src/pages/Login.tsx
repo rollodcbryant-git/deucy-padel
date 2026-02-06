@@ -41,11 +41,6 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedTournamentId) {
-      toast({ title: 'Error', description: 'Please select a tournament first', variant: 'destructive' });
-      return;
-    }
-
     if (pin.length !== 4) {
       toast({ title: 'Invalid PIN', description: 'PIN must be 4 digits', variant: 'destructive' });
       return;
