@@ -106,23 +106,28 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'Invalid phone or PIN' };
       }
 
-      // Pick the player in the most relevant tournament:
-      // prefer Live > SignupOpen > others; if multiple, pick most recent
+      // Pick the best player record:
+      // prefer one with a tournament, then by tournament status (Live > SignupOpen > others)
       let playerData = players[0];
       if (players.length > 1 && !tournamentId) {
-        // Load tournaments to pick best
-        const tIds = [...new Set(players.map(p => p.tournament_id))];
-        const { data: tournaments } = await supabase
-          .from('tournaments')
-          .select('id, status')
-          .in('id', tIds);
-        
-        if (tournaments) {
-          const statusPriority: Record<string, number> = { Live: 0, AuctionLive: 0, SignupOpen: 1 };
-          const tMap = new Map(tournaments.map(t => [t.id, statusPriority[t.status] ?? 9]));
-          players.sort((a, b) => (tMap.get(a.tournament_id) ?? 9) - (tMap.get(b.tournament_id) ?? 9));
-          playerData = players[0];
+        const playersWithTournament = players.filter(p => p.tournament_id);
+        if (playersWithTournament.length > 0) {
+          const tIds = [...new Set(playersWithTournament.map(p => p.tournament_id).filter(Boolean))];
+          const { data: tournaments } = await supabase
+            .from('tournaments')
+            .select('id, status')
+            .in('id', tIds as string[]);
+          
+          if (tournaments) {
+            const statusPriority: Record<string, number> = { Live: 0, AuctionLive: 0, SignupOpen: 1 };
+            const tMap = new Map(tournaments.map(t => [t.id, statusPriority[t.status] ?? 9]));
+            playersWithTournament.sort((a, b) => (tMap.get(a.tournament_id!) ?? 9) - (tMap.get(b.tournament_id!) ?? 9));
+            playerData = playersWithTournament[0];
+          } else {
+            playerData = playersWithTournament[0];
+          }
         }
+        // else keep the account-only record (no tournament)
       }
 
       // Generate session token
