@@ -216,10 +216,14 @@ export default function TournamentsPage() {
     navigate('/');
   };
 
-  // Check if there are any open tournaments (SignupOpen and not full)
-  const hasOpenSlots = tournaments.some(t =>
-    t.tournament.status === 'SignupOpen' && t.playerCount < t.tournament.max_players
-  );
+  // Show waitlist only when ALL tournaments are either full or coming_soon (not started)
+  const allTournamentsFullOrComingSoon = tournaments.length > 0 && tournaments.every(t => {
+    const isFull = t.playerCount >= t.tournament.max_players;
+    const isComingSoon = t.tournament.status === 'Draft' || (t.tournament.status === 'SignupOpen' && !!t.tournament.signup_open_at && new Date(t.tournament.signup_open_at) > new Date());
+    const isFinished = t.tournament.status === 'Finished' || t.tournament.status === 'Closed';
+    return isFull || isComingSoon || isFinished;
+  });
+  const showGlobalWaitlist = allTournamentsFullOrComingSoon;
 
   if (isLoading) {
     return (
@@ -249,7 +253,7 @@ export default function TournamentsPage() {
       >
         <div className="space-y-3">
           {/* Global waitlist banner when no open slots and not already on waitlist and not enrolled */}
-          {!loading && !hasOpenSlots && !enrolledTournament && !waitlistEntry && (
+          {!loading && showGlobalWaitlist && !enrolledTournament && !waitlistEntry && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center space-y-2">
               <div className="flex items-center justify-center gap-2 text-sm font-semibold">
                 <Clock className="h-4 w-4 text-primary" />
