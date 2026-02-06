@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { Player, CreditLedgerEntry } from '@/lib/types';
-import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { formatEuros } from '@/lib/euros';
 
 interface Props {
@@ -21,6 +21,9 @@ export default function AdminCreditsSection({ tournamentId, players, onReload }:
   const [adjustPlayer, setAdjustPlayer] = useState<string | null>(null);
   const [adjustAmountEuros, setAdjustAmountEuros] = useState('');
   const [adjustReason, setAdjustReason] = useState('');
+
+  // Only show active roster players (not Removed)
+  const rosterPlayers = players.filter(p => p.status !== 'Removed');
 
   const loadLedger = async (playerId: string) => {
     const { data } = await supabase
@@ -48,7 +51,7 @@ export default function AdminCreditsSection({ tournamentId, players, onReload }:
       toast({ title: 'Fill all fields', variant: 'destructive' });
       return;
     }
-    const player = players.find(p => p.id === adjustPlayer);
+    const player = rosterPlayers.find(p => p.id === adjustPlayer);
     if (!player) return;
 
     await supabase.from('credit_ledger_entries').insert({
@@ -69,10 +72,50 @@ export default function AdminCreditsSection({ tournamentId, players, onReload }:
     onReload();
   };
 
-  const sorted = [...players].sort((a, b) => b.credits_balance - a.credits_balance);
+  /** Sync Ledger with Roster: remove orphan entries + recalculate balances */
+  const syncLedgerWithRoster = async () => {
+    const rosterIds = rosterPlayers.map(p => p.id);
+    
+    // Get all ledger entries for this tournament
+    const { data: allEntries } = await supabase
+      .from('credit_ledger_entries')
+      .select('id, player_id')
+      .eq('tournament_id', tournamentId);
+
+    // Find orphans (player_id not in current roster)
+    const orphanEntries = (allEntries || []).filter(e => !rosterIds.includes(e.player_id));
+    
+    if (orphanEntries.length > 0) {
+      for (const entry of orphanEntries) {
+        await supabase.from('credit_ledger_entries').delete().eq('id', entry.id);
+      }
+    }
+
+    // Recalculate each roster player's balance from ledger
+    for (const player of rosterPlayers) {
+      const { data: entries } = await supabase
+        .from('credit_ledger_entries')
+        .select('amount')
+        .eq('player_id', player.id)
+        .eq('tournament_id', tournamentId);
+      
+      const calculatedBalance = (entries || []).reduce((sum, e) => sum + e.amount, 0);
+      await supabase.from('players').update({ credits_balance: calculatedBalance }).eq('id', player.id);
+    }
+
+    toast({ title: `Synced! Removed ${orphanEntries.length} orphan entries, recalculated ${rosterPlayers.length} balances` });
+    onReload();
+  };
+
+  const sorted = [...rosterPlayers].sort((a, b) => b.credits_balance - a.credits_balance);
 
   return (
     <div className="space-y-3">
+      {/* Sync utility */}
+      <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={syncLedgerWithRoster}>
+        <RefreshCw className="mr-1 h-3 w-3" /> Sync Ledger with Roster
+      </Button>
+
       {/* Leaderboard + Ledger */}
       <div className="space-y-1.5 max-h-96 overflow-y-auto">
         {sorted.map((p, i) => (
@@ -115,7 +158,7 @@ export default function AdminCreditsSection({ tournamentId, players, onReload }:
       {/* Adjustment form */}
       {adjustPlayer && (
         <div className="p-3 rounded-lg border border-border space-y-2">
-          <p className="text-sm font-medium">Adjust: {players.find(p => p.id === adjustPlayer)?.full_name}</p>
+          <p className="text-sm font-medium">Adjust: {rosterPlayers.find(p => p.id === adjustPlayer)?.full_name}</p>
           <div className="flex gap-2">
             <div className="relative flex-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>

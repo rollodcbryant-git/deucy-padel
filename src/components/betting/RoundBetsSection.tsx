@@ -4,7 +4,6 @@ import { BetMatchCard } from './BetMatchCard';
 import { PlaceBetDialog } from './PlaceBetDialog';
 import { EuroDisclaimer } from '@/components/ui/EuroDisclaimer';
 import { useToast } from '@/hooks/use-toast';
-import { formatEuros } from '@/lib/euros';
 import { Zap, TrendingUp } from 'lucide-react';
 import type { MatchWithPlayers, MatchBet, Player, Tournament, Round } from '@/lib/types';
 
@@ -25,27 +24,17 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
   const loadData = useCallback(async () => {
     if (!currentRound) return;
 
-    // Load ALL matches for this round (not just player's own)
     const { data: matchesData } = await supabase
-      .from('matches')
-      .select('*')
-      .eq('round_id', currentRound.id)
-      .eq('is_bye', false)
-      .order('created_at');
-
+      .from('matches').select('*').eq('round_id', currentRound.id).eq('is_bye', false).order('created_at');
     if (!matchesData) return;
 
-    // Get all player IDs to resolve names
     const playerIds = new Set<string>();
     matchesData.forEach(m => {
       [m.team_a_player1_id, m.team_a_player2_id, m.team_b_player1_id, m.team_b_player2_id]
         .forEach(id => { if (id) playerIds.add(id); });
     });
 
-    const { data: players } = await supabase
-      .from('players')
-      .select('*')
-      .in('id', Array.from(playerIds));
+    const { data: players } = await supabase.from('players').select('*').in('id', Array.from(playerIds));
     const playerMap = new Map((players || []).map(p => [p.id, p as Player]));
 
     const enriched: MatchWithPlayers[] = matchesData.map(m => ({
@@ -57,11 +46,7 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
     }));
     setMatches(enriched);
 
-    // Load bets for this round
-    const { data: betsData } = await supabase
-      .from('match_bets')
-      .select('*')
-      .eq('round_id', currentRound.id);
+    const { data: betsData } = await supabase.from('match_bets').select('*').eq('round_id', currentRound.id);
     setBets((betsData || []) as MatchBet[]);
     setMyBets((betsData || []).filter((b: any) => b.player_id === player.id) as MatchBet[]);
   }, [currentRound, player.id]);
@@ -70,9 +55,8 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
 
   if (!tournament.betting_enabled || !currentRound) return null;
 
-  const roundStaked = myBets
-    .filter(b => b.status === 'Pending')
-    .reduce((sum, b) => sum + b.stake, 0);
+  // All values in whole € (integers)
+  const roundStaked = myBets.filter(b => b.status === 'Pending').reduce((sum, b) => sum + b.stake, 0);
 
   const handlePlaceBet = (match: MatchWithPlayers) => {
     setSelectedMatch(match);
@@ -80,10 +64,15 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
   };
 
   const handleSubmitBet = async (matchId: string, predictedWinner: 'team_a' | 'team_b', stake: number) => {
-    // Validate
-    const minProtected = tournament.min_protected_balance || 200;
+    // Hard cap €5
+    if (stake > 5) {
+      toast({ title: 'Easy tiger 🐯', description: 'Max €5 per bet.', variant: 'destructive' });
+      return;
+    }
+
+    const minProtected = tournament.min_protected_balance || 2;
     if (player.credits_balance - stake < minProtected) {
-      toast({ title: 'Easy tiger 🐯', description: `Can't drop below ${formatEuros(minProtected)} minimum balance.`, variant: 'destructive' });
+      toast({ title: 'Easy tiger 🐯', description: `Can't drop below €${minProtected} minimum balance.`, variant: 'destructive' });
       return;
     }
 
@@ -102,13 +91,8 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
       return;
     }
 
-    // Deduct from player balance immediately
-    await supabase
-      .from('players')
-      .update({ credits_balance: player.credits_balance - stake })
-      .eq('id', player.id);
+    await supabase.from('players').update({ credits_balance: player.credits_balance - stake }).eq('id', player.id);
 
-    // Create ledger entry
     await supabase.from('credit_ledger_entries').insert({
       tournament_id: tournament.id,
       player_id: player.id,
@@ -119,17 +103,12 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
       note: `Bet on ${predictedWinner === 'team_a' ? 'Team A' : 'Team B'}`,
     });
 
-    toast({ title: 'Prophecy placed! 🔮', description: `${formatEuros(stake)} on the line (fake €)` });
+    toast({ title: 'Prophecy placed! 🔮', description: `€${stake} on the line (fake €)` });
     loadData();
   };
 
-  const myWinnings = myBets
-    .filter(b => b.status === 'Won')
-    .reduce((sum, b) => sum + (b.payout || 0), 0);
-
-  const myLosses = myBets
-    .filter(b => b.status === 'Lost')
-    .reduce((sum, b) => sum + b.stake, 0);
+  const myWinnings = myBets.filter(b => b.status === 'Won').reduce((sum, b) => sum + (b.payout || 0), 0);
+  const myLosses = myBets.filter(b => b.status === 'Lost').reduce((sum, b) => sum + b.stake, 0);
 
   return (
     <div className="space-y-3">
@@ -139,26 +118,22 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
           Round Bets
         </h3>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-          <span>Budget: {formatEuros(Math.max(0, (tournament.per_round_bet_cap || 500) - roundStaked))} left</span>
+          <span>Budget: €{Math.max(0, (tournament.per_round_bet_cap || 5) - roundStaked)} left</span>
         </div>
       </div>
 
-      {/* Summary if there are settled bets */}
       {(myWinnings > 0 || myLosses > 0) && (
         <div className="rounded-lg bg-muted/30 p-2 flex items-center justify-between text-xs">
-          <span className="flex items-center gap-1">
-            <TrendingUp className="h-3 w-3" /> Round results
-          </span>
+          <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Round results</span>
           <span>
-            {myWinnings > 0 && <span className="text-primary font-semibold mr-2">+{formatEuros(myWinnings)}</span>}
-            {myLosses > 0 && <span className="text-destructive font-semibold">-{formatEuros(myLosses)}</span>}
+            {myWinnings > 0 && <span className="text-primary font-semibold mr-2">+€{myWinnings}</span>}
+            {myLosses > 0 && <span className="text-destructive font-semibold">-€{myLosses}</span>}
           </span>
         </div>
       )}
 
       <EuroDisclaimer variant="inline" />
 
-      {/* Match cards */}
       <div className="space-y-2">
         {matches.map(match => (
           <BetMatchCard
@@ -175,9 +150,7 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
       </div>
 
       {matches.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          No matches to bet on yet.
-        </p>
+        <p className="text-sm text-muted-foreground text-center py-4">No matches to bet on yet.</p>
       )}
 
       <PlaceBetDialog

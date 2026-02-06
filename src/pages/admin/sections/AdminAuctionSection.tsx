@@ -3,9 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StatusChip } from '@/components/ui/StatusChip';
+import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { useToast } from '@/hooks/use-toast';
 import type { Tournament, Auction, AuctionLot, PledgeItem, Player } from '@/lib/types';
-import { Gavel, Pause, Copy, EyeOff, RotateCcw, Play, Trash2, Clock, Zap, MapPin } from 'lucide-react';
+import { Copy, EyeOff, RotateCcw, Play, Trash2, Clock, Zap, MapPin, Pause } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatEuros } from '@/lib/euros';
 
@@ -42,7 +43,10 @@ export default function AdminAuctionSection({ tournament, players, onReload, cal
   };
 
   const launchAuction = async (hours: number) => {
-    await callEngine('start_auction', { duration_hours: hours });
+    const result = await callEngine('start_auction', { duration_hours: hours });
+    if (result?.success) {
+      toast({ title: '🔴 Auction is now LIVE!', description: `Duration: ${hours < 1 ? `${Math.round(hours * 60)} minutes` : `${hours}h`}. ${result.lots_created} lots created.` });
+    }
     loadAuction();
   };
 
@@ -61,7 +65,7 @@ export default function AdminAuctionSection({ tournament, players, onReload, cal
     }
     setAuction(null);
     setLots([]);
-    toast({ title: 'Auction reset — all bids cleared' });
+    toast({ title: '✅ Auction reset', description: 'All bids cleared, escrow released, status set to Locked.' });
     onReload();
   };
 
@@ -100,15 +104,29 @@ export default function AdminAuctionSection({ tournament, players, onReload, cal
 
   return (
     <div className="space-y-4">
-      {/* Auction status */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-muted-foreground">Status:</span>
-        <StatusChip
-          variant={auctionStatus === 'Live' ? 'live' : auctionStatus === 'Ended' ? 'ended' : 'neutral'}
-          pulse={auctionStatus === 'Live'}
-        >
-          {auctionStatus}
-        </StatusChip>
+      {/* Auction status readout */}
+      <div className="rounded-lg bg-muted/30 p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">Status:</span>
+          <StatusChip
+            variant={auctionStatus === 'Live' ? 'live' : auctionStatus === 'Ended' ? 'ended' : 'neutral'}
+            pulse={auctionStatus === 'Live'}
+          >
+            {auctionStatus}
+          </StatusChip>
+        </div>
+        {auction && auction.status === 'Live' && auction.ends_at && (
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Ends: {format(new Date(auction.ends_at), 'MMM d, HH:mm')}</span>
+            <CountdownTimer targetDate={auction.ends_at} variant="compact" />
+          </div>
+        )}
+        {auction && auction.status === 'Ended' && (
+          <p className="text-xs text-muted-foreground">Auction ended. {lots.filter(l => l.current_winner_player_id).length} winners.</p>
+        )}
+        {!auction && (
+          <p className="text-xs text-muted-foreground">No auction created. Launch one below.</p>
+        )}
       </div>
 
       {/* LOCKED STATE - Launch controls */}
@@ -125,43 +143,20 @@ export default function AdminAuctionSection({ tournament, players, onReload, cal
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground">Duration (hours)</label>
             <div className="flex gap-2">
-              <Input
-                type="number"
-                value={durationHours}
-                onChange={e => setDurationHours(Number(e.target.value))}
-                className="h-9 w-24"
-                min={1}
-              />
+              <Input type="number" value={durationHours} onChange={e => setDurationHours(Number(e.target.value))} className="h-9 w-24" min={1} />
               <span className="text-sm text-muted-foreground self-center">hours</span>
             </div>
           </div>
 
-          <Button
-            variant="hot"
-            className="w-full"
-            onClick={() => launchAuction(durationHours)}
-            disabled={isUpdating}
-          >
+          <Button variant="hot" className="w-full" onClick={() => launchAuction(durationHours)} disabled={isUpdating}>
             <Play className="mr-2 h-4 w-4" />Launch Auction ({durationHours}h)
           </Button>
 
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 h-8 text-xs"
-              onClick={() => launchAuction(0.167)}
-              disabled={isUpdating}
-            >
+            <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => launchAuction(0.167)} disabled={isUpdating}>
               <Zap className="mr-1 h-3 w-3" />Test (10 min)
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 h-8 text-xs"
-              onClick={() => launchAuction(1)}
-              disabled={isUpdating}
-            >
+            <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => launchAuction(1)} disabled={isUpdating}>
               <Clock className="mr-1 h-3 w-3" />Test (1h)
             </Button>
           </div>
@@ -189,28 +184,13 @@ export default function AdminAuctionSection({ tournament, players, onReload, cal
       {auction && auction.status === 'Ended' && (
         <div className="space-y-3">
           <StatusChip variant="ended" size="sm">Auction Ended</StatusChip>
-
           <Button variant="outline" className="w-full" onClick={exportWinners}>
             <Copy className="mr-2 h-4 w-4" />Export Winners & Pickup List
           </Button>
-
-          {/* Delivery settings */}
           <div className="space-y-2 rounded-lg bg-muted/30 p-3">
-            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> Delivery Settings
-            </p>
-            <Input
-              value={deliveryLocation}
-              onChange={e => setDeliveryLocation(e.target.value)}
-              placeholder="Pickup location (e.g. Club bar)"
-              className="h-8 text-xs"
-            />
-            <Input
-              value={deliveryMapsUrl}
-              onChange={e => setDeliveryMapsUrl(e.target.value)}
-              placeholder="Google Maps link (optional)"
-              className="h-8 text-xs"
-            />
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Delivery Settings</p>
+            <Input value={deliveryLocation} onChange={e => setDeliveryLocation(e.target.value)} placeholder="Pickup location" className="h-8 text-xs" />
+            <Input value={deliveryMapsUrl} onChange={e => setDeliveryMapsUrl(e.target.value)} placeholder="Google Maps link" className="h-8 text-xs" />
             <Button size="sm" className="h-7 text-xs" onClick={saveDeliverySettings}>Save</Button>
           </div>
         </div>

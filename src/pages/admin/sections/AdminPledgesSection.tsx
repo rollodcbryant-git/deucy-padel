@@ -7,7 +7,7 @@ import { StatusChip } from '@/components/ui/StatusChip';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import type { PledgeItem, Player, Round } from '@/lib/types';
-import { Check, EyeOff, Copy, Edit, AlertTriangle } from 'lucide-react';
+import { Check, EyeOff, Copy, Edit, AlertTriangle, Trash2 } from 'lucide-react';
 
 interface Props {
   pledges: PledgeItem[];
@@ -28,7 +28,6 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
   const playerMap = new Map(players.map(p => [p.id, p]));
   const activePlayers = players.filter(p => p.status === 'Active');
 
-  // Group pledges by round
   const pledgesByRound = useMemo(() => {
     const map = new Map<string, PledgeItem[]>();
     for (const p of pledges) {
@@ -39,7 +38,6 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
     return map;
   }, [pledges]);
 
-  // Missing pledges for a round
   const getMissingPlayers = (roundId: string) => {
     const roundPledges = pledgesByRound.get(roundId) || [];
     const pledgedIds = new Set(roundPledges.map(p => p.pledged_by_player_id));
@@ -63,6 +61,28 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
 
   const hidePledge = async (id: string) => {
     await supabase.from('pledge_items').update({ status: 'Hidden' }).eq('id', id);
+    onReload();
+  };
+
+  const deletePledge = async (pledge: PledgeItem) => {
+    // Check if there's a live auction with lots for this pledge
+    const { data: lots } = await supabase
+      .from('auction_lots')
+      .select('id, status')
+      .eq('pledge_item_id', pledge.id)
+      .eq('status', 'Live');
+    
+    if (lots && lots.length > 0) {
+      toast({ title: 'Cannot delete', description: 'This pledge has a live auction lot. End the auction first.', variant: 'destructive' });
+      return;
+    }
+
+    // Delete any ended lots linked to this pledge
+    await supabase.from('auction_lots').delete().eq('pledge_item_id', pledge.id);
+
+    // Hard delete the pledge
+    await supabase.from('pledge_items').delete().eq('id', pledge.id);
+    toast({ title: 'Pledge permanently deleted' });
     onReload();
   };
 
@@ -106,9 +126,6 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
               <span key={p.id} className="text-xs bg-muted rounded-full px-2 py-0.5">{p.full_name}</span>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">
-            These players won't be assigned matches if pledge gate is enabled
-          </p>
         </div>
       )}
 
@@ -129,38 +146,17 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
 
       {/* Round filter tabs */}
       <div className="flex gap-1 overflow-x-auto pb-1">
-        <Button
-          variant={selectedRound === 'all' ? 'default' : 'outline'}
-          size="sm"
-          className="h-7 text-xs shrink-0"
-          onClick={() => setSelectedRound('all')}
-        >
+        <Button variant={selectedRound === 'all' ? 'default' : 'outline'} size="sm" className="h-7 text-xs shrink-0" onClick={() => setSelectedRound('all')}>
           All ({pledges.length})
         </Button>
         {rounds.map(r => {
           const count = (pledgesByRound.get(r.id) || []).length;
           return (
-            <Button
-              key={r.id}
-              variant={selectedRound === r.id ? 'default' : 'outline'}
-              size="sm"
-              className="h-7 text-xs shrink-0"
-              onClick={() => setSelectedRound(r.id)}
-            >
+            <Button key={r.id} variant={selectedRound === r.id ? 'default' : 'outline'} size="sm" className="h-7 text-xs shrink-0" onClick={() => setSelectedRound(r.id)}>
               R{r.index} ({count})
             </Button>
           );
         })}
-        {(pledgesByRound.get('unassigned') || []).length > 0 && (
-          <Button
-            variant={selectedRound === 'unassigned' ? 'default' : 'outline'}
-            size="sm"
-            className="h-7 text-xs shrink-0"
-            onClick={() => setSelectedRound('unassigned')}
-          >
-            Unassigned ({(pledgesByRound.get('unassigned') || []).length})
-          </Button>
-        )}
       </div>
 
       <div className="flex items-center justify-between">
@@ -183,14 +179,11 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
                     <div className="h-full w-full flex items-center justify-center text-2xl opacity-40">📦</div>
                   )}
                 </div>
-
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       {pledgeRound && (
-                        <span className="shrink-0 text-[10px] font-bold bg-primary/20 text-primary rounded px-1.5 py-0.5">
-                          R{pledgeRound.index}
-                        </span>
+                        <span className="shrink-0 text-[10px] font-bold bg-primary/20 text-primary rounded px-1.5 py-0.5">R{pledgeRound.index}</span>
                       )}
                       <p className="font-medium text-sm truncate">{pledge.title}</p>
                     </div>
@@ -228,13 +221,7 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
                       <Input type="number" value={priceEuro} onChange={e => setPriceEuro(Number(e.target.value))} placeholder="Starting price" className="h-8 pl-6 w-32" />
                     </div>
                   </div>
-                  <Textarea
-                    value={adminNote}
-                    onChange={e => setAdminNote(e.target.value)}
-                    placeholder="Internal admin note (optional)"
-                    rows={2}
-                    className="text-xs"
-                  />
+                  <Textarea value={adminNote} onChange={e => setAdminNote(e.target.value)} placeholder="Internal admin note (optional)" rows={2} className="text-xs" />
                   <Button size="sm" className="h-8" onClick={() => saveEstimates(pledge.id)}>Save</Button>
                 </div>
               )}
@@ -254,6 +241,9 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
                   setAdminNote((pledge as any).admin_note || '');
                 }}>
                   <Edit className="mr-1 h-3 w-3" />Estimates
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs text-destructive border-destructive/30" onClick={() => deletePledge(pledge)}>
+                  <Trash2 className="mr-1 h-3 w-3" />Delete
                 </Button>
               </div>
             </div>

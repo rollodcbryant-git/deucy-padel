@@ -6,7 +6,7 @@ import { StatusChip } from '@/components/ui/StatusChip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { Tournament, Round, Match, Player } from '@/lib/types';
-import { Copy, MessageSquare, Edit, RotateCcw, Ban } from 'lucide-react';
+import { Copy, MessageSquare, Edit, RotateCcw, Ban, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Props {
@@ -31,6 +31,19 @@ export default function AdminMatchesSection({ tournament, rounds, matches, playe
   const getPhone = (id: string | null) => id ? playerMap.get(id)?.phone || '' : '';
 
   const roundMatches = matches.filter(m => m.round_id === selectedRoundId && !m.is_bye);
+
+  // Find unmatched players for the selected round
+  const matchedPlayerIds = new Set<string>();
+  roundMatches.forEach(m => {
+    [m.team_a_player1_id, m.team_a_player2_id, m.team_b_player1_id, m.team_b_player2_id]
+      .forEach(id => { if (id) matchedPlayerIds.add(id); });
+  });
+  // Also include bye players
+  matches.filter(m => m.round_id === selectedRoundId && m.is_bye && m.bye_player_id)
+    .forEach(m => matchedPlayerIds.add(m.bye_player_id!));
+  
+  const activePlayers = players.filter(p => p.status === 'Active' && p.confirmed);
+  const unmatchedPlayers = activePlayers.filter(p => !matchedPlayerIds.has(p.id));
 
   const getMatchStatusVariant = (s: string) => {
     switch (s) {
@@ -80,13 +93,12 @@ export default function AdminMatchesSection({ tournament, rounds, matches, playe
     onReload();
   };
 
-  const setBooking = async (matchId: string, playerId: string | null) => {
-    await supabase.from('matches').update({
-      booking_claimed_by_player_id: playerId,
-      booking_claimed_at: playerId ? new Date().toISOString() : null,
-      status: playerId ? 'BookingClaimed' : 'Scheduled',
-    }).eq('id', matchId);
-    onReload();
+  const autoMatchRemaining = async () => {
+    if (!selectedRoundId) return;
+    const result = await callEngine('auto_match_remaining', { round_id: selectedRoundId });
+    if (result?.success) {
+      toast({ title: `Auto-matched ${result.matches_created || 0} new match(es)` });
+    }
   };
 
   return (
@@ -104,6 +116,24 @@ export default function AdminMatchesSection({ tournament, rounds, matches, playe
         </Select>
       )}
 
+      {/* Auto-match remaining players */}
+      {unmatchedPlayers.length >= 4 && selectedRoundId && (
+        <div className="rounded-lg bg-chaos-orange/10 border border-chaos-orange/30 p-3 space-y-2">
+          <p className="text-xs text-chaos-orange font-medium">
+            {unmatchedPlayers.length} unmatched player{unmatchedPlayers.length > 1 ? 's' : ''}: {unmatchedPlayers.map(p => p.full_name).join(', ')}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs w-full"
+            onClick={autoMatchRemaining}
+            disabled={isUpdating}
+          >
+            <UserPlus className="mr-1 h-3 w-3" /> Auto-match remaining players
+          </Button>
+        </div>
+      )}
+
       <div className="space-y-2 max-h-[500px] overflow-y-auto">
         {roundMatches.map(m => (
           <div key={m.id} className="rounded-lg bg-muted/30 p-3 space-y-2">
@@ -119,7 +149,6 @@ export default function AdminMatchesSection({ tournament, rounds, matches, playe
               <StatusChip variant={getMatchStatusVariant(m.status)} size="sm">{m.status}</StatusChip>
             </div>
 
-            {/* Edit result */}
             {editingMatch === m.id && (
               <div className="flex items-center gap-2">
                 <Input type="number" min={0} max={2} value={setsA} onChange={e => setSetsA(Number(e.target.value))} className="h-8 w-16" placeholder="A" />
@@ -130,7 +159,6 @@ export default function AdminMatchesSection({ tournament, rounds, matches, playe
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex flex-wrap gap-1">
               <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => copyContacts(m)}>
                 <Copy className="mr-1 h-3 w-3" />Contacts

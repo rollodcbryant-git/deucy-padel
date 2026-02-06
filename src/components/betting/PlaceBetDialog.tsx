@@ -9,7 +9,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { PlayerLink } from '@/components/ui/PlayerLink';
 import { EuroDisclaimer } from '@/components/ui/EuroDisclaimer';
-import { formatEuros } from '@/lib/euros';
 import { cn } from '@/lib/utils';
 import { Zap, TrendingUp, Shield } from 'lucide-react';
 import type { MatchWithPlayers, Tournament } from '@/lib/types';
@@ -19,8 +18,8 @@ interface PlaceBetDialogProps {
   onOpenChange: (open: boolean) => void;
   match: MatchWithPlayers | null;
   tournament: Tournament;
-  availableBalance: number; // cents
-  roundStakedSoFar: number; // cents
+  availableBalance: number; // whole €
+  roundStakedSoFar: number; // whole €
   onSubmit: (matchId: string, predictedWinner: 'team_a' | 'team_b', stake: number) => Promise<void>;
 }
 
@@ -34,22 +33,21 @@ export function PlaceBetDialog({
   onSubmit,
 }: PlaceBetDialogProps) {
   const [selectedTeam, setSelectedTeam] = useState<'team_a' | 'team_b' | null>(null);
-  const [stake, setStake] = useState(100); // 1 euro default
+  const [stake, setStake] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!match) return null;
 
-  const perBetMax = tournament.per_bet_max || 300;
-  const roundCap = tournament.per_round_bet_cap || 500;
-  const minProtected = tournament.min_protected_balance || 200;
+  const perBetMax = Math.min(tournament.per_bet_max || 5, 5); // hard cap €5
+  const roundCap = tournament.per_round_bet_cap || 5;
+  const minProtected = tournament.min_protected_balance || 2;
   const multiplier = Number(tournament.payout_multiplier) || 2.0;
 
-  // Available cap for this bet
   const roundRemaining = Math.max(0, roundCap - roundStakedSoFar);
   const balanceForBetting = Math.max(0, availableBalance - minProtected);
   const maxBet = Math.min(perBetMax, roundRemaining, balanceForBetting);
 
-  const quickAmounts = [100, 200, 300, 500].filter(a => a <= maxBet);
+  const quickAmounts = [1, 2, 3, 5].filter(a => a <= maxBet);
 
   const potentialPayout = Math.round(stake * multiplier);
 
@@ -60,7 +58,7 @@ export function PlaceBetDialog({
       await onSubmit(match.id, selectedTeam, stake);
       onOpenChange(false);
       setSelectedTeam(null);
-      setStake(100);
+      setStake(1);
     } finally {
       setIsSubmitting(false);
     }
@@ -86,49 +84,37 @@ export function PlaceBetDialog({
               onClick={() => setSelectedTeam('team_a')}
               className={cn(
                 'rounded-lg border-2 p-3 text-left transition-all',
-                selectedTeam === 'team_a'
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border hover:border-muted-foreground/30',
+                selectedTeam === 'team_a' ? 'border-primary bg-primary/10' : 'border-border hover:border-muted-foreground/30',
               )}
             >
               <p className="text-[10px] uppercase text-muted-foreground mb-1">Team A</p>
               <div className="space-y-1">
-                {match.team_a_player1 && (
-                  <PlayerLink player={match.team_a_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs" />
-                )}
-                {match.team_a_player2 && (
-                  <PlayerLink player={match.team_a_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs" />
-                )}
+                {match.team_a_player1 && <PlayerLink player={match.team_a_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs" />}
+                {match.team_a_player2 && <PlayerLink player={match.team_a_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs" />}
               </div>
             </button>
             <button
               onClick={() => setSelectedTeam('team_b')}
               className={cn(
                 'rounded-lg border-2 p-3 text-left transition-all',
-                selectedTeam === 'team_b'
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border hover:border-muted-foreground/30',
+                selectedTeam === 'team_b' ? 'border-primary bg-primary/10' : 'border-border hover:border-muted-foreground/30',
               )}
             >
               <p className="text-[10px] uppercase text-muted-foreground mb-1">Team B</p>
               <div className="space-y-1">
-                {match.team_b_player1 && (
-                  <PlayerLink player={match.team_b_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs" />
-                )}
-                {match.team_b_player2 && (
-                  <PlayerLink player={match.team_b_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs" />
-                )}
+                {match.team_b_player1 && <PlayerLink player={match.team_b_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs" />}
+                {match.team_b_player2 && <PlayerLink player={match.team_b_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs" />}
               </div>
             </button>
           </div>
 
-          {/* Stake selection */}
+          {/* Stake selection — whole € only */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-muted-foreground">Stake amount</label>
+              <label className="text-xs font-medium text-muted-foreground">Stake (€)</label>
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Shield className="h-3 w-3" />
-                Available: {formatEuros(availableBalance)} (min {formatEuros(minProtected)} protected)
+                Available: €{availableBalance} (min €{minProtected} protected)
               </span>
             </div>
 
@@ -141,14 +127,14 @@ export function PlaceBetDialog({
                   className="h-8 text-xs"
                   onClick={() => setStake(amount)}
                 >
-                  {formatEuros(amount)}
+                  €{amount}
                 </Button>
               ))}
             </div>
 
             {maxBet <= 0 && (
               <p className="text-xs text-destructive">
-                Easy tiger. {roundStakedSoFar >= roundCap ? 'Round cap reached.' : 'Not enough available balance.'}
+                Easy tiger 🐯 {roundStakedSoFar >= roundCap ? 'Round cap reached.' : 'Not enough available balance.'}
               </p>
             )}
           </div>
@@ -161,24 +147,23 @@ export function PlaceBetDialog({
                   <TrendingUp className="h-3.5 w-3.5 text-primary" />
                   Potential payout
                 </span>
-                <span className="font-bold text-primary">{formatEuros(potentialPayout)}</span>
+                <span className="font-bold text-primary">€{potentialPayout}</span>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                {multiplier}x multiplier · Stake: {formatEuros(stake)} · Round budget: {formatEuros(roundRemaining)} left
+                {multiplier}x multiplier · Stake: €{stake} · Round budget: €{roundRemaining} left
               </p>
             </div>
           )}
 
           <EuroDisclaimer variant="inline" />
 
-          {/* Submit */}
           <Button
             variant="hot"
             className="w-full touch-target"
             disabled={!selectedTeam || stake <= 0 || stake > maxBet || isSubmitting}
             onClick={handleSubmit}
           >
-            {isSubmitting ? 'Placing...' : `Stake ${formatEuros(stake)} on ${selectedTeam === 'team_a' ? 'Team A' : selectedTeam === 'team_b' ? 'Team B' : '...'}`}
+            {isSubmitting ? 'Placing...' : `Stake €${stake} on ${selectedTeam === 'team_a' ? 'Team A' : selectedTeam === 'team_b' ? 'Team B' : '...'}`}
           </Button>
         </div>
       </DialogContent>

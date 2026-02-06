@@ -118,7 +118,7 @@ export default function AdminRoundsSection({ tournament, rounds, matches, onRelo
           <Calendar className="h-10 w-10 text-muted-foreground mx-auto" />
           <p className="text-muted-foreground text-sm">No rounds yet. Start the tournament to create Round 1 with matches.</p>
 
-          {tournament.status === 'SignupOpen' && (
+          {(tournament.status === 'SignupOpen' || tournament.status === 'Draft') && (
             <Button
               className="w-full bg-gradient-primary"
               onClick={() => callEngine('start_tournament')}
@@ -265,7 +265,7 @@ export default function AdminRoundsSection({ tournament, rounds, matches, onRelo
       )}
 
       {/* ── Start Tournament ── */}
-      {tournament.status === 'SignupOpen' && (
+      {(tournament.status === 'SignupOpen' || tournament.status === 'Draft') && (
         <Button variant="hot" className="w-full" onClick={() => callEngine('start_tournament')} disabled={isUpdating}>
           <Play className="mr-2 h-4 w-4" />Start Tournament
         </Button>

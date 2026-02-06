@@ -5,9 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { useToast } from '@/hooks/use-toast';
-import { formatEuros } from '@/lib/euros';
 import type { Tournament, MatchBet } from '@/lib/types';
-import { Zap, Banknote, Shield, TrendingUp, Trash2, Pause, Play } from 'lucide-react';
+import { Zap, Banknote, Shield, TrendingUp, Trash2 } from 'lucide-react';
 
 interface Props {
   tournament: Tournament;
@@ -25,16 +24,10 @@ export default function AdminBettingSection({ tournament, onReload }: Props) {
   const [bets, setBets] = useState<MatchBet[]>([]);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    loadBets();
-  }, [tournament.id]);
+  useEffect(() => { loadBets(); }, [tournament.id]);
 
   const loadBets = async () => {
-    const { data } = await supabase
-      .from('match_bets')
-      .select('*')
-      .eq('tournament_id', tournament.id)
-      .order('created_at', { ascending: false });
+    const { data } = await supabase.from('match_bets').select('*').eq('tournament_id', tournament.id).order('created_at', { ascending: false });
     setBets((data || []) as MatchBet[]);
   };
 
@@ -54,18 +47,13 @@ export default function AdminBettingSection({ tournament, onReload }: Props) {
   };
 
   const resetAllBets = async () => {
-    // Refund all pending bets
     const pendingBets = bets.filter(b => b.status === 'Pending');
     for (const bet of pendingBets) {
-      // Refund player
       const { data: player } = await supabase.from('players').select('credits_balance').eq('id', bet.player_id).single();
       if (player) {
-        await supabase.from('players').update({
-          credits_balance: player.credits_balance + bet.stake,
-        }).eq('id', bet.player_id);
+        await supabase.from('players').update({ credits_balance: player.credits_balance + bet.stake }).eq('id', bet.player_id);
       }
     }
-    // Delete all bets
     await supabase.from('match_bets').delete().eq('tournament_id', tournament.id);
     toast({ title: 'All bets cleared, stakes refunded' });
     loadBets();
@@ -78,9 +66,11 @@ export default function AdminBettingSection({ tournament, onReload }: Props) {
   const netBank = totalLost - totalPaidOut;
   const pending = bets.filter(b => b.status === 'Pending').length;
 
+  // Display helper — all values are already in € integers
+  const fmtEuro = (v: number) => `€${v}`;
+
   return (
     <div className="space-y-4">
-      {/* Toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-chaos-orange" />
@@ -97,34 +87,34 @@ export default function AdminBettingSection({ tournament, onReload }: Props) {
               <Banknote className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">Bank</span>
               <StatusChip variant={bankBalance > 0 ? 'success' : 'error'} size="sm">
-                {formatEuros(bankBalance)}
+                {fmtEuro(bankBalance)}
               </StatusChip>
             </div>
             <div className="grid grid-cols-3 gap-2 text-[10px] text-muted-foreground">
               <div>
                 <p>Total staked</p>
-                <p className="font-semibold text-foreground">{formatEuros(totalStaked)}</p>
+                <p className="font-semibold text-foreground">{fmtEuro(totalStaked)}</p>
               </div>
               <div>
                 <p>Paid out</p>
-                <p className="font-semibold text-destructive">{formatEuros(totalPaidOut)}</p>
+                <p className="font-semibold text-destructive">{fmtEuro(totalPaidOut)}</p>
               </div>
               <div>
                 <p>Net bank</p>
                 <p className={`font-semibold ${netBank >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                  {netBank >= 0 ? '+' : ''}{formatEuros(netBank)}
+                  {netBank >= 0 ? '+' : ''}{fmtEuro(netBank)}
                 </p>
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">{pending} pending bets · {bets.length} total</p>
           </div>
 
-          {/* Settings */}
+          {/* Settings — all in whole € */}
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <Banknote className="h-3 w-3" /> Bank starting balance (cents)
+                  <Banknote className="h-3 w-3" /> Bank balance (€)
                 </label>
                 <Input type="number" value={bankBalance} onChange={e => setBankBalance(Number(e.target.value))} className="h-8 text-xs" />
               </div>
@@ -137,37 +127,31 @@ export default function AdminBettingSection({ tournament, onReload }: Props) {
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
-                <label className="text-[10px] text-muted-foreground">Round cap (c)</label>
+                <label className="text-[10px] text-muted-foreground">Round cap (€)</label>
                 <Input type="number" value={roundCap} onChange={e => setRoundCap(Number(e.target.value))} className="h-8 text-xs" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-muted-foreground">Per bet max (c)</label>
+                <label className="text-[10px] text-muted-foreground">Per bet max (€)</label>
                 <Input type="number" value={betMax} onChange={e => setBetMax(Number(e.target.value))} className="h-8 text-xs" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <Shield className="h-3 w-3" /> Floor (c)
+                  <Shield className="h-3 w-3" /> Floor (€)
                 </label>
                 <Input type="number" value={minProtected} onChange={e => setMinProtected(Number(e.target.value))} className="h-8 text-xs" />
               </div>
             </div>
           </div>
 
+          <p className="text-[10px] text-muted-foreground">€ = in-app points (not real money). Max €5 per bet recommended.</p>
+
           <Button size="sm" className="w-full h-8 text-xs" onClick={saveSettings} disabled={saving}>
             {saving ? 'Saving...' : 'Save Betting Settings'}
           </Button>
 
-          {/* Emergency controls */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 h-8 text-xs text-destructive border-destructive/30"
-              onClick={resetAllBets}
-            >
-              <Trash2 className="mr-1 h-3 w-3" /> Reset All Bets
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" className="w-full h-8 text-xs text-destructive border-destructive/30" onClick={resetAllBets}>
+            <Trash2 className="mr-1 h-3 w-3" /> Reset All Bets
+          </Button>
         </>
       )}
     </div>
