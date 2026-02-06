@@ -21,6 +21,7 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
   const [editingPledge, setEditingPledge] = useState<string | null>(null);
   const [estLow, setEstLow] = useState(0);
   const [estHigh, setEstHigh] = useState(0);
+  const [priceEuro, setPriceEuro] = useState(0);
   const [adminNote, setAdminNote] = useState('');
   const [selectedRound, setSelectedRound] = useState<string>('all');
 
