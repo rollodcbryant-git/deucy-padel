@@ -136,13 +136,14 @@ export default function CompleteEntryPage() {
         </Card>
 
         {/* Continue */}
-        {isComplete ? (
+        {isConfirmed && (
           <Button className="w-full touch-target bg-gradient-primary hover:opacity-90" onClick={() => navigate('/home')}>
-            Let's Go <ArrowRight className="ml-2 h-4 w-4" />
+            {hasPledge ? "Let's Go" : 'Skip for now'} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-        ) : (
+        )}
+        {isConfirmed && !hasPledge && (
           <p className="text-center text-xs text-muted-foreground">
-            Complete both steps to be scheduled for matches
+            You can add your pledge later from the Matches tab
           </p>
         )}
       </div>
