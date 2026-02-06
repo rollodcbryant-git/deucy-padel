@@ -88,7 +88,7 @@ export function TournamentLobbyCard({
   const isOnThisWaitlist = waitlistEntry && waitlistEntry.tournament_id === tournament.id;
 
   return (
-    <Card className={`chaos-card transition-all ${isEnrolled ? 'border-primary/40 bg-primary/5' : ''}`}>
+    <Card className={`chaos-card transition-all ${isEnrolled ? 'border-primary/40 bg-primary/5' : ''} ${lobbyStatus === 'live' ? 'ring-2 ring-primary/50 border-primary/60 bg-primary/10 shadow-lg shadow-primary/10' : ''}`}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardContent className="p-3 space-y-2">
           {/* Row 1: Name + Tier + Status */}

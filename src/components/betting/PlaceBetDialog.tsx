@@ -70,10 +70,10 @@ export function PlaceBetDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-chaos-orange" />
-            Place your prophecy
+            Place your bet
           </DialogTitle>
           <DialogDescription>
-            Pick the winning team and put your fake € where your mouth is.
+            Pick the winning team and put your fake € on the line.
           </DialogDescription>
         </DialogHeader>
 

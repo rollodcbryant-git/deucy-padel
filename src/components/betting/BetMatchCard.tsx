@@ -93,7 +93,7 @@ export function BetMatchCard({
             myBet.status === 'Pending' && 'bg-chaos-orange/10 border border-chaos-orange/30',
           )}>
             <div className="flex justify-between items-center">
-              <span>Your prophecy: <span className="font-semibold">{myBet.predicted_winner === 'team_a' ? 'Team A' : 'Team B'}</span></span>
+              <span>Your bet: <span className="font-semibold">{myBet.predicted_winner === 'team_a' ? 'Team A' : 'Team B'}</span></span>
               <span className="font-semibold">
                 {myBet.status === 'Won' ? `+€${myBet.payout || 0}` :
                  myBet.status === 'Lost' ? `-€${myBet.stake}` :
@@ -101,14 +101,14 @@ export function BetMatchCard({
               </span>
             </div>
             {myBet.status === 'Pending' && (
-              <p className="text-[10px] text-muted-foreground mt-0.5">Juice on the line (fake €)</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Your bet is on the line (fake €)</p>
             )}
           </div>
         )}
 
         {canBet && (
           <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={() => onPlaceBet(match)}>
-            <Zap className="mr-1 h-3 w-3" /> Place your prophecy
+            <Zap className="mr-1 h-3 w-3" /> Place your bet
           </Button>
         )}
 
