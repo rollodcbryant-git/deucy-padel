@@ -79,7 +79,7 @@ export default function PledgeDetailPage() {
 
   return (
     <PageLayout
-      hasBottomNav={false}
+      hasBottomNav={true}
       header={
         <div className="flex items-center gap-3 p-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/auction')}>
