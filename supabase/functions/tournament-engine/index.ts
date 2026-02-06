@@ -981,8 +981,8 @@ async function settleAuction(supabase: any, body: any) {
     .from("auctions")
     .select("*")
     .eq("tournament_id", tournament_id)
-    .single();
-  if (!auction) throw new Error("No auction found");
+    .maybeSingle();
+  if (!auction) return jsonResponse({ error: "No auction found for this tournament. Create an auction first." }, 400);
 
   const { data: lots } = await supabase
     .from("auction_lots")
