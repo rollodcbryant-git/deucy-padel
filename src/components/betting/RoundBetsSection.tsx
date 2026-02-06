@@ -1,0 +1,194 @@
+import { useEffect, useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { BetMatchCard } from './BetMatchCard';
+import { PlaceBetDialog } from './PlaceBetDialog';
+import { EuroDisclaimer } from '@/components/ui/EuroDisclaimer';
+import { useToast } from '@/hooks/use-toast';
+import { formatEuros } from '@/lib/euros';
+import { Zap, TrendingUp } from 'lucide-react';
+import type { MatchWithPlayers, MatchBet, Player, Tournament, Round } from '@/lib/types';
+
+interface RoundBetsSectionProps {
+  tournament: Tournament;
+  player: Player;
+  currentRound: Round | null;
+}
+
+export function RoundBetsSection({ tournament, player, currentRound }: RoundBetsSectionProps) {
+  const { toast } = useToast();
+  const [matches, setMatches] = useState<MatchWithPlayers[]>([]);
+  const [bets, setBets] = useState<MatchBet[]>([]);
+  const [myBets, setMyBets] = useState<MatchBet[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<MatchWithPlayers | null>(null);
+  const [showBetDialog, setShowBetDialog] = useState(false);
+
+  const loadData = useCallback(async () => {
+    if (!currentRound) return;
+
+    // Load ALL matches for this round (not just player's own)
+    const { data: matchesData } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('round_id', currentRound.id)
+      .eq('is_bye', false)
+      .order('created_at');
+
+    if (!matchesData) return;
+
+    // Get all player IDs to resolve names
+    const playerIds = new Set<string>();
+    matchesData.forEach(m => {
+      [m.team_a_player1_id, m.team_a_player2_id, m.team_b_player1_id, m.team_b_player2_id]
+        .forEach(id => { if (id) playerIds.add(id); });
+    });
+
+    const { data: players } = await supabase
+      .from('players')
+      .select('*')
+      .in('id', Array.from(playerIds));
+    const playerMap = new Map((players || []).map(p => [p.id, p as Player]));
+
+    const enriched: MatchWithPlayers[] = matchesData.map(m => ({
+      ...m,
+      team_a_player1: playerMap.get(m.team_a_player1_id),
+      team_a_player2: playerMap.get(m.team_a_player2_id),
+      team_b_player1: playerMap.get(m.team_b_player1_id),
+      team_b_player2: playerMap.get(m.team_b_player2_id),
+    }));
+    setMatches(enriched);
+
+    // Load bets for this round
+    const { data: betsData } = await supabase
+      .from('match_bets')
+      .select('*')
+      .eq('round_id', currentRound.id);
+    setBets((betsData || []) as MatchBet[]);
+    setMyBets((betsData || []).filter((b: any) => b.player_id === player.id) as MatchBet[]);
+  }, [currentRound, player.id]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  if (!tournament.betting_enabled || !currentRound) return null;
+
+  const roundStaked = myBets
+    .filter(b => b.status === 'Pending')
+    .reduce((sum, b) => sum + b.stake, 0);
+
+  const handlePlaceBet = (match: MatchWithPlayers) => {
+    setSelectedMatch(match);
+    setShowBetDialog(true);
+  };
+
+  const handleSubmitBet = async (matchId: string, predictedWinner: 'team_a' | 'team_b', stake: number) => {
+    // Validate
+    const minProtected = tournament.min_protected_balance || 200;
+    if (player.credits_balance - stake < minProtected) {
+      toast({ title: 'Easy tiger 🐯', description: `Can't drop below ${formatEuros(minProtected)} minimum balance.`, variant: 'destructive' });
+      return;
+    }
+
+    const { error } = await supabase.from('match_bets').insert({
+      match_id: matchId,
+      player_id: player.id,
+      tournament_id: tournament.id,
+      round_id: currentRound!.id,
+      predicted_winner: predictedWinner,
+      stake,
+      status: 'Pending',
+    });
+
+    if (error) {
+      toast({ title: 'Bet failed', description: error.message, variant: 'destructive' });
+      return;
+    }
+
+    // Deduct from player balance immediately
+    await supabase
+      .from('players')
+      .update({ credits_balance: player.credits_balance - stake })
+      .eq('id', player.id);
+
+    // Create ledger entry
+    await supabase.from('credit_ledger_entries').insert({
+      tournament_id: tournament.id,
+      player_id: player.id,
+      match_id: matchId,
+      round_id: currentRound!.id,
+      type: 'BetStake',
+      amount: -stake,
+      note: `Bet on ${predictedWinner === 'team_a' ? 'Team A' : 'Team B'}`,
+    });
+
+    toast({ title: 'Prophecy placed! 🔮', description: `${formatEuros(stake)} on the line (fake €)` });
+    loadData();
+  };
+
+  const myWinnings = myBets
+    .filter(b => b.status === 'Won')
+    .reduce((sum, b) => sum + (b.payout || 0), 0);
+
+  const myLosses = myBets
+    .filter(b => b.status === 'Lost')
+    .reduce((sum, b) => sum + b.stake, 0);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm flex items-center gap-2">
+          <Zap className="h-4 w-4 text-chaos-orange" />
+          Round Bets
+        </h3>
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+          <span>Budget: {formatEuros(Math.max(0, (tournament.per_round_bet_cap || 500) - roundStaked))} left</span>
+        </div>
+      </div>
+
+      {/* Summary if there are settled bets */}
+      {(myWinnings > 0 || myLosses > 0) && (
+        <div className="rounded-lg bg-muted/30 p-2 flex items-center justify-between text-xs">
+          <span className="flex items-center gap-1">
+            <TrendingUp className="h-3 w-3" /> Round results
+          </span>
+          <span>
+            {myWinnings > 0 && <span className="text-primary font-semibold mr-2">+{formatEuros(myWinnings)}</span>}
+            {myLosses > 0 && <span className="text-destructive font-semibold">-{formatEuros(myLosses)}</span>}
+          </span>
+        </div>
+      )}
+
+      <EuroDisclaimer variant="inline" />
+
+      {/* Match cards */}
+      <div className="space-y-2">
+        {matches.map(match => (
+          <BetMatchCard
+            key={match.id}
+            match={match}
+            round={currentRound || undefined}
+            currentPlayerId={player.id}
+            existingBets={bets.filter(b => b.match_id === match.id)}
+            allBetsCount={bets.filter(b => b.match_id === match.id).length}
+            onPlaceBet={handlePlaceBet}
+            bettingLocked={false}
+          />
+        ))}
+      </div>
+
+      {matches.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-4">
+          No matches to bet on yet.
+        </p>
+      )}
+
+      <PlaceBetDialog
+        open={showBetDialog}
+        onOpenChange={setShowBetDialog}
+        match={selectedMatch}
+        tournament={tournament}
+        availableBalance={player.credits_balance}
+        roundStakedSoFar={roundStaked}
+        onSubmit={handleSubmitBet}
+      />
+    </div>
+  );
+}

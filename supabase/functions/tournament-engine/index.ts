@@ -67,6 +67,8 @@ Deno.serve(async (req) => {
         return await startAuction(supabase, body);
       case "settle_auction":
         return await settleAuction(supabase, body);
+      case "settle_bets":
+        return await settleBetsForMatch(supabase, body);
       default:
         return jsonResponse({ error: `Unknown action: ${action}` }, 400);
     }
@@ -640,6 +642,9 @@ async function processMatchResult(supabase: any, body: any) {
 
   await checkRoundCompletion(supabase, match.round_id, match.tournament_id);
 
+  // Auto-settle bets on this match
+  await autoSettleBets(supabase, match_id, match.tournament_id, absoluteSetsA, absoluteSetsB);
+
   return jsonResponse({ success: true, teamANet, teamBNet });
 }
 
@@ -1116,4 +1121,111 @@ async function seedDemo(supabase: any, body: any) {
     tournament_started: startData.success,
     ...startData,
   });
+}
+
+// ============================================================
+// AUTO-SETTLE BETS (called after match result)
+// ============================================================
+async function autoSettleBets(
+  supabase: any,
+  matchId: string,
+  tournamentId: string,
+  setsA: number,
+  setsB: number,
+) {
+  const { data: tournament } = await supabase
+    .from("tournaments")
+    .select("payout_multiplier, bank_balance")
+    .eq("id", tournamentId)
+    .single();
+
+  if (!tournament) return;
+
+  const multiplier = Number(tournament.payout_multiplier) || 2.0;
+  const winner = setsA > setsB ? "team_a" : "team_b";
+
+  const { data: pendingBets } = await supabase
+    .from("match_bets")
+    .select("*")
+    .eq("match_id", matchId)
+    .eq("status", "Pending");
+
+  if (!pendingBets || pendingBets.length === 0) return;
+
+  let bankChange = 0;
+
+  for (const bet of pendingBets) {
+    const isWinner = bet.predicted_winner === winner;
+    const payout = isWinner ? Math.round(bet.stake * multiplier) : 0;
+    const now = new Date().toISOString();
+
+    // Update bet
+    await supabase
+      .from("match_bets")
+      .update({
+        status: isWinner ? "Won" : "Lost",
+        payout: isWinner ? payout : 0,
+        settled_at: now,
+      })
+      .eq("id", bet.id);
+
+    if (isWinner) {
+      // Credit payout to player
+      const { data: player } = await supabase
+        .from("players")
+        .select("credits_balance")
+        .eq("id", bet.player_id)
+        .single();
+
+      if (player) {
+        await supabase
+          .from("players")
+          .update({ credits_balance: player.credits_balance + payout })
+          .eq("id", bet.player_id);
+      }
+
+      await supabase.from("credit_ledger_entries").insert({
+        tournament_id: tournamentId,
+        player_id: bet.player_id,
+        match_id: matchId,
+        round_id: bet.round_id,
+        type: "BetPayout",
+        amount: payout,
+        note: `Bet won! ${multiplier}x payout`,
+      });
+
+      bankChange -= payout;
+    } else {
+      // Losing bet: stake already deducted, goes to bank
+      bankChange += bet.stake;
+    }
+  }
+
+  // Update bank balance
+  await supabase
+    .from("tournaments")
+    .update({ bank_balance: tournament.bank_balance + bankChange })
+    .eq("id", tournamentId);
+
+  console.log(`Settled ${pendingBets.length} bets for match ${matchId}. Bank change: ${bankChange}`);
+}
+
+// ============================================================
+// SETTLE BETS (manual admin action for specific match)
+// ============================================================
+async function settleBetsForMatch(supabase: any, body: any) {
+  const { match_id } = body;
+
+  const { data: match } = await supabase
+    .from("matches")
+    .select("*")
+    .eq("id", match_id)
+    .single();
+
+  if (!match) throw new Error("Match not found");
+  if (match.status !== "Played") throw new Error("Match must be played first");
+
+  await autoSettleBets(supabase, match_id, match.tournament_id, match.sets_a, match.sets_b);
+
+  return jsonResponse({ success: true });
 }

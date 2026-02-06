@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { Tournament, Player, Round, Match, PledgeItem } from '@/lib/types';
-import { ArrowLeft, Loader2, RefreshCw, Settings, Users, Calendar, Swords, Coins, Gift, Gavel, Wrench } from 'lucide-react';
+import { ArrowLeft, Loader2, RefreshCw, Settings, Users, Calendar, Swords, Coins, Gift, Gavel, Wrench, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 import AdminSetupSection from './sections/AdminSetupSection';
@@ -16,6 +16,7 @@ import AdminCreditsSection from './sections/AdminCreditsSection';
 import AdminPledgesSection from './sections/AdminPledgesSection';
 import AdminAuctionSection from './sections/AdminAuctionSection';
 import AdminUtilitiesSection from './sections/AdminUtilitiesSection';
+import AdminBettingSection from './sections/AdminBettingSection';
 
 export default function AdminTournamentDetail() {
   const { tournamentId } = useParams<{ tournamentId: string }>();
@@ -110,6 +111,7 @@ export default function AdminTournamentDetail() {
     { id: 'credits', icon: Coins, label: '€ Balance & Ledger' },
     { id: 'pledges', icon: Gift, label: 'Pledges', badge: `${pledges.length}` },
     { id: 'auction', icon: Gavel, label: 'Auction' },
+    { id: 'betting', icon: Zap, label: 'Betting', badge: tournament.betting_enabled ? 'ON' : 'OFF' },
     { id: 'utilities', icon: Wrench, label: 'Utilities' },
   ];
 
@@ -149,6 +151,7 @@ export default function AdminTournamentDetail() {
                 {s.id === 'credits' && <AdminCreditsSection tournamentId={tournament.id} players={players} onReload={loadData} />}
                 {s.id === 'pledges' && <AdminPledgesSection pledges={pledges} players={players} rounds={rounds} onReload={loadData} />}
                 {s.id === 'auction' && <AdminAuctionSection tournament={tournament} players={players} onReload={loadData} callEngine={callEngine} isUpdating={isUpdating} />}
+                {s.id === 'betting' && <AdminBettingSection tournament={tournament} onReload={loadData} />}
                 {s.id === 'utilities' && <AdminUtilitiesSection tournament={tournament} onReload={loadData} callEngine={callEngine} isUpdating={isUpdating} />}
               </AccordionContent>
             </AccordionItem>

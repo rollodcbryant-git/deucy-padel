@@ -4,12 +4,13 @@ export type PlayerStatus = 'Active' | 'InactiveWarning' | 'Removed';
 export type PlayerGender = 'male' | 'female' | 'other' | 'prefer_not';
 export type RoundStatus = 'Upcoming' | 'Live' | 'Locked' | 'Completed';
 export type MatchStatus = 'Scheduled' | 'BookingClaimed' | 'Played' | 'Overdue' | 'AutoResolved';
-export type CreditType = 'StartingGrant' | 'ParticipationBonus' | 'MatchStake' | 'MatchPayout' | 'Penalty' | 'AdminAdjustment' | 'AuctionHold' | 'AuctionRelease' | 'AuctionSettlement';
+export type CreditType = 'StartingGrant' | 'ParticipationBonus' | 'MatchStake' | 'MatchPayout' | 'Penalty' | 'AdminAdjustment' | 'AuctionHold' | 'AuctionRelease' | 'AuctionSettlement' | 'BetStake' | 'BetPayout';
 export type PledgeCategory = 'food' | 'drink' | 'object' | 'service' | 'chaos';
 export type PledgeStatus = 'Draft' | 'Approved' | 'Hidden';
 export type AuctionStatus = 'Draft' | 'Live' | 'Ended';
 export type LotStatus = 'Live' | 'Ended';
 export type EscrowStatus = 'Active' | 'Released' | 'Settled';
+export type BetStatus = 'Pending' | 'Won' | 'Lost' | 'Cancelled';
 
 // Database row types
 export type TournamentTier = 'Major' | 'League' | 'Mini';
@@ -38,6 +39,13 @@ export interface Tournament {
   allow_negative_balance: boolean;
   display_decimals: boolean;
   tier: TournamentTier;
+  // Betting settings
+  betting_enabled: boolean;
+  bank_balance: number; // cents
+  per_round_bet_cap: number; // cents
+  per_bet_max: number; // cents
+  min_protected_balance: number; // cents
+  payout_multiplier: number;
   signup_open_at: string | null;
   signup_close_at: string | null;
   started_at: string | null;
@@ -211,4 +219,23 @@ export interface PlayerSession {
   tournamentId: string | null;
   playerName: string;
   token: string;
+}
+
+// Match betting
+export interface MatchBet {
+  id: string;
+  match_id: string;
+  player_id: string;
+  tournament_id: string;
+  round_id: string;
+  predicted_winner: 'team_a' | 'team_b';
+  stake: number; // cents
+  payout: number | null; // cents
+  status: BetStatus;
+  settled_at: string | null;
+  created_at: string;
+}
+
+export interface MatchBetWithPlayer extends MatchBet {
+  player?: Player;
 }
