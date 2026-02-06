@@ -20,6 +20,7 @@ import type { RoundSummary } from '@/hooks/useRoundSummaries';
 interface RoundTimelineProps {
   summaries: RoundSummary[];
   currentPlayerId: string;
+  tournament?: Tournament;
   onClaimBooking: (match: MatchWithPlayers) => void;
   onReportResult: (match: MatchWithPlayers) => void;
   onCopyContacts: (match: MatchWithPlayers) => void;
