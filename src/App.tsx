@@ -56,6 +56,7 @@ const App = () => (
             <Route path="/auction" element={<AuctionHouse />} />
             <Route path="/auction/live" element={<AuctionLive />} />
             <Route path="/auction/lot/:lotId" element={<LotDetail />} />
+            <Route path="/auction/pledge/:pledgeItemId" element={<LotDetail />} />
             <Route path="/auction/:pledgeId" element={<PledgeDetail />} />
             <Route path="/pledges" element={<Pledges />} />
             <Route path="/player/:playerId" element={<PlayerProfile />} />

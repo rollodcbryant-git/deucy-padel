@@ -329,8 +329,8 @@ export default function AuctionHousePage() {
                   roundIndex={pledgeRound?.index}
                   onClick={() => {
                     if (auctionLive) {
-                      // Navigate to lot detail if auction is live
-                      navigate(`/auction/live`);
+                      // Find the lot for this pledge and navigate to lot detail
+                      navigate(`/auction/pledge/${pledge.id}`);
                     } else {
                       navigate(`/auction/${pledge.id}`);
                     }
