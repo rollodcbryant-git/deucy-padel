@@ -127,8 +127,9 @@ export interface PledgeItem {
   quantity_text: string | null;
   image_url: string | null;
   approved: boolean;
-  estimate_low: number | null; // cents
-  estimate_high: number | null; // cents
+  estimate_low: number | null; // cents (€)
+  estimate_high: number | null; // cents (€)
+  price_euro: number | null; // cents – admin-set starting price
   status: PledgeStatus;
   created_at: string;
 }

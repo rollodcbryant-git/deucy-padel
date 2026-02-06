@@ -132,12 +132,22 @@ export default function PledgeDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Estimate */}
-        {hasEstimate && (
+        {/* Estimate & Price */}
+        {(hasEstimate || (pledge as any).price_euro) && (
           <Card className="border-primary/30">
-            <CardContent className="p-4 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Estimated Value</p>
-              <p className="text-2xl font-bold text-primary">💰 {formatEstimate()}</p>
+            <CardContent className="p-4 space-y-3">
+              {hasEstimate && (
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Expert estimate</p>
+                  <p className="text-2xl font-bold text-primary">{formatEstimate()}</p>
+                </div>
+              )}
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-1">Price</p>
+                <p className="text-xl font-bold text-primary">
+                  {(pledge as any).price_euro ? `€${Math.round((pledge as any).price_euro / 100)}` : 'TBD'}
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}

@@ -248,8 +248,9 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
                 </Button>
                 <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => {
                   setEditingPledge(pledge.id);
-                  setEstLow(pledge.estimate_low || 0);
-                  setEstHigh(pledge.estimate_high || 0);
+                  setEstLow(Math.round((pledge.estimate_low || 0) / 100));
+                  setEstHigh(Math.round((pledge.estimate_high || 0) / 100));
+                  setPriceEuro(Math.round(((pledge as any).price_euro || 0) / 100));
                   setAdminNote((pledge as any).admin_note || '');
                 }}>
                   <Edit className="mr-1 h-3 w-3" />Estimates

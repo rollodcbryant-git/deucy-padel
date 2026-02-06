@@ -33,6 +33,7 @@ function formatEstimate(low: number | null, high: number | null): string | null 
 export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: PledgeCardProps) {
   const cat = getCategoryConfig(pledge.category);
   const estimate = formatEstimate(pledge.estimate_low, pledge.estimate_high);
+  const priceLabel = (pledge as any).price_euro ? formatEuros((pledge as any).price_euro) : 'TBD';
   const isPending = pledge.status === 'Draft';
 
   return (
