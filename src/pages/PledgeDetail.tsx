@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageLayout } from '@/components/layout/PageLayout';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
@@ -50,7 +51,8 @@ export default function PledgeDetailPage() {
 
   if (editing && canEdit) {
     return (
-      <PageLayout hasBottomNav={false} header={
+      <>
+      <PageLayout hasBottomNav={true} header={
         <div className="flex items-center gap-3 p-4">
           <Button variant="ghost" size="icon" onClick={() => setEditing(false)}>
             <ArrowLeft className="h-5 w-5" />
@@ -66,6 +68,8 @@ export default function PledgeDetailPage() {
           onCancel={() => setEditing(false)}
         />
       </PageLayout>
+      <BottomNav />
+      </>
     );
   }
 
@@ -77,8 +81,9 @@ export default function PledgeDetailPage() {
   };
 
   return (
+    <>
     <PageLayout
-      hasBottomNav={false}
+      hasBottomNav={true}
       header={
         <div className="flex items-center gap-3 p-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/auction')}>
@@ -160,5 +165,7 @@ export default function PledgeDetailPage() {
         )}
       </div>
     </PageLayout>
+    <BottomNav />
+    </>
   );
 }
