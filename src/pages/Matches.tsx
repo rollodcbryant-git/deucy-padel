@@ -10,7 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 import type { MatchWithPlayers, Round, Player } from '@/lib/types';
 import { Calendar, Lock } from 'lucide-react';
 import { TournamentProgressAccordion } from '@/components/tournament/TournamentProgressAccordion';
-import { TournamentLobby } from '@/components/lobby/TournamentLobby';
 import { ReportResultDialog } from '@/components/tournament/ReportResultDialog';
 import { useToast } from '@/hooks/use-toast';
 
@@ -93,18 +92,13 @@ export default function MatchesPage() {
       match.team_a_player1, match.team_a_player2,
       match.team_b_player1, match.team_b_player2,
     ].filter(Boolean) as Player[];
-
-    const text = allPlayers
-      .map(p => `${p.full_name}: ${p.phone}`)
-      .join('\n');
-
+    const text = allPlayers.map(p => `${p.full_name}: ${p.phone}`).join('\n');
     navigator.clipboard.writeText(text);
     toast({ title: 'Contacts copied! 📋', description: 'Paste into your WhatsApp group' });
   };
 
   const handleSubmitResult = async (setsA: number, setsB: number, isUnfinished: boolean) => {
     if (!selectedMatch || !player) return;
-
     const { data, error } = await supabase.functions.invoke('tournament-engine', {
       body: {
         action: 'process_match_result',
@@ -115,10 +109,8 @@ export default function MatchesPage() {
         player_id: player.id,
       },
     });
-
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
-
     toast({ title: 'Score submitted! 🎾', description: 'Scores locked. Credits distributed.' });
     setShowReportDialog(false);
     loadMatches();
@@ -141,70 +133,69 @@ export default function MatchesPage() {
         header={
           <div className="p-4">
             <h1 className="font-bold text-xl flex items-center gap-2">
-              <Calendar className="h-6 w-6 text-primary" />Matches
+              <Calendar className="h-6 w-6 text-primary" />
+              {isEnrolled ? tournament!.name : 'Matches'}
             </h1>
+            {isEnrolled && (
+              <p className="text-xs text-muted-foreground mt-0.5">Your matches & progress</p>
+            )}
           </div>
         }
       >
-        <div className="space-y-5">
-          {/* Tournament Lobby */}
-          <TournamentLobby
-            enrolledTournamentId={tournament?.id}
-            enrolledTournamentName={tournament?.name}
-          />
+        {isEnrolled ? (
+          <div className="space-y-4">
+            {pledgeMissing && (
+              <Card className="chaos-card border-chaos-orange/50 bg-chaos-orange/5">
+                <CardContent className="p-5 flex items-center gap-4">
+                  <Lock className="h-6 w-6 text-chaos-orange shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-chaos-orange">Locked until pledge submitted</p>
+                    <p className="text-xs text-muted-foreground">Add your pledge to be scheduled for matches</p>
+                  </div>
+                  <Button size="sm" onClick={() => navigate('/complete-entry')}
+                    className="bg-gradient-primary hover:opacity-90 shrink-0">
+                    Add Pledge
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Enrolled tournament content */}
-          {isEnrolled ? (
-            <div className="space-y-4">
-              {/* Locked banner when pledge missing */}
-              {pledgeMissing && (
-                <Card className="chaos-card border-chaos-orange/50 bg-chaos-orange/5">
-                  <CardContent className="p-5 flex items-center gap-4">
-                    <Lock className="h-6 w-6 text-chaos-orange shrink-0" />
-                    <div className="flex-1">
-                      <p className="font-semibold text-chaos-orange">Locked until pledge submitted</p>
-                      <p className="text-xs text-muted-foreground">Add your pledge to be scheduled for matches</p>
-                    </div>
-                    <Button size="sm" onClick={() => navigate('/complete-entry')}
-                      className="bg-gradient-primary hover:opacity-90 shrink-0">
-                      Add Pledge
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+            <TournamentProgressAccordion
+              tournament={tournament!}
+              player={player!}
+              rounds={rounds}
+              matchesByRound={matches}
+              onClaimBooking={handleClaimBooking}
+              onReportResult={handleReportResult}
+              onCopyContacts={handleCopyContacts}
+            />
 
-              {/* Tournament Progress Accordion */}
-              <TournamentProgressAccordion
-                tournament={tournament!}
-                player={player!}
-                rounds={rounds}
-                matchesByRound={matches}
-                onClaimBooking={handleClaimBooking}
-                onReportResult={handleReportResult}
-                onCopyContacts={handleCopyContacts}
-              />
-
-              {rounds.length === 0 && (
-                <div className="text-center py-12">
-                  <div className="text-4xl mb-3">📅</div>
-                  <p className="text-muted-foreground">No rounds yet</p>
-                  <p className="text-sm text-muted-foreground">Matches will appear when the tournament starts</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Not enrolled empty state */
-            <Card className="chaos-card">
-              <CardContent className="p-8 text-center space-y-3">
-                <div className="text-4xl">🎾</div>
-                <p className="font-semibold">No active enrollment</p>
-                <p className="text-sm text-muted-foreground">
-                  Join a tournament above to start playing
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+            {rounds.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-3">📅</div>
+                <p className="text-muted-foreground">No rounds yet</p>
+                <p className="text-sm text-muted-foreground">Matches will appear when the tournament starts</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Card className="chaos-card">
+            <CardContent className="p-8 text-center space-y-4">
+              <div className="text-4xl">🎾</div>
+              <p className="font-semibold">No active tournament</p>
+              <p className="text-sm text-muted-foreground">
+                Join a tournament to start playing
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/tournaments')}
+                className="mt-2"
+              >
+                Browse Tournaments
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </PageLayout>
 
       <BottomNav />

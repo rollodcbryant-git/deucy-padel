@@ -661,10 +661,13 @@ export type Database = {
           rounds_count: number | null
           series_id: string | null
           series_order: number | null
+          signup_close_at: string | null
+          signup_open_at: string | null
           stake_per_player: number
           started_at: string | null
           starting_credits: number
           status: Database["public"]["Enums"]["tournament_status"]
+          tier: Database["public"]["Enums"]["tournament_tier"]
           updated_at: string
         }
         Insert: {
@@ -691,10 +694,13 @@ export type Database = {
           rounds_count?: number | null
           series_id?: string | null
           series_order?: number | null
+          signup_close_at?: string | null
+          signup_open_at?: string | null
           stake_per_player?: number
           started_at?: string | null
           starting_credits?: number
           status?: Database["public"]["Enums"]["tournament_status"]
+          tier?: Database["public"]["Enums"]["tournament_tier"]
           updated_at?: string
         }
         Update: {
@@ -721,10 +727,13 @@ export type Database = {
           rounds_count?: number | null
           series_id?: string | null
           series_order?: number | null
+          signup_close_at?: string | null
+          signup_open_at?: string | null
           stake_per_player?: number
           started_at?: string | null
           starting_credits?: number
           status?: Database["public"]["Enums"]["tournament_status"]
+          tier?: Database["public"]["Enums"]["tournament_tier"]
           updated_at?: string
         }
         Relationships: []
@@ -796,6 +805,7 @@ export type Database = {
         | "Finished"
         | "AuctionLive"
         | "Closed"
+      tournament_tier: "Major" | "League" | "Mini"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -958,6 +968,7 @@ export const Constants = {
         "AuctionLive",
         "Closed",
       ],
+      tournament_tier: ["Major", "League", "Mini"],
     },
   },
 } as const

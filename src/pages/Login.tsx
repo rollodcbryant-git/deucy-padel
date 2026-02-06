@@ -35,7 +35,7 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (session && !sessionLoading) {
-      navigate('/home');
+      navigate('/tournaments');
     }
   }, [session, sessionLoading, navigate]);
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
 
     if (result.success) {
       toast({ title: 'Welcome back! 🎾', description: 'Time to cause some chaos.' });
-      navigate('/home');
+      navigate('/tournaments');
     } else {
       toast({ title: 'Login failed', description: result.error || 'Invalid phone or PIN', variant: 'destructive' });
     }

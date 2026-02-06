@@ -9,7 +9,7 @@ import { PlayerProvider } from "@/contexts/PlayerContext";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Join from "./pages/Join";
-import Home from "./pages/Home";
+import Tournaments from "./pages/Tournaments";
 import Matches from "./pages/Matches";
 import Leaderboard from "./pages/Leaderboard";
 
@@ -48,7 +48,8 @@ const App = () => (
             <Route path="/complete-entry" element={<CompleteEntry />} />
             
             {/* Player routes */}
-            <Route path="/home" element={<Home />} />
+            <Route path="/tournaments" element={<Tournaments />} />
+            <Route path="/home" element={<Tournaments />} />
             <Route path="/matches" element={<Matches />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             

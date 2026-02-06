@@ -12,6 +12,8 @@ export type LotStatus = 'Live' | 'Ended';
 export type EscrowStatus = 'Active' | 'Released' | 'Settled';
 
 // Database row types
+export type TournamentTier = 'Major' | 'League' | 'Mini';
+
 export interface Tournament {
   id: string;
   name: string;
@@ -35,6 +37,11 @@ export interface Tournament {
   euros_per_set_loss: number; // cents lost per set lost
   allow_negative_balance: boolean;
   display_decimals: boolean;
+  tier: TournamentTier;
+  signup_open_at: string | null;
+  signup_close_at: string | null;
+  started_at: string | null;
+  ended_at: string | null;
   created_at: string;
   updated_at: string;
 }
