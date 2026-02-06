@@ -263,7 +263,10 @@ export default function LotDetailPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border p-4 safe-bottom">
           <div className="max-w-lg mx-auto space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Your balance</span>
+              <div>
+                <span className="text-muted-foreground">Your balance</span>
+                <span className="text-[10px] text-muted-foreground/50 ml-1">(not real money)</span>
+              </div>
               <CreditsDisplay amount={player.credits_balance} variant="compact" />
             </div>
 

@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { PledgeForm } from '@/components/auction/PledgeForm';
+import { EuroDisclaimer } from '@/components/ui/EuroDisclaimer';
 import { getCategoryConfig } from '@/components/auction/PledgeCard';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,10 +90,10 @@ export default function PledgeDetailPage() {
             <h1 className="font-bold text-lg truncate">{pledge.title}</h1>
           </div>
           <StatusChip
-            variant={pledge.status === 'Approved' ? 'success' : 'warning'}
+            variant={pledge.status === 'Approved' ? 'success' : pledge.status === 'Hidden' ? 'error' : 'warning'}
             size="sm"
           >
-            {pledge.status === 'Approved' ? 'Approved' : 'Pending'}
+            {pledge.status === 'Approved' ? 'Approved' : pledge.status === 'Hidden' ? 'Hidden' : 'Pending'}
           </StatusChip>
         </div>
       }
@@ -132,25 +133,16 @@ export default function PledgeDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Estimate & Price */}
-        {(hasEstimate || (pledge as any).price_euro) && (
-          <Card className="border-primary/30">
-            <CardContent className="p-4 space-y-3">
-              {hasEstimate && (
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Expert estimate</p>
-                  <p className="text-2xl font-bold text-primary">{formatEstimate()}</p>
-                </div>
-              )}
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-1">Price</p>
-                <p className="text-xl font-bold text-primary">
-                  {(pledge as any).price_euro ? `€${Math.round((pledge as any).price_euro / 100)}` : 'TBD'}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Expert estimate only */}
+        <Card className="border-primary/30">
+          <CardContent className="p-4 space-y-2">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-1">Expert estimate</p>
+              <p className="text-2xl font-bold text-primary">{hasEstimate ? formatEstimate() : 'TBD'}</p>
+              <EuroDisclaimer variant="inline" className="mt-1" />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Status message */}
         {pledge.status === 'Approved' && (

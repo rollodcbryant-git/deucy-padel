@@ -7,9 +7,11 @@ import { PledgeCard } from '@/components/auction/PledgeCard';
 import { PledgeForm } from '@/components/auction/PledgeForm';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { Progress } from '@/components/ui/progress';
+import { CountdownTimer } from '@/components/ui/CountdownTimer';
+import { EuroDisclaimer } from '@/components/ui/EuroDisclaimer';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { supabase } from '@/integrations/supabase/client';
-import type { PledgeItem, Player, Round } from '@/lib/types';
+import type { PledgeItem, Player, Round, Auction } from '@/lib/types';
 import { Gavel, Plus, Pencil, Lock, Shuffle, TrendingDown, Clock } from 'lucide-react';
 import { AuctionIntroModal } from '@/components/onboarding/AuctionIntroModal';
 
@@ -23,6 +25,7 @@ export default function AuctionHousePage() {
   const [pledges, setPledges] = useState<PledgeItem[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [rounds, setRounds] = useState<Round[]>([]);
+  const [auction, setAuction] = useState<Auction | null>(null);
   const [myCurrentRoundPledge, setMyCurrentRoundPledge] = useState<PledgeItem | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<CategoryFilter>('all');
@@ -59,27 +62,25 @@ export default function AuctionHousePage() {
   const loadData = async () => {
     if (!tournament || !player) return;
 
-    const [pledgeRes, playerRes, roundRes] = await Promise.all([
+    const [pledgeRes, playerRes, roundRes, auctionRes] = await Promise.all([
       supabase.from('pledge_items').select('*').eq('tournament_id', tournament.id).order('created_at', { ascending: false }),
       supabase.from('players').select('*').eq('tournament_id', tournament.id),
       supabase.from('rounds').select('*').eq('tournament_id', tournament.id).order('index', { ascending: true }),
+      supabase.from('auctions').select('*').eq('tournament_id', tournament.id).maybeSingle(),
     ]);
 
     const allPledges = (pledgeRes.data || []) as PledgeItem[];
     const allRounds = (roundRes.data || []) as Round[];
     setPlayers((playerRes.data || []) as Player[]);
     setRounds(allRounds);
+    setAuction(auctionRes.data as Auction | null);
 
-    // Find current round
     const liveRound = allRounds.find(r => r.status === 'Live');
-
-    // Find my pledge for the current round
     const mine = liveRound
       ? allPledges.find(p => p.pledged_by_player_id === player.id && p.round_id === liveRound.id) || null
       : allPledges.find(p => p.pledged_by_player_id === player.id && !p.round_id) || null;
     setMyCurrentRoundPledge(mine);
 
-    // Visible pledges: approved/submitted ones + owner's own drafts
     const visible = allPledges.filter(p =>
       p.status === 'Approved' || p.status === 'Draft'
     );
@@ -89,7 +90,6 @@ export default function AuctionHousePage() {
   const playerMap = useMemo(() => new Map(players.map(p => [p.id, p])), [players]);
   const activePlayers = useMemo(() => players.filter(p => p.status === 'Active'), [players]);
 
-  // Round pledge progress
   const currentRoundPledgeCount = useMemo(() => {
     if (!currentRound) return 0;
     return pledges.filter(p => p.round_id === currentRound.id).length;
@@ -97,17 +97,12 @@ export default function AuctionHousePage() {
 
   const filteredPledges = useMemo(() => {
     let items = pledges;
-
-    // Round filter
     if (roundFilter !== 'all') {
       items = items.filter(p => p.round_id === roundFilter || (!p.round_id && roundFilter === 'none'));
     }
-
-    // Category filter
     if (filter !== 'all') {
       items = items.filter(p => p.category === filter);
     }
-
     switch (sort) {
       case 'expensive':
         items = [...items].sort((a, b) => (b.estimate_high ?? b.estimate_low ?? 0) - (a.estimate_high ?? a.estimate_low ?? 0));
@@ -132,7 +127,8 @@ export default function AuctionHousePage() {
 
   const canEdit = myCurrentRoundPledge && myCurrentRoundPledge.status === 'Draft';
   const hasSubmittedThisRound = !!myCurrentRoundPledge;
-  const auctionLive = tournament.status === 'AuctionLive';
+  const auctionLive = auction?.status === 'Live';
+  const auctionEnded = auction?.status === 'Ended';
 
   const categories: { key: CategoryFilter; label: string }[] = [
     { key: 'all', label: 'All' },
@@ -160,16 +156,32 @@ export default function AuctionHousePage() {
                 <Gavel className="h-6 w-6 text-chaos-orange" />
                 Auction House
               </h1>
-              {!auctionLive && (
+              {auctionLive ? (
+                <StatusChip variant="live" pulse>Live</StatusChip>
+              ) : auctionEnded ? (
+                <StatusChip variant="ended">Ended</StatusChip>
+              ) : (
                 <StatusChip variant="neutral" size="sm">
                   <Lock className="h-3 w-3 mr-1" />
-                  Preview
+                  Gallery
                 </StatusChip>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">
-              Bring your pledge. Win your €. Spend them irresponsibly.
-            </p>
+
+            {/* Auction countdown when live */}
+            {auctionLive && auction?.ends_at && (
+              <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 text-center space-y-1">
+                <p className="text-xs text-muted-foreground">Auction ends in</p>
+                <CountdownTimer targetDate={auction.ends_at} variant="large" />
+                <EuroDisclaimer variant="inline" />
+              </div>
+            )}
+
+            {!auctionLive && !auctionEnded && (
+              <p className="text-sm text-muted-foreground">
+                Browse pledges. Bidding unlocks when the auction goes live.
+              </p>
+            )}
 
             {/* Round pledge progress */}
             {currentRound && (
@@ -315,7 +327,14 @@ export default function AuctionHousePage() {
                   pledger={playerMap.get(pledge.pledged_by_player_id)}
                   isOwner={pledge.pledged_by_player_id === player.id}
                   roundIndex={pledgeRound?.index}
-                  onClick={() => navigate(`/auction/${pledge.id}`)}
+                  onClick={() => {
+                    if (auctionLive) {
+                      // Navigate to lot detail if auction is live
+                      navigate(`/auction/live`);
+                    } else {
+                      navigate(`/auction/${pledge.id}`);
+                    }
+                  }}
                 />
               );
             })}
@@ -330,13 +349,28 @@ export default function AuctionHousePage() {
             </div>
           )}
 
-          {/* Auction info banner */}
-          {!auctionLive && filteredPledges.length > 0 && (
-            <div className="text-center py-4">
-              <p className="text-xs text-muted-foreground">
-                🔒 Bidding unlocks when the tournament ends
+          {/* Lock state message */}
+          {!auctionLive && !auctionEnded && filteredPledges.length > 0 && (
+            <div className="rounded-lg bg-muted/50 border border-border p-4 text-center space-y-1">
+              <Lock className="h-5 w-5 mx-auto text-muted-foreground" />
+              <p className="text-sm font-medium text-muted-foreground">
+                Bidding unlocks when auction goes live
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                Admin will launch the auction after the tournament ends
               </p>
             </div>
+          )}
+
+          {/* Go to live auction */}
+          {auctionLive && (
+            <Button
+              onClick={() => navigate('/auction/live')}
+              className="w-full bg-gradient-hot touch-target"
+            >
+              <Gavel className="mr-2 h-5 w-5" />
+              Go to Live Auction →
+            </Button>
           )}
         </div>
       </PageLayout>

@@ -142,7 +142,10 @@ export default function AuctionPage() {
           {/* Your balance */}
           <Card className="chaos-card border-primary/30">
             <CardContent className="p-4 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Your bidding power</span>
+              <div>
+                <span className="text-sm text-muted-foreground">Your bidding power</span>
+                <p className="text-[10px] text-muted-foreground/50">in-app € only</p>
+              </div>
               <CreditsDisplay amount={player.credits_balance} variant="compact" />
             </CardContent>
           </Card>
