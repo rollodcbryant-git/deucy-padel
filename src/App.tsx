@@ -9,7 +9,7 @@ import { PlayerProvider } from "@/contexts/PlayerContext";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Join from "./pages/Join";
-import Home from "./pages/Home";
+import Tournaments from "./pages/Tournaments";
 import Matches from "./pages/Matches";
 import Leaderboard from "./pages/Leaderboard";
 
