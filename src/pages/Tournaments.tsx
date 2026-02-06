@@ -24,6 +24,7 @@ export default function TournamentsPage() {
 
   const [tournaments, setTournaments] = useState<TournamentWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
+  const [joiningId, setJoiningId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !session) {
@@ -90,6 +91,7 @@ export default function TournamentsPage() {
 
   const handleJoinTournament = async (tournament: Tournament) => {
     if (!player || !session) return;
+    setJoiningId(tournament.id);
 
     try {
       // Check if player already has a record for this tournament
@@ -118,10 +120,13 @@ export default function TournamentsPage() {
       if (error) throw error;
 
       toast({ title: 'Joined! 🎾', description: `You're now in ${tournament.name}` });
+      await refreshPlayer();
       loadTournaments();
     } catch (err: any) {
       console.error('Join error:', err);
       toast({ title: 'Failed to join', description: err.message || 'Something went wrong', variant: 'destructive' });
+    } finally {
+      setJoiningId(null);
     }
   };
 
@@ -182,6 +187,7 @@ export default function TournamentsPage() {
                 isEnrolledElsewhere={!!enrolledTournament && tournament.id !== enrolledTournament.id}
                 enrolledTournamentName={enrolledTournament?.name}
                 onJoin={() => handleJoinTournament(tournament)}
+                isJoining={joiningId === tournament.id}
                 onView={() => navigate('/matches')}
               />
             ))

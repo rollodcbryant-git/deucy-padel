@@ -17,6 +17,7 @@ interface TournamentLobbyCardProps {
   isEnrolled: boolean;
   isEnrolledElsewhere: boolean;
   enrolledTournamentName?: string;
+  isJoining?: boolean;
   onJoin: () => void;
   onView: () => void;
 }
@@ -60,6 +61,7 @@ export function TournamentLobbyCard({
   isEnrolled,
   isEnrolledElsewhere,
   enrolledTournamentName,
+  isJoining,
   onJoin,
   onView,
 }: TournamentLobbyCardProps) {
@@ -134,8 +136,8 @@ export function TournamentLobbyCard({
                   View
                 </Button>
               ) : lobbyStatus === 'filling' && !isFull && !isEnrolledElsewhere ? (
-                <Button size="sm" className="h-7 text-xs bg-gradient-primary hover:opacity-90" onClick={onJoin}>
-                  Join
+                <Button size="sm" className="h-7 text-xs bg-gradient-primary hover:opacity-90" onClick={onJoin} disabled={isJoining}>
+                  {isJoining ? 'Joining…' : 'Join'}
                 </Button>
               ) : lobbyStatus === 'filling' && isFull ? (
                 <span className="text-xs text-muted-foreground font-medium">Full</span>
