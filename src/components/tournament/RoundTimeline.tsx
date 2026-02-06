@@ -173,6 +173,8 @@ function RoundAccordionItem({
                   <MatchCard
                     match={match}
                     currentPlayerId={currentPlayerId}
+                    round={round}
+                    tournament={tournament}
                     onClaimBooking={() => onClaimBooking(match)}
                     onReportResult={() => onReportResult(match)}
                   />
