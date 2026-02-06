@@ -91,6 +91,7 @@ export default function TournamentsPage() {
 
   const handleJoinTournament = async (tournament: Tournament) => {
     if (!player || !session) return;
+    setJoiningId(tournament.id);
 
     try {
       // Check if player already has a record for this tournament
