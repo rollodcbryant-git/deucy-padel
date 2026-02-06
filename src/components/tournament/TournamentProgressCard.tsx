@@ -1,10 +1,8 @@
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
-import { CreditsDisplay } from '@/components/ui/CreditsDisplay';
-import { ChevronDown, Trophy, List } from 'lucide-react';
+import { formatEuros } from '@/lib/euros';
+import { ChevronDown, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Tournament, Player, Round } from '@/lib/types';
 
@@ -13,7 +11,6 @@ interface TournamentProgressCardProps {
   player: Player;
   rounds: Round[];
   totalPlayers: number;
-  playerRank: number;
   isExpanded: boolean;
   onToggle: () => void;
 }
@@ -23,11 +20,9 @@ export function TournamentProgressCard({
   player,
   rounds,
   totalPlayers,
-  playerRank,
   isExpanded,
   onToggle,
 }: TournamentProgressCardProps) {
-  const navigate = useNavigate();
   const liveRound = rounds.find(r => r.status === 'Live');
   const completedCount = rounds.filter(r => r.status === 'Completed').length;
   const totalRounds = tournament.rounds_count || rounds.length;
@@ -79,29 +74,22 @@ export function TournamentProgressCard({
               <CountdownTimer targetDate={liveRound.end_at} variant="compact" className="text-xs" />
             </div>
           )}
-          <div className="flex items-center gap-2 text-xs ml-auto">
-            <CreditsDisplay amount={player.credits_balance} variant="compact" showIcon={false} />
-            <span className="text-muted-foreground">• #{playerRank}</span>
+          <div className="flex items-center gap-3 text-xs ml-auto">
+            <span className="text-muted-foreground">
+              #{getRank(player, totalPlayers)} • {formatEuros(player.credits_balance)}
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs text-muted-foreground h-6 px-2"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate('/tournaments');
-            }}
-          >
-            <List className="mr-1 h-3 w-3" /> All tournaments
-          </Button>
-          {!isExpanded && (
-            <p className="text-[10px] text-muted-foreground/60">Tap to expand</p>
-          )}
-        </div>
+        {!isExpanded && (
+          <p className="text-[10px] text-muted-foreground/60 text-center">Tap to expand</p>
+        )}
       </CardContent>
     </Card>
   );
+}
+
+function getRank(player: Player, total: number): string {
+  // We don't have full leaderboard data here, so show a simple indicator
+  return `${player.match_wins}W-${player.match_losses}L`;
 }
