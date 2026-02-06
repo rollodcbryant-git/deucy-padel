@@ -186,6 +186,7 @@ export default function TournamentsPage() {
                 isEnrolledElsewhere={!!enrolledTournament && tournament.id !== enrolledTournament.id}
                 enrolledTournamentName={enrolledTournament?.name}
                 onJoin={() => handleJoinTournament(tournament)}
+                isJoining={joiningId === tournament.id}
                 onView={() => navigate('/matches')}
               />
             ))
