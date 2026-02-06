@@ -141,6 +141,10 @@ export interface Auction {
   ends_at: string | null;
   status: AuctionStatus;
   anti_sniping_enabled: boolean;
+  duration_hours: number;
+  delivery_location: string | null;
+  delivery_maps_url: string | null;
+  delivery_deadline: string | null;
   created_at: string;
 }
 
