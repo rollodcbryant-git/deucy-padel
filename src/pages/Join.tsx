@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { hashPin } from '@/contexts/PlayerContext';
+import { normalizePhone } from '@/lib/phone';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Copy, Check, User, Phone, Users } from 'lucide-react';
 import type { PlayerGender } from '@/lib/types';
