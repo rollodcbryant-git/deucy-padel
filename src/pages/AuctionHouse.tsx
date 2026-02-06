@@ -366,7 +366,8 @@ export default function AuctionHousePage() {
           {auctionLive && (
             <Button
               onClick={() => navigate('/auction/live')}
-              className="w-full bg-gradient-hot touch-target"
+              variant="hot"
+              className="w-full touch-target"
             >
               <Gavel className="mr-2 h-5 w-5" />
               Go to Live Auction →

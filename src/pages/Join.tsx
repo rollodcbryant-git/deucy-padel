@@ -165,7 +165,8 @@ export default function JoinPage() {
           </div>
 
           <Button
-            className="w-full touch-target bg-gradient-primary hover:opacity-90"
+            variant="hot"
+            className="w-full touch-target"
             onClick={handleContinue}
           >
             {tournamentId ? "I've Saved It - Continue" : "I've Saved It - Browse Tournaments"}
@@ -250,7 +251,8 @@ export default function JoinPage() {
 
               <Button
                 type="submit"
-                className="w-full touch-target bg-gradient-primary hover:opacity-90"
+                variant="hot"
+                className="w-full touch-target"
                 disabled={isLoading}
               >
                 {isLoading ? 'Creating...' : 'Create Account'}

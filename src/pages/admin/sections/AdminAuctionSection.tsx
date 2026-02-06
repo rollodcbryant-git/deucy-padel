@@ -137,7 +137,8 @@ export default function AdminAuctionSection({ tournament, players, onReload, cal
           </div>
 
           <Button
-            className="w-full bg-gradient-hot"
+            variant="hot"
+            className="w-full"
             onClick={() => launchAuction(durationHours)}
             disabled={isUpdating}
           >
