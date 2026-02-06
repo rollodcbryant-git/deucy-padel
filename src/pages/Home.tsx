@@ -51,6 +51,9 @@ export default function HomePage() {
     if (!player || !tournament) return;
 
     try {
+      // Refresh player to get latest balance
+      await refreshPlayer();
+
       const { data: rounds } = await supabase
         .from('rounds')
         .select('*')
@@ -93,24 +96,19 @@ export default function HomePage() {
         }
       }
 
+      // Fetch all active players and compute rank from fresh data (same as Leaderboard)
       const { data: topPlayers } = await supabase
         .from('players')
         .select('*')
         .eq('tournament_id', tournament.id)
         .eq('status', 'Active')
-        .order('credits_balance', { ascending: false })
-        .limit(10);
+        .order('credits_balance', { ascending: false });
 
-      setLeaderboard((topPlayers || []) as Player[]);
+      const allPlayers = (topPlayers || []) as Player[];
+      setLeaderboard(allPlayers);
 
-      const { count } = await supabase
-        .from('players')
-        .select('*', { count: 'exact', head: true })
-        .eq('tournament_id', tournament.id)
-        .eq('status', 'Active')
-        .gt('credits_balance', player.credits_balance);
-
-      setPlayerRank((count || 0) + 1);
+      const rank = allPlayers.findIndex(p => p.id === player.id) + 1;
+      setPlayerRank(rank || allPlayers.length + 1);
     } catch (error) {
       console.error('Error loading home data:', error);
     }
