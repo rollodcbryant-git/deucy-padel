@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { PlayerLink } from '@/components/ui/PlayerLink';
 import { EuroDisclaimer } from '@/components/ui/EuroDisclaimer';
 import { cn } from '@/lib/utils';
-import { Zap, TrendingUp, Shield } from 'lucide-react';
+import { Zap, TrendingUp } from 'lucide-react';
 import type { MatchWithPlayers, Tournament } from '@/lib/types';
 
 interface PlaceBetDialogProps {
@@ -112,10 +112,6 @@ export function PlaceBetDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-muted-foreground">Stake (€)</label>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Shield className="h-3 w-3" />
-                Available: €{availableBalance} (min €{minProtected} protected)
-              </span>
             </div>
 
             <div className="flex gap-2 flex-wrap">
