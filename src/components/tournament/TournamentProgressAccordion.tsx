@@ -48,6 +48,7 @@ export function TournamentProgressAccordion({
         player={player}
         rounds={rounds}
         totalPlayers={totalPlayers}
+        playerRank={playerRank}
         isExpanded={isExpanded}
         onToggle={() => setIsExpanded(!isExpanded)}
       />
