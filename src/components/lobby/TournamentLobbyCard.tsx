@@ -17,6 +17,7 @@ interface TournamentLobbyCardProps {
   isEnrolled: boolean;
   isEnrolledElsewhere: boolean;
   enrolledTournamentName?: string;
+  isJoining?: boolean;
   onJoin: () => void;
   onView: () => void;
 }
