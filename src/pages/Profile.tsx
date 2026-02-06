@@ -268,6 +268,21 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Change PIN */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Security
+            </h3>
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => setShowChangePin(true)}
+            >
+              <KeyRound className="h-4 w-4 mr-2" />
+              Change PIN
+            </Button>
+          </div>
         </div>
       </PageLayout>
 
