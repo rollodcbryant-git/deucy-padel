@@ -61,6 +61,7 @@ export function TournamentLobbyCard({
   isEnrolled,
   isEnrolledElsewhere,
   enrolledTournamentName,
+  isJoining,
   onJoin,
   onView,
 }: TournamentLobbyCardProps) {
