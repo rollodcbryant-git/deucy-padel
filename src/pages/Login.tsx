@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { hashPin } from '@/contexts/PlayerContext';
 import { Phone, Lock, KeyRound, Settings, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { Tournament } from '@/lib/types';
+
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
@@ -27,10 +27,8 @@ export default function LoginPage() {
   const [newPin, setNewPin] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
 
-  // Tournament discovery
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(tournamentIdParam);
-  const [loadingTournaments, setLoadingTournaments] = useState(!tournamentIdParam);
+  // Tournament ID from URL (optional, for direct join links)
+  const [selectedTournamentId] = useState<string | null>(tournamentIdParam);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -39,34 +37,9 @@ export default function LoginPage() {
     }
   }, [session, sessionLoading, navigate]);
 
-  // Load available tournaments if no t= param
-  useEffect(() => {
-    if (tournamentIdParam) {
-      setSelectedTournamentId(tournamentIdParam);
-      return;
-    }
-    const load = async () => {
-      const { data } = await supabase
-        .from('tournaments')
-        .select('*')
-        .in('status', ['SignupOpen', 'Live', 'AuctionLive'])
-        .order('created_at', { ascending: false });
-      setTournaments((data || []) as Tournament[]);
-      if (data && data.length === 1) {
-        setSelectedTournamentId(data[0].id);
-      }
-      setLoadingTournaments(false);
-    };
-    load();
-  }, [tournamentIdParam]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!selectedTournamentId) {
-      toast({ title: 'Error', description: 'Please select a tournament first', variant: 'destructive' });
-      return;
-    }
 
     if (pin.length !== 4) {
       toast({ title: 'Invalid PIN', description: 'PIN must be 4 digits', variant: 'destructive' });
@@ -74,7 +47,7 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    const result = await login(phone, pin, selectedTournamentId);
+    const result = await login(phone, pin, selectedTournamentId || undefined);
     setIsLoading(false);
 
     if (result.success) {
@@ -157,32 +130,8 @@ export default function LoginPage() {
           <p className="text-muted-foreground">Enter your phone and PIN to continue</p>
         </div>
 
-        {/* Tournament selector (if no t= param and multiple tournaments) */}
-        {!tournamentIdParam && !loadingTournaments && tournaments.length > 1 && (
-          <Card className="chaos-card">
-            <CardContent className="p-4 space-y-2">
-              <Label>Select Tournament</Label>
-              <select
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                value={selectedTournamentId || ''}
-                onChange={(e) => setSelectedTournamentId(e.target.value || null)}
-              >
-                <option value="">Choose a tournament…</option>
-                {tournaments.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}{t.club_name ? ` @ ${t.club_name}` : ''}
-                  </option>
-                ))}
-              </select>
-            </CardContent>
-          </Card>
-        )}
 
-        {!tournamentIdParam && !loadingTournaments && tournaments.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground">
-            No active tournaments found. Ask your organizer for an invite link.
-          </p>
-        )}
+
 
         {!showReset ? (
           <>
@@ -231,7 +180,7 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     className="w-full touch-target bg-gradient-primary hover:opacity-90"
-                    disabled={isLoading || !selectedTournamentId}
+                    disabled={isLoading}
                   >
                     {isLoading ? 'Signing in...' : 'Sign In'}
                   </Button>
