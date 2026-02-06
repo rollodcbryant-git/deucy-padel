@@ -142,12 +142,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'Failed to create session' };
       }
 
-      // Load tournament
-      const { data: tournamentData } = await supabase
-        .from('tournaments')
-        .select('*')
-        .eq('id', playerData.tournament_id)
-        .single();
+      // Load tournament if player has one
+      let tournamentData = null;
+      if (playerData.tournament_id) {
+        const { data } = await supabase
+          .from('tournaments')
+          .select('*')
+          .eq('id', playerData.tournament_id)
+          .single();
+        tournamentData = data;
+      }
 
       const newSession: PlayerSession = {
         playerId: playerData.id,
