@@ -274,6 +274,77 @@ export type Database = {
           },
         ]
       }
+      match_bets: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          payout: number | null
+          player_id: string
+          predicted_winner: string
+          round_id: string
+          settled_at: string | null
+          stake: number
+          status: string
+          tournament_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          payout?: number | null
+          player_id: string
+          predicted_winner: string
+          round_id: string
+          settled_at?: string | null
+          stake: number
+          status?: string
+          tournament_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          payout?: number | null
+          player_id?: string
+          predicted_winner?: string
+          round_id?: string
+          settled_at?: string | null
+          stake?: number
+          status?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_bets_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_bets_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_bets_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_bets_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           booking_claimed_at: string | null
@@ -654,6 +725,8 @@ export type Database = {
       tournaments: {
         Row: {
           allow_negative_balance: boolean
+          bank_balance: number
+          betting_enabled: boolean
           booking_url: string | null
           club_name: string | null
           created_at: string
@@ -666,9 +739,13 @@ export type Database = {
           join_code: string | null
           max_players: number
           min_players: number
+          min_protected_balance: number
           name: string
           participation_bonus: number
+          payout_multiplier: number
           penalty_amount: number
+          per_bet_max: number
+          per_round_bet_cap: number
           playoffs_enabled: boolean
           pledge_deadline_hours: number
           pledge_gate_enabled: boolean
@@ -687,6 +764,8 @@ export type Database = {
         }
         Insert: {
           allow_negative_balance?: boolean
+          bank_balance?: number
+          betting_enabled?: boolean
           booking_url?: string | null
           club_name?: string | null
           created_at?: string
@@ -699,9 +778,13 @@ export type Database = {
           join_code?: string | null
           max_players?: number
           min_players?: number
+          min_protected_balance?: number
           name: string
           participation_bonus?: number
+          payout_multiplier?: number
           penalty_amount?: number
+          per_bet_max?: number
+          per_round_bet_cap?: number
           playoffs_enabled?: boolean
           pledge_deadline_hours?: number
           pledge_gate_enabled?: boolean
@@ -720,6 +803,8 @@ export type Database = {
         }
         Update: {
           allow_negative_balance?: boolean
+          bank_balance?: number
+          betting_enabled?: boolean
           booking_url?: string | null
           club_name?: string | null
           created_at?: string
@@ -732,9 +817,13 @@ export type Database = {
           join_code?: string | null
           max_players?: number
           min_players?: number
+          min_protected_balance?: number
           name?: string
           participation_bonus?: number
+          payout_multiplier?: number
           penalty_amount?: number
+          per_bet_max?: number
+          per_round_bet_cap?: number
           playoffs_enabled?: boolean
           pledge_deadline_hours?: number
           pledge_gate_enabled?: boolean
@@ -800,6 +889,8 @@ export type Database = {
         | "AuctionHold"
         | "AuctionRelease"
         | "AuctionSettlement"
+        | "BetStake"
+        | "BetPayout"
       escrow_status: "Active" | "Released" | "Settled"
       lot_status: "Live" | "Ended"
       match_status:
@@ -960,6 +1051,8 @@ export const Constants = {
         "AuctionHold",
         "AuctionRelease",
         "AuctionSettlement",
+        "BetStake",
+        "BetPayout",
       ],
       escrow_status: ["Active", "Released", "Settled"],
       lot_status: ["Live", "Ended"],

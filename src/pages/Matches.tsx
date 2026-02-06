@@ -11,6 +11,7 @@ import type { MatchWithPlayers, Round, Player } from '@/lib/types';
 import { Calendar, Lock } from 'lucide-react';
 import { TournamentProgressAccordion } from '@/components/tournament/TournamentProgressAccordion';
 import { ReportResultDialog } from '@/components/tournament/ReportResultDialog';
+import { RoundBetsSection } from '@/components/betting/RoundBetsSection';
 import { useToast } from '@/hooks/use-toast';
 
 export default function MatchesPage() {
@@ -169,6 +170,15 @@ export default function MatchesPage() {
               onReportResult={handleReportResult}
               onCopyContacts={handleCopyContacts}
             />
+
+            {/* Round Bets section */}
+            {tournament!.betting_enabled && (
+              <RoundBetsSection
+                tournament={tournament!}
+                player={player!}
+                currentRound={rounds.find(r => r.status === 'Live') || null}
+              />
+            )}
 
             {rounds.length === 0 && (
               <div className="text-center py-12">
