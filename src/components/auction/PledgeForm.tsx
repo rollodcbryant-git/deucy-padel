@@ -165,7 +165,7 @@ export function PledgeForm({ tournamentId, playerId, roundId, existing, onSaved,
 
         {/* Buttons */}
         <div className="flex gap-2">
-          <Button onClick={handleSave} disabled={saving} className="flex-1 touch-target bg-gradient-primary hover:opacity-90">
+          <Button variant="hot" onClick={handleSave} disabled={saving} className="flex-1 touch-target">
             {saving ? 'Saving...' : existing ? 'Update Pledge' : 'Submit Pledge'}
           </Button>
           {onCancel && (

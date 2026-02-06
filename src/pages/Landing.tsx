@@ -163,7 +163,8 @@ export default function LandingPage() {
       <div className="p-6 space-y-3 safe-bottom">
         {tournament.status === 'SignupOpen' && (
           <Button
-            className="w-full touch-target text-lg bg-gradient-primary hover:opacity-90 shadow-glow-green"
+            variant="hot"
+            className="w-full touch-target text-lg"
             onClick={() => navigate(`/join?t=${tournamentId}`)}
           >
             Join Tournament

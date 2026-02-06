@@ -198,7 +198,8 @@ export default function LoginPage() {
 
                   <Button
                     type="submit"
-                    className="w-full touch-target bg-gradient-primary hover:opacity-90"
+                    variant="hot"
+                    className="w-full touch-target"
                     disabled={isLoading}
                   >
                     {isLoading ? 'Signing in...' : 'Sign In'}
@@ -248,7 +249,8 @@ export default function LoginPage() {
                     Copy PIN
                   </Button>
                   <Button
-                    className="w-full bg-gradient-primary"
+                    variant="hot"
+                    className="w-full"
                     onClick={() => { setShowReset(false); setNewPin(null); setPin(''); }}
                   >
                     Back to Sign In
@@ -276,7 +278,8 @@ export default function LoginPage() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full touch-target bg-gradient-primary hover:opacity-90"
+                    variant="hot"
+                    className="w-full touch-target"
                     disabled={isResetting}
                   >
                     {isResetting ? 'Resetting...' : 'Reset My PIN'}

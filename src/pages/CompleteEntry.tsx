@@ -99,7 +99,7 @@ export default function CompleteEntryPage() {
               </p>
             </div>
             {!isConfirmed && (
-              <Button size="sm" onClick={handleConfirm} className="bg-gradient-primary hover:opacity-90 shrink-0">
+              <Button size="sm" variant="hot" onClick={handleConfirm} className="shrink-0">
                 I'm In!
               </Button>
             )}
@@ -127,8 +127,8 @@ export default function CompleteEntryPage() {
               </p>
             </div>
             {!hasPledge && (
-              <Button size="sm" onClick={() => setShowPledgeForm(true)}
-                className="bg-gradient-primary hover:opacity-90 shrink-0">
+              <Button size="sm" variant="hot" onClick={() => setShowPledgeForm(true)}
+                className="shrink-0">
                 Add
               </Button>
             )}
@@ -137,7 +137,7 @@ export default function CompleteEntryPage() {
 
         {/* Continue */}
         {isConfirmed && (
-          <Button className="w-full touch-target bg-gradient-primary hover:opacity-90" onClick={() => navigate('/tournaments')}>
+          <Button variant="hot" className="w-full touch-target" onClick={() => navigate('/tournaments')}>
             {hasPledge ? "Let's Go" : 'Skip for now'} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}

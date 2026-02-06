@@ -266,7 +266,7 @@ export default function AdminRoundsSection({ tournament, rounds, matches, onRelo
 
       {/* ── Start Tournament ── */}
       {tournament.status === 'SignupOpen' && (
-        <Button className="w-full bg-gradient-primary" onClick={() => callEngine('start_tournament')} disabled={isUpdating}>
+        <Button variant="hot" className="w-full" onClick={() => callEngine('start_tournament')} disabled={isUpdating}>
           <Play className="mr-2 h-4 w-4" />Start Tournament
         </Button>
       )}
