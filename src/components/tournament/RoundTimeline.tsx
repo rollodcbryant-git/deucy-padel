@@ -68,6 +68,7 @@ export function RoundTimeline({
             key={summary.round.id}
             summary={summary}
             currentPlayerId={currentPlayerId}
+            tournament={tournament}
             onClaimBooking={onClaimBooking}
             onReportResult={onReportResult}
             onCopyContacts={onCopyContacts}
