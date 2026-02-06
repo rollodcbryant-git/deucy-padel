@@ -68,8 +68,9 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
 
   const saveEstimates = async (id: string) => {
     await supabase.from('pledge_items').update({
-      estimate_low: estLow,
-      estimate_high: estHigh,
+      estimate_low: estLow * 100,
+      estimate_high: estHigh * 100,
+      price_euro: priceEuro ? priceEuro * 100 : null,
       admin_note: adminNote || null,
     }).eq('id', id);
     setEditingPledge(null);
