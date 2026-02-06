@@ -8,12 +8,13 @@ import { StatusChip } from '@/components/ui/StatusChip';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EditNameDialog } from '@/components/profile/EditNameDialog';
+import { ChangePinDialog } from '@/components/profile/ChangePinDialog';
 import { ProfilePledgeCard } from '@/components/profile/ProfilePledgeCard';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { supabase } from '@/integrations/supabase/client';
 import type { PledgeItem, Round } from '@/lib/types';
-import { Camera, Pencil, AlertTriangle, ChevronRight, LogOut, User } from 'lucide-react';
+import { Camera, Pencil, AlertTriangle, ChevronRight, LogOut, User, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ProfilePage() {
@@ -26,6 +27,7 @@ export default function ProfilePage() {
   const [rounds, setRounds] = useState<Round[]>([]);
   const [rank, setRank] = useState(0);
   const [showEditName, setShowEditName] = useState(false);
+  const [showChangePin, setShowChangePin] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -266,6 +268,21 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Change PIN */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Security
+            </h3>
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => setShowChangePin(true)}
+            >
+              <KeyRound className="h-4 w-4 mr-2" />
+              Change PIN
+            </Button>
+          </div>
         </div>
       </PageLayout>
 
@@ -276,6 +293,13 @@ export default function ProfilePage() {
         onOpenChange={setShowEditName}
         currentName={player.full_name}
         onSave={handleSaveName}
+      />
+
+      <ChangePinDialog
+        open={showChangePin}
+        onOpenChange={setShowChangePin}
+        playerId={player.id}
+        currentPinHash={player.pin_hash}
       />
     </>
   );

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { hashPin } from '@/contexts/PlayerContext';
+import { normalizePhone } from '@/lib/phone';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Copy, Check, User, Phone, Users } from 'lucide-react';
 import type { PlayerGender } from '@/lib/types';
@@ -46,6 +47,7 @@ export default function JoinPage() {
     }
 
     setIsLoading(true);
+    const normalizedPhone = normalizePhone(phone);
 
     try {
       // Check if phone already exists in this tournament
@@ -53,7 +55,7 @@ export default function JoinPage() {
         .from('players')
         .select('id')
         .eq('tournament_id', tournamentId)
-        .eq('phone', phone)
+        .eq('phone', normalizedPhone)
         .single();
 
       if (existing) {
@@ -80,7 +82,7 @@ export default function JoinPage() {
       const { data: newPlayer, error } = await supabase.from('players').insert({
         tournament_id: tournamentId,
         full_name: fullName,
-        phone,
+        phone: normalizedPhone,
         pin_hash: pinHash,
         gender: gender || null,
         credits_balance: tournament?.starting_credits || 1000,

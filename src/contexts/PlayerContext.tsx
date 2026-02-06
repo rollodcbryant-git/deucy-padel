@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizePhone } from '@/lib/phone';
 import type { Player, Tournament, PlayerSession } from '@/lib/types';
 
 interface PlayerContextType {
@@ -7,7 +8,7 @@ interface PlayerContextType {
   tournament: Tournament | null;
   session: PlayerSession | null;
   isLoading: boolean;
-  login: (phone: string, pin: string, tournamentId: string) => Promise<{ success: boolean; error?: string }>;
+  login: (phone: string, pin: string, tournamentId?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   refreshPlayer: () => Promise<void>;
 }
@@ -79,26 +80,50 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     loadSession();
   }, [loadSession]);
 
-  const login = async (phone: string, pin: string, tournamentId: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (phone: string, pin: string, tournamentId?: string): Promise<{ success: boolean; error?: string }> => {
     try {
+      const normalized = normalizePhone(phone);
       const pinHash = hashPin(pin);
       
-      const { data: playerData, error } = await supabase
+      // Build query — if tournamentId provided, scope to it; otherwise search all
+      let query = supabase
         .from('players')
         .select('*')
-        .eq('tournament_id', tournamentId)
-        .eq('phone', phone)
-        .eq('pin_hash', pinHash)
-        .single();
+        .eq('phone', normalized)
+        .eq('pin_hash', pinHash);
+      
+      if (tournamentId) {
+        query = query.eq('tournament_id', tournamentId);
+      }
 
-      if (error || !playerData) {
+      const { data: players, error } = await query;
+
+      if (error || !players || players.length === 0) {
         return { success: false, error: 'Invalid phone or PIN' };
+      }
+
+      // Pick the player in the most relevant tournament:
+      // prefer Live > SignupOpen > others; if multiple, pick most recent
+      let playerData = players[0];
+      if (players.length > 1 && !tournamentId) {
+        // Load tournaments to pick best
+        const tIds = [...new Set(players.map(p => p.tournament_id))];
+        const { data: tournaments } = await supabase
+          .from('tournaments')
+          .select('id, status')
+          .in('id', tIds);
+        
+        if (tournaments) {
+          const statusPriority: Record<string, number> = { Live: 0, AuctionLive: 0, SignupOpen: 1 };
+          const tMap = new Map(tournaments.map(t => [t.id, statusPriority[t.status] ?? 9]));
+          players.sort((a, b) => (tMap.get(a.tournament_id) ?? 9) - (tMap.get(b.tournament_id) ?? 9));
+          playerData = players[0];
+        }
       }
 
       // Generate session token
       const token = crypto.randomUUID();
       
-      // Update player with session token
       const { error: updateError } = await supabase
         .from('players')
         .update({ session_token: token })
@@ -112,12 +137,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const { data: tournamentData } = await supabase
         .from('tournaments')
         .select('*')
-        .eq('id', tournamentId)
+        .eq('id', playerData.tournament_id)
         .single();
 
       const newSession: PlayerSession = {
         playerId: playerData.id,
-        tournamentId,
+        tournamentId: playerData.tournament_id,
         playerName: playerData.full_name,
         token,
       };

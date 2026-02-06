@@ -4,13 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { hashPin } from '@/contexts/PlayerContext';
+import { normalizePhone } from '@/lib/phone';
 import { Phone, Lock, KeyRound, Settings, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+const REMEMBER_PIN_KEY = 'padel_remember_pin';
+const SAVED_PHONE_KEY = 'padel_saved_phone';
+const SAVED_PIN_KEY = 'padel_saved_pin';
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
@@ -19,16 +24,19 @@ export default function LoginPage() {
   const { login, session, isLoading: sessionLoading } = usePlayer();
   const { toast } = useToast();
 
-  const [phone, setPhone] = useState('');
-  const [pin, setPin] = useState('');
+  // Load saved values
+  const savedRemember = localStorage.getItem(REMEMBER_PIN_KEY) === 'true';
+  const savedPhone = savedRemember ? localStorage.getItem(SAVED_PHONE_KEY) || '' : '';
+  const savedPin = savedRemember ? localStorage.getItem(SAVED_PIN_KEY) || '' : '';
+
+  const [phone, setPhone] = useState(savedPhone);
+  const [pin, setPin] = useState(savedPin);
+  const [rememberPin, setRememberPin] = useState(savedRemember);
   const [isLoading, setIsLoading] = useState(false);
   const [showReset, setShowReset] = useState(false);
   const [resetPhone, setResetPhone] = useState('');
   const [newPin, setNewPin] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
-
-  // Tournament ID from URL (optional, for direct join links)
-  const [selectedTournamentId] = useState<string | null>(tournamentIdParam);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -36,7 +44,6 @@ export default function LoginPage() {
       navigate('/tournaments');
     }
   }, [session, sessionLoading, navigate]);
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,10 +54,22 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    const result = await login(phone, pin, selectedTournamentId || undefined);
+    const normalizedPhone = normalizePhone(phone);
+    const result = await login(normalizedPhone, pin, tournamentIdParam || undefined);
     setIsLoading(false);
 
     if (result.success) {
+      // Save or clear remembered PIN
+      if (rememberPin) {
+        localStorage.setItem(REMEMBER_PIN_KEY, 'true');
+        localStorage.setItem(SAVED_PHONE_KEY, phone);
+        localStorage.setItem(SAVED_PIN_KEY, pin);
+      } else {
+        localStorage.removeItem(REMEMBER_PIN_KEY);
+        localStorage.removeItem(SAVED_PHONE_KEY);
+        localStorage.removeItem(SAVED_PIN_KEY);
+      }
+
       toast({ title: 'Welcome back! 🎾', description: 'Time to cause some chaos.' });
       navigate('/tournaments');
     } else {
@@ -67,17 +86,11 @@ export default function LoginPage() {
 
     setIsResetting(true);
     try {
-      // Search across all tournaments if none selected, or in specific tournament
-      let query = supabase
+      const normalizedPhone = normalizePhone(resetPhone);
+      const { data: players, error } = await supabase
         .from('players')
         .select('id, full_name, tournament_id')
-        .eq('phone', resetPhone.trim());
-
-      if (selectedTournamentId) {
-        query = query.eq('tournament_id', selectedTournamentId);
-      }
-
-      const { data: players, error } = await query;
+        .eq('phone', normalizedPhone);
 
       if (error || !players || players.length === 0) {
         toast({ title: 'Not found', description: 'No player found with that phone number.', variant: 'destructive' });
@@ -85,17 +98,15 @@ export default function LoginPage() {
         return;
       }
 
-      // Use the first match (or the one in the selected tournament)
       const player = players[0];
-
-      // Generate new 4-digit PIN
       const generated = String(Math.floor(1000 + Math.random() * 9000));
       const pinHash = hashPin(generated);
 
+      // Update ALL player records for this phone so PIN is consistent
       const { error: updateError } = await supabase
         .from('players')
         .update({ pin_hash: pinHash, session_token: null })
-        .eq('id', player.id);
+        .eq('phone', normalizedPhone);
 
       if (updateError) {
         toast({ title: 'Error', description: 'Could not reset PIN. Please contact your organizer.', variant: 'destructive' });
@@ -130,9 +141,6 @@ export default function LoginPage() {
           <p className="text-muted-foreground">Enter your phone and PIN to continue</p>
         </div>
 
-
-
-
         {!showReset ? (
           <>
             {/* Login Form */}
@@ -149,7 +157,7 @@ export default function LoginPage() {
                       <Input
                         id="phone"
                         type="tel"
-                        placeholder="+34 612 345 678"
+                        placeholder="612 345 678"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         className="pl-10 touch-target"
@@ -177,6 +185,17 @@ export default function LoginPage() {
                     </div>
                   </div>
 
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="remember" className="text-xs text-muted-foreground cursor-pointer">
+                      Remember PIN on this device
+                    </Label>
+                    <Switch
+                      id="remember"
+                      checked={rememberPin}
+                      onCheckedChange={setRememberPin}
+                    />
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-full touch-target bg-gradient-primary hover:opacity-90"
@@ -198,11 +217,11 @@ export default function LoginPage() {
             </Card>
 
             {/* Join link for signup-open tournaments */}
-            {selectedTournamentId && (
+            {tournamentIdParam && (
               <Button
                 variant="outline"
                 className="w-full touch-target"
-                onClick={() => navigate(`/join?t=${selectedTournamentId}`)}
+                onClick={() => navigate(`/join?t=${tournamentIdParam}`)}
               >
                 Don't have an account? Join Tournament
               </Button>
@@ -249,7 +268,7 @@ export default function LoginPage() {
                       <Input
                         id="resetPhone"
                         type="tel"
-                        placeholder="+34 612 345 678"
+                        placeholder="612 345 678"
                         value={resetPhone}
                         onChange={(e) => setResetPhone(e.target.value)}
                         className="pl-10 touch-target"
@@ -280,7 +299,7 @@ export default function LoginPage() {
           </Card>
         )}
 
-        {/* Admin link - small print */}
+        {/* Admin link */}
         <Link
           to="/admin"
           className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors pt-4"
