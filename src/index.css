@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,7 +11,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 220 20% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 145 80% 50%;
+    --primary: 12 100% 71%;
     --primary-foreground: 220 20% 6%;
     --secondary: 220 20% 16%;
     --secondary-foreground: 0 0% 98%;
@@ -70,7 +71,7 @@
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
