@@ -644,6 +644,7 @@ export type Database = {
           created_at: string
           created_by_admin_id: string | null
           display_decimals: boolean
+          ended_at: string | null
           euros_per_set_loss: number
           euros_per_set_win: number
           id: string
@@ -658,7 +659,10 @@ export type Database = {
           pledge_gate_enabled: boolean
           round_duration_days: number
           rounds_count: number | null
+          series_id: string | null
+          series_order: number | null
           stake_per_player: number
+          started_at: string | null
           starting_credits: number
           status: Database["public"]["Enums"]["tournament_status"]
           updated_at: string
@@ -670,6 +674,7 @@ export type Database = {
           created_at?: string
           created_by_admin_id?: string | null
           display_decimals?: boolean
+          ended_at?: string | null
           euros_per_set_loss?: number
           euros_per_set_win?: number
           id?: string
@@ -684,7 +689,10 @@ export type Database = {
           pledge_gate_enabled?: boolean
           round_duration_days?: number
           rounds_count?: number | null
+          series_id?: string | null
+          series_order?: number | null
           stake_per_player?: number
+          started_at?: string | null
           starting_credits?: number
           status?: Database["public"]["Enums"]["tournament_status"]
           updated_at?: string
@@ -696,6 +704,7 @@ export type Database = {
           created_at?: string
           created_by_admin_id?: string | null
           display_decimals?: boolean
+          ended_at?: string | null
           euros_per_set_loss?: number
           euros_per_set_win?: number
           id?: string
@@ -710,7 +719,10 @@ export type Database = {
           pledge_gate_enabled?: boolean
           round_duration_days?: number
           rounds_count?: number | null
+          series_id?: string | null
+          series_order?: number | null
           stake_per_player?: number
+          started_at?: string | null
           starting_credits?: number
           status?: Database["public"]["Enums"]["tournament_status"]
           updated_at?: string
