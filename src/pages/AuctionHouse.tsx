@@ -168,7 +168,7 @@ export default function AuctionHousePage() {
               )}
             </div>
             <p className="text-sm text-muted-foreground">
-              Bring your pledge. Win your credits. Spend them irresponsibly.
+              Bring your pledge. Win your €. Spend them irresponsibly.
             </p>
 
             {/* Round pledge progress */}
