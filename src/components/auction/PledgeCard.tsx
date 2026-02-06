@@ -33,7 +33,6 @@ function formatEstimate(low: number | null, high: number | null): string | null 
 export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: PledgeCardProps) {
   const cat = getCategoryConfig(pledge.category);
   const estimate = formatEstimate(pledge.estimate_low, pledge.estimate_high);
-  const priceLabel = (pledge as any).price_euro ? formatEuros((pledge as any).price_euro) : 'TBD';
   const isPending = pledge.status === 'Draft';
 
   return (
@@ -67,15 +66,15 @@ export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: Pl
           </div>
         )}
 
+        {!isPending && !isOwner && pledge.status === 'Draft' && (
+          <div className="absolute top-2 right-2">
+            <StatusChip variant="neutral" size="sm">Pending approval</StatusChip>
+          </div>
+        )}
+
         {roundIndex != null && (
           <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-background/80 backdrop-blur-sm border border-border px-2 py-0.5 text-[10px] font-bold text-foreground">
             R{roundIndex}
-          </span>
-        )}
-
-        {!estimate && pledge.status !== 'Draft' && (
-          <span className="absolute top-2 right-2 inline-flex items-center rounded-full bg-muted/80 backdrop-blur-sm px-2 py-0.5 text-[10px] text-muted-foreground">
-            Pending estimate
           </span>
         )}
       </div>
@@ -87,15 +86,10 @@ export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: Pl
           by <span className="hover:text-primary transition-colors">{pledger?.full_name || 'Unknown'}</span>
         </p>
 
-        <div className="space-y-0.5">
-          <div>
-            <p className="text-[10px] text-muted-foreground leading-tight">Expert estimate</p>
-            <p className="text-xs font-medium text-primary">{estimate || 'TBD'}</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground leading-tight">Price</p>
-            <p className="text-xs font-medium text-primary">{priceLabel}</p>
-          </div>
+        {/* Expert estimate only - no "Price" on player cards */}
+        <div>
+          <p className="text-[10px] text-muted-foreground leading-tight">Expert estimate</p>
+          <p className="text-xs font-medium text-primary">{estimate || 'TBD'}</p>
         </div>
       </CardContent>
     </Card>

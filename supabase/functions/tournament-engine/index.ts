@@ -893,7 +893,7 @@ async function regenerateMatches(supabase: any, body: any) {
 // START AUCTION
 // ============================================================
 async function startAuction(supabase: any, body: any) {
-  const { tournament_id } = body;
+  const { tournament_id, duration_hours } = body;
 
   const { data: tournament } = await supabase
     .from("tournaments")
@@ -901,11 +901,15 @@ async function startAuction(supabase: any, body: any) {
     .eq("id", tournament_id)
     .single();
 
-  if (tournament.status !== "Finished")
-    throw new Error("Tournament must be Finished to start auction");
+  // Allow starting auction from Finished OR already-finished states
+  // Don't block if admin wants to re-launch
+  if (!["Finished", "AuctionLive", "Closed"].includes(tournament.status) && tournament.status !== "Live") {
+    throw new Error("Tournament should be Finished to start auction");
+  }
 
+  const hours = duration_hours || 24;
   const now = new Date();
-  const endsAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const endsAt = new Date(now.getTime() + hours * 60 * 60 * 1000);
 
   const { data: auction, error: aErr } = await supabase
     .from("auctions")
@@ -914,6 +918,7 @@ async function startAuction(supabase: any, body: any) {
       starts_at: now.toISOString(),
       ends_at: endsAt.toISOString(),
       status: "Live",
+      duration_hours: hours,
     })
     .select()
     .single();
@@ -954,6 +959,7 @@ async function startAuction(supabase: any, body: any) {
     success: true,
     auction_id: auction.id,
     lots_created: lots.length,
+    duration_hours: hours,
   });
 }
 
