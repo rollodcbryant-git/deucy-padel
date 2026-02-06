@@ -216,16 +216,14 @@ export default function LoginPage() {
               </CardContent>
             </Card>
 
-            {/* Join link for signup-open tournaments */}
-            {tournamentIdParam && (
-              <Button
-                variant="outline"
-                className="w-full touch-target"
-                onClick={() => navigate(`/join?t=${tournamentIdParam}`)}
-              >
-                Don't have an account? Join Tournament
-              </Button>
-            )}
+            {/* Create account link */}
+            <Button
+              variant="outline"
+              className="w-full touch-target"
+              onClick={() => navigate(tournamentIdParam ? `/join?t=${tournamentIdParam}` : '/join')}
+            >
+              Don't have an account? Sign Up
+            </Button>
           </>
         ) : (
           /* Reset PIN Form */
