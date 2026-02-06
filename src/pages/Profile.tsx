@@ -294,6 +294,13 @@ export default function ProfilePage() {
         currentName={player.full_name}
         onSave={handleSaveName}
       />
+
+      <ChangePinDialog
+        open={showChangePin}
+        onOpenChange={setShowChangePin}
+        playerId={player.id}
+        currentPinHash={player.pin_hash}
+      />
     </>
   );
 }
