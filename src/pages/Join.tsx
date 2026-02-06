@@ -82,7 +82,7 @@ export default function JoinPage() {
       const { data: newPlayer, error } = await supabase.from('players').insert({
         tournament_id: tournamentId,
         full_name: fullName,
-        phone,
+        phone: normalizedPhone,
         pin_hash: pinHash,
         gender: gender || null,
         credits_balance: tournament?.starting_credits || 1000,
