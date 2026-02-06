@@ -69,6 +69,8 @@ Deno.serve(async (req) => {
         return await settleAuction(supabase, body);
       case "settle_bets":
         return await settleBetsForMatch(supabase, body);
+      case "auto_match_remaining":
+        return await autoMatchRemaining(supabase, body);
       default:
         return jsonResponse({ error: `Unknown action: ${action}` }, 400);
     }
@@ -107,8 +109,9 @@ async function startTournament(supabase: any, body: any) {
     .eq("status", "Active");
   if (pErr) throw pErr;
 
-  if (players.length < tournament.min_players) {
-    throw new Error(`Need at least ${tournament.min_players} confirmed players (have ${players.length})`);
+  // Allow starting with fewer players (minimum 4 for at least one match)
+  if (players.length < 4) {
+    throw new Error(`Need at least 4 confirmed players (have ${players.length})`);
   }
 
   const roundsCount = calculateRoundsCount(players.length);
@@ -303,8 +306,8 @@ async function generateMatchesAction(supabase: any, body: any) {
     .eq("status", "Active")
     .eq("confirmed", true);
 
-  if (!players || players.length < 8) {
-    throw new Error(`Need at least 8 confirmed active players (have ${players?.length || 0})`);
+  if (!players || players.length < 4) {
+    throw new Error(`Need at least 4 confirmed active players (have ${players?.length || 0})`);
   }
 
   const result = await generateMatchesForRound(supabase, tournament, round, players);
@@ -1228,4 +1231,89 @@ async function settleBetsForMatch(supabase: any, body: any) {
   await autoSettleBets(supabase, match_id, match.tournament_id, match.sets_a, match.sets_b);
 
   return jsonResponse({ success: true });
+}
+
+// ============================================================
+// AUTO-MATCH REMAINING PLAYERS (late joiners)
+// ============================================================
+async function autoMatchRemaining(supabase: any, body: any) {
+  const { tournament_id, round_id } = body;
+
+  const { data: tournament } = await supabase
+    .from("tournaments")
+    .select("*")
+    .eq("id", tournament_id)
+    .single();
+  if (!tournament) throw new Error("Tournament not found");
+
+  const { data: round } = await supabase
+    .from("rounds")
+    .select("*")
+    .eq("id", round_id)
+    .single();
+  if (!round || round.status !== "Live") throw new Error("Round must be Live");
+
+  // Get all active confirmed players
+  const { data: allPlayers } = await supabase
+    .from("players")
+    .select("*")
+    .eq("tournament_id", tournament_id)
+    .eq("status", "Active")
+    .eq("confirmed", true);
+
+  // Get players already in matches for this round
+  const { data: existingMatches } = await supabase
+    .from("matches")
+    .select("team_a_player1_id, team_a_player2_id, team_b_player1_id, team_b_player2_id, bye_player_id, is_bye")
+    .eq("round_id", round_id);
+
+  const matchedPlayerIds = new Set<string>();
+  for (const m of existingMatches || []) {
+    if (m.is_bye && m.bye_player_id) matchedPlayerIds.add(m.bye_player_id);
+    if (m.team_a_player1_id) matchedPlayerIds.add(m.team_a_player1_id);
+    if (m.team_a_player2_id) matchedPlayerIds.add(m.team_a_player2_id);
+    if (m.team_b_player1_id) matchedPlayerIds.add(m.team_b_player1_id);
+    if (m.team_b_player2_id) matchedPlayerIds.add(m.team_b_player2_id);
+  }
+
+  const unmatchedPlayers = (allPlayers || []).filter((p: any) => !matchedPlayerIds.has(p.id));
+
+  if (unmatchedPlayers.length < 4) {
+    return jsonResponse({ success: true, message: `Only ${unmatchedPlayers.length} unmatched players (need at least 4)`, matches_created: 0 });
+  }
+
+  const result = await generateMatchesForRound(supabase, tournament, round, unmatchedPlayers);
+
+  // Grant participation bonus to newly matched players (if they haven't received one)
+  for (const p of unmatchedPlayers) {
+    const { data: existing } = await supabase
+      .from("credit_ledger_entries")
+      .select("id")
+      .eq("player_id", p.id)
+      .eq("round_id", round_id)
+      .eq("type", "ParticipationBonus")
+      .limit(1);
+
+    if (!existing || existing.length === 0) {
+      await supabase.from("credit_ledger_entries").insert({
+        tournament_id,
+        player_id: p.id,
+        round_id: round_id,
+        type: "ParticipationBonus",
+        amount: tournament.participation_bonus,
+        note: `Round ${round.index} participation bonus (late join)`,
+      });
+      await supabase
+        .from("players")
+        .update({ credits_balance: p.credits_balance + tournament.participation_bonus })
+        .eq("id", p.id);
+    }
+  }
+
+  return jsonResponse({
+    success: true,
+    unmatched_count: unmatchedPlayers.length,
+    matches_created: result.matchCount,
+    byes: result.byes.length,
+  });
 }
