@@ -48,7 +48,7 @@ export interface Tournament {
 
 export interface Player {
   id: string;
-  tournament_id: string;
+  tournament_id: string | null;
   full_name: string;
   phone: string;
   pin_hash: string;
