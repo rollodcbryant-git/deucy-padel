@@ -455,6 +455,11 @@ async function generateMatchesForRound(
   const matches: any[] = [];
   for (let i = 0; i < activePlayers.length; i += 4) {
     const group = activePlayers.slice(i, i + 4);
+    // Safety: never create a match with fewer than 4 players
+    if (group.length < 4) {
+      console.warn(`Skipping incomplete group of ${group.length} players`);
+      break;
+    }
     const teams = findBestTeamAssignment(group, partnerHistory);
 
     const { error: mErr } = await supabase.from("matches").insert({
