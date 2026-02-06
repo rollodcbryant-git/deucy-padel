@@ -187,16 +187,33 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshPlayer = async () => {
-    if (!session) return;
-    
+    // Re-read session from localStorage in case it was updated (e.g. after joining a tournament)
+    const stored = localStorage.getItem(SESSION_KEY);
+    if (!stored) return;
+
+    const currentSession: PlayerSession = JSON.parse(stored);
+
     const { data } = await supabase
       .from('players')
       .select('*')
-      .eq('id', session.playerId)
+      .eq('id', currentSession.playerId)
       .single();
     
     if (data) {
       setPlayer(data as Player);
+      setSession(currentSession);
+
+      // Also reload tournament if changed
+      if (currentSession.tournamentId) {
+        const { data: tData } = await supabase
+          .from('tournaments')
+          .select('*')
+          .eq('id', currentSession.tournamentId)
+          .single();
+        setTournament(tData as Tournament);
+      } else {
+        setTournament(null);
+      }
     }
   };
 

@@ -7,6 +7,8 @@ import { usePlayer } from '@/contexts/PlayerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { TournamentLobbyCard } from '@/components/lobby/TournamentLobbyCard';
 import { JoinWaitlistDialog } from '@/components/waitlist/JoinWaitlistDialog';
+import { OnboardingCarousel } from '@/components/onboarding/OnboardingCarousel';
+import { WelcomeAfterJoinDialog } from '@/components/onboarding/WelcomeAfterJoinDialog';
 import { useWaitlist } from '@/hooks/useWaitlist';
 import { useToast } from '@/hooks/use-toast';
 import type { Tournament, Round } from '@/lib/types';
@@ -27,6 +29,14 @@ export default function TournamentsPage() {
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState<string | null>(null);
 
+  // Onboarding carousel for new users
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Welcome dialog after joining
+  const [welcomeDialog, setWelcomeDialog] = useState<{ open: boolean; tournamentName: string; tournamentStatus: string }>({
+    open: false, tournamentName: '', tournamentStatus: '',
+  });
+
   // Waitlist
   const { entry: waitlistEntry, position: waitlistPosition, loading: waitlistLoading, joinWaitlist, leaveWaitlist, refresh: refreshWaitlist } = useWaitlist(player?.phone);
   const [waitlistDialogOpen, setWaitlistDialogOpen] = useState(false);
@@ -37,7 +47,13 @@ export default function TournamentsPage() {
       navigate('/');
       return;
     }
-    if (session) loadTournaments();
+    if (session) {
+      loadTournaments();
+      // Show onboarding for first-time users
+      if (player && !player.has_seen_onboarding) {
+        setShowOnboarding(true);
+      }
+    }
   }, [session, isLoading, navigate]);
 
   const loadTournaments = async () => {
@@ -92,6 +108,14 @@ export default function TournamentsPage() {
     }
   };
 
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    if (player) {
+      await supabase.from('players').update({ has_seen_onboarding: true }).eq('phone', player.phone);
+      await refreshPlayer();
+    }
+  };
+
   const handleJoinTournament = async (tournament: Tournament) => {
     if (!player || !session) return;
     setJoiningId(tournament.id);
@@ -104,11 +128,19 @@ export default function TournamentsPage() {
         .eq('tournament_id', tournament.id);
 
       if (existing && existing.length > 0) {
-        toast({ title: 'Already joined', description: 'You already have a record in this tournament.' });
+        // Player already has a record — update session to point to it
+        const existingPlayer = existing[0];
+        await supabase.from('players').update({ session_token: session.token }).eq('id', existingPlayer.id);
+        const updatedSession = { ...session, tournamentId: tournament.id };
+        localStorage.setItem('padel_chaos_session', JSON.stringify(updatedSession));
+        await refreshPlayer();
+        loadTournaments();
+        // Show welcome dialog
+        setWelcomeDialog({ open: true, tournamentName: tournament.name, tournamentStatus: tournament.status });
         return;
       }
 
-      const { error } = await supabase.from('players').insert({
+      const { data: newPlayer, error } = await supabase.from('players').insert({
         tournament_id: tournament.id,
         full_name: player.full_name,
         phone: player.phone,
@@ -116,13 +148,22 @@ export default function TournamentsPage() {
         gender: player.gender,
         credits_balance: tournament.starting_credits,
         session_token: session.token,
-      });
+      }).select('id').single();
 
       if (error) throw error;
+
+      // Update session to point to the new tournament-specific player
+      if (newPlayer) {
+        const updatedSession = { ...session, playerId: newPlayer.id, tournamentId: tournament.id };
+        localStorage.setItem('padel_chaos_session', JSON.stringify(updatedSession));
+      }
 
       toast({ title: 'Joined! 🎾', description: `You're now in ${tournament.name}` });
       await refreshPlayer();
       loadTournaments();
+
+      // Show welcome dialog with contextual info
+      setWelcomeDialog({ open: true, tournamentName: tournament.name, tournamentStatus: tournament.status });
     } catch (err: any) {
       console.error('Join error:', err);
       toast({ title: 'Failed to join', description: err.message || 'Something went wrong', variant: 'destructive' });
@@ -277,6 +318,18 @@ export default function TournamentsPage() {
         defaultName={player?.full_name || ''}
         defaultPhone={player?.phone || ''}
         onSubmit={handleWaitlistSubmit}
+      />
+
+      <OnboardingCarousel
+        open={showOnboarding}
+        onComplete={handleOnboardingComplete}
+      />
+
+      <WelcomeAfterJoinDialog
+        open={welcomeDialog.open}
+        onClose={() => setWelcomeDialog(prev => ({ ...prev, open: false }))}
+        tournamentName={welcomeDialog.tournamentName}
+        tournamentStatus={welcomeDialog.tournamentStatus}
       />
     </>
   );
