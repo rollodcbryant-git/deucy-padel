@@ -47,6 +47,7 @@ export default function JoinPage() {
     }
 
     setIsLoading(true);
+    const normalizedPhone = normalizePhone(phone);
 
     try {
       // Check if phone already exists in this tournament
@@ -54,7 +55,7 @@ export default function JoinPage() {
         .from('players')
         .select('id')
         .eq('tournament_id', tournamentId)
-        .eq('phone', phone)
+        .eq('phone', normalizedPhone)
         .single();
 
       if (existing) {
