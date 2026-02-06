@@ -58,15 +58,19 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Load tournament
-      const { data: tournamentData } = await supabase
-        .from('tournaments')
-        .select('*')
-        .eq('id', savedSession.tournamentId)
-        .single();
+      // Load tournament if player has one
+      if (savedSession.tournamentId) {
+        const { data: tournamentData } = await supabase
+          .from('tournaments')
+          .select('*')
+          .eq('id', savedSession.tournamentId)
+          .single();
+        setTournament(tournamentData as Tournament);
+      } else {
+        setTournament(null);
+      }
 
       setPlayer(playerData as Player);
-      setTournament(tournamentData as Tournament);
       setSession(savedSession);
     } catch (error) {
       console.error('Error loading session:', error);
