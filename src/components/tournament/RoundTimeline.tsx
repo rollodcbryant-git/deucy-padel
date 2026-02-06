@@ -92,12 +92,14 @@ export function RoundTimeline({
 function RoundAccordionItem({
   summary,
   currentPlayerId,
+  tournament,
   onClaimBooking,
   onReportResult,
   onCopyContacts,
 }: {
   summary: RoundSummary;
   currentPlayerId: string;
+  tournament?: Tournament;
   onClaimBooking: (match: MatchWithPlayers) => void;
   onReportResult: (match: MatchWithPlayers) => void;
   onCopyContacts: (match: MatchWithPlayers) => void;
