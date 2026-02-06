@@ -22,6 +22,7 @@ export function TournamentProgressAccordion({
   player,
   rounds,
   matchesByRound,
+  playerRank,
   onClaimBooking,
   onReportResult,
   onCopyContacts,
