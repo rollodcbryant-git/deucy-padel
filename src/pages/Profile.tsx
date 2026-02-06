@@ -27,6 +27,7 @@ export default function ProfilePage() {
   const [rounds, setRounds] = useState<Round[]>([]);
   const [rank, setRank] = useState(0);
   const [showEditName, setShowEditName] = useState(false);
+  const [showChangePin, setShowChangePin] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
