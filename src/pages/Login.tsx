@@ -35,7 +35,7 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (session && !sessionLoading) {
-      navigate('/home');
+      navigate('/matches');
     }
   }, [session, sessionLoading, navigate]);
 
