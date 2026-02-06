@@ -5,8 +5,11 @@ import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { cn } from '@/lib/utils';
 import { Phone, ExternalLink, Check, MapPin, MessageCircle } from 'lucide-react';
 import { PlayerLink } from '@/components/ui/PlayerLink';
+import { PledgeIndicator } from './PledgeIndicator';
+import { RoundPledgeSection } from './RoundPledgeSection';
 import { useToast } from '@/hooks/use-toast';
-import type { MatchWithPlayers, Player, Round, Tournament } from '@/lib/types';
+import type { MatchWithPlayers, Player, Round, Tournament, PledgeItem } from '@/lib/types';
+import type { RoundPledgeMap } from '@/hooks/useRoundPledges';
 import { format } from 'date-fns';
 
 interface MatchCardProps {
@@ -14,8 +17,10 @@ interface MatchCardProps {
   currentPlayerId: string;
   round?: Round;
   tournament?: Tournament;
+  roundPledges?: RoundPledgeMap;
   onClaimBooking?: () => void;
   onReportResult?: () => void;
+  onPledgeSaved?: () => void;
   className?: string;
 }
 
@@ -24,8 +29,10 @@ export function MatchCard({
   currentPlayerId,
   round,
   tournament,
+  roundPledges = {},
   onClaimBooking,
   onReportResult,
+  onPledgeSaved,
   className,
 }: MatchCardProps) {
   const { toast } = useToast();
@@ -33,9 +40,8 @@ export function MatchCard({
   const isPlayed = match.status === 'Played';
   const isOverdue = match.status === 'Overdue' || match.status === 'AutoResolved';
 
-  // Determine which team the current player is on
-  const isTeamA = 
-    match.team_a_player1_id === currentPlayerId || 
+  const isTeamA =
+    match.team_a_player1_id === currentPlayerId ||
     match.team_a_player2_id === currentPlayerId;
 
   const partner = isTeamA
@@ -53,12 +59,22 @@ export function MatchCard({
     match.team_b_player2,
   ].filter(Boolean) as Player[];
 
+  const renderPlayerWithPledge = (player: Player | undefined, label?: string) => {
+    if (!player) return <span className="font-semibold text-muted-foreground">TBD</span>;
+    return (
+      <div className="flex items-center gap-2">
+        <PlayerLink player={player} showAvatar avatarClassName="h-10 w-10" className="font-medium" />
+        {round && <PledgeIndicator pledge={roundPledges[player.id]} />}
+      </div>
+    );
+  };
+
   return (
     <Card className={cn('chaos-card', className)}>
       <CardContent className="p-4 space-y-4">
         {/* Status bar */}
         <div className="flex items-center justify-between">
-          <StatusChip 
+          <StatusChip
             variant={
               isPlayed ? 'success' :
               isOverdue ? 'error' :
@@ -78,11 +94,7 @@ export function MatchCard({
         {/* Partner section */}
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Your Partner</p>
-          {partner ? (
-            <PlayerLink player={partner} showAvatar avatarClassName="h-10 w-10" />
-          ) : (
-            <span className="font-semibold text-muted-foreground">TBD</span>
-          )}
+          {renderPlayerWithPledge(partner)}
         </div>
 
         {/* VS section */}
@@ -95,17 +107,10 @@ export function MatchCard({
         {/* Opponents section */}
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Opponents</p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2">
             {opponents.filter(Boolean).map((opponent, i) => (
-              <div key={opponent?.id || i} className="flex items-center gap-2">
-                {opponent ? (
-                  <PlayerLink player={opponent} showAvatar avatarClassName="h-10 w-10" className="font-medium" />
-                ) : (
-                  <span className="font-medium text-muted-foreground">TBD</span>
-                )}
-                {i === 0 && opponents[1] && (
-                  <span className="text-muted-foreground mx-1">&</span>
-                )}
+              <div key={opponent?.id || i}>
+                {renderPlayerWithPledge(opponent)}
               </div>
             ))}
           </div>
@@ -135,9 +140,8 @@ export function MatchCard({
         {/* Actions */}
         {!isPlayed && !isOverdue && (
           <div className="space-y-2">
-            {/* Booking button */}
             {!isBookingClaimed && onClaimBooking && (
-              <Button 
+              <Button
                 onClick={onClaimBooking}
                 className="w-full touch-target bg-gradient-primary hover:opacity-90"
               >
@@ -150,8 +154,8 @@ export function MatchCard({
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Check className="h-4 w-4 text-primary" />
                 Booked by {
-                  match.booking_claimed_by_player_id === currentPlayerId 
-                    ? 'you' 
+                  match.booking_claimed_by_player_id === currentPlayerId
+                    ? 'you'
                     : allPlayers.find(p => p.id === match.booking_claimed_by_player_id)?.full_name || 'someone'
                 }
               </div>
@@ -162,22 +166,21 @@ export function MatchCard({
               <div className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" />
                 <p className="text-xs text-muted-foreground leading-snug">
-                  BOIX TEAM TENNIS — Gran Vía de Fernando el Católico, 78, Extramurs, 46008 València
+                  {tournament?.club_name || 'BOIX TEAM TENNIS'} — Gran Vía de Fernando el Católico, 78, Extramurs, 46008 València
                 </p>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full touch-target"
-                onClick={() => window.open('https://boixteam.es/booking-gran-via', '_blank')}
+                onClick={() => window.open(tournament?.booking_url || 'https://boixteam.es/booking-gran-via', '_blank')}
               >
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Book Court
               </Button>
             </div>
 
-            {/* Report result */}
             {isBookingClaimed && onReportResult && (
-              <Button 
+              <Button
                 variant="secondary"
                 onClick={onReportResult}
                 className="w-full touch-target"
@@ -186,6 +189,18 @@ export function MatchCard({
               </Button>
             )}
           </div>
+        )}
+
+        {/* Round Pledge Section */}
+        {!isPlayed && round && tournament && onPledgeSaved && (
+          <RoundPledgeSection
+            currentPlayerPledge={roundPledges[currentPlayerId]}
+            tournamentId={tournament.id}
+            playerId={currentPlayerId}
+            roundId={round.id}
+            tournament={tournament}
+            onPledgeSaved={onPledgeSaved}
+          />
         )}
 
         {/* Phone list for match chat */}
@@ -233,11 +248,9 @@ export function MatchCard({
               ].join('\n');
 
               const handleCreateGroup = () => {
-                // Copy message first
                 navigator.clipboard.writeText(groupMsg).then(() => {
                   toast({ title: 'Message copied! 📋', description: 'Paste it in your new WhatsApp group' });
                 });
-                // Open WhatsApp to first other player with the message pre-filled
                 const firstOther = allPlayers.find(p => p.id !== currentPlayerId);
                 if (firstOther) {
                   const phone = firstOther.phone.replace(/\D/g, '');

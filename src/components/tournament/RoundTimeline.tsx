@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Accordion,
@@ -13,8 +12,9 @@ import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { MatchCard } from '@/components/cards/MatchCard';
 import { formatEuros } from '@/lib/euros';
 import { cn } from '@/lib/utils';
-import { Copy, Trophy, ShoppingBag, BarChart3 } from 'lucide-react';
-import type { MatchWithPlayers, Player, Tournament } from '@/lib/types';
+import { Copy, ShoppingBag, BarChart3 } from 'lucide-react';
+import { useRoundPledges } from '@/hooks/useRoundPledges';
+import type { MatchWithPlayers, Tournament } from '@/lib/types';
 import type { RoundSummary } from '@/hooks/useRoundSummaries';
 
 interface RoundTimelineProps {
@@ -36,11 +36,9 @@ export function RoundTimeline({
 }: RoundTimelineProps) {
   const navigate = useNavigate();
 
-  // Find the live round to default-expand
   const liveRoundId = summaries.find(s => s.round.status === 'Live')?.round.id;
   const defaultValue = liveRoundId || summaries[summaries.length - 1]?.round.id || '';
 
-  // Stats
   const totalMatches = summaries.reduce((acc, s) => acc + s.matches.length, 0);
   const playedMatches = summaries.reduce(
     (acc, s) => acc + s.matches.filter(m => m.status === 'Played' || m.status === 'AutoResolved').length,
@@ -53,7 +51,6 @@ export function RoundTimeline({
 
   return (
     <div className="space-y-4">
-      {/* Quick stats */}
       <div className="flex items-center gap-4 text-xs text-muted-foreground px-1">
         <span>🎾 {playedMatches}/{totalMatches} played</span>
         {overdueMatches > 0 && (
@@ -61,7 +58,6 @@ export function RoundTimeline({
         )}
       </div>
 
-      {/* Round accordion */}
       <Accordion type="single" collapsible defaultValue={defaultValue}>
         {summaries.map((summary) => (
           <RoundAccordionItem
@@ -76,7 +72,6 @@ export function RoundTimeline({
         ))}
       </Accordion>
 
-      {/* Navigation actions */}
       <div className="flex gap-2">
         <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/leaderboard')}>
           <BarChart3 className="mr-1.5 h-3.5 w-3.5" /> Leaderboard
@@ -108,13 +103,17 @@ function RoundAccordionItem({
   const isCompleted = round.status === 'Completed';
   const isLive = round.status === 'Live';
 
+  const { pledges: roundPledges, refresh: refreshPledges } = useRoundPledges(
+    tournament?.id,
+    round.id,
+  );
+
   const roundLabel = round.is_playoff
     ? (round.playoff_type === 'final' ? '🏆 Final' : '⚔️ Semi-Final')
     : `Round ${round.index}`;
 
   const statusVariant = isLive ? 'live' : isCompleted ? 'success' : 'neutral';
 
-  // Compact summary line for completed rounds
   const resultEmoji = matchResult === 'win' ? '✅' : matchResult === 'loss' ? '❌' : matchResult === 'draw' ? '🤝' : matchResult === 'bye' ? '😎' : '⏳';
   const netSign = playerNetCredits >= 0 ? '+' : '';
   const completedSummary = isCompleted
@@ -143,7 +142,6 @@ function RoundAccordionItem({
       </AccordionTrigger>
       <AccordionContent>
         <div className="space-y-3 pt-1 pb-2">
-          {/* Round dates */}
           {(round.start_at || round.end_at) && (
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               {round.start_at && (
@@ -155,7 +153,6 @@ function RoundAccordionItem({
             </div>
           )}
 
-          {/* Matches */}
           {matches.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">No match this round</p>
           ) : (
@@ -175,8 +172,10 @@ function RoundAccordionItem({
                     currentPlayerId={currentPlayerId}
                     round={round}
                     tournament={tournament}
+                    roundPledges={roundPledges}
                     onClaimBooking={() => onClaimBooking(match)}
                     onReportResult={() => onReportResult(match)}
+                    onPledgeSaved={refreshPledges}
                   />
                   {match.status !== 'Played' && match.status !== 'AutoResolved' && (
                     <Button
