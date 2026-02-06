@@ -177,6 +177,13 @@ async function startTournament(supabase: any, body: any) {
 
   const matchResult = await generateMatchesForRound(supabase, tournament, round, players);
 
+  // Link pre-tournament pledges (round_id IS NULL) to Round 1
+  await supabase
+    .from("pledge_items")
+    .update({ round_id: round.id })
+    .eq("tournament_id", tournament_id)
+    .is("round_id", null);
+
   return jsonResponse({
     success: true,
     rounds_count: roundsCount,
