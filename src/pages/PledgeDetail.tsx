@@ -51,7 +51,7 @@ export default function PledgeDetailPage() {
 
   if (editing && canEdit) {
     return (
-      <PageLayout hasBottomNav={false} header={
+      <PageLayout hasBottomNav={true} header={
         <div className="flex items-center gap-3 p-4">
           <Button variant="ghost" size="icon" onClick={() => setEditing(false)}>
             <ArrowLeft className="h-5 w-5" />
