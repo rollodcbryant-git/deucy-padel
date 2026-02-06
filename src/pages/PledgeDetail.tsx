@@ -71,9 +71,10 @@ export default function PledgeDetailPage() {
 
   const formatEstimate = () => {
     if (pledge.estimate_low != null && pledge.estimate_high != null && pledge.estimate_low !== pledge.estimate_high) {
-      return `${pledge.estimate_low}–${pledge.estimate_high} credits`;
+      return `€${Math.round(pledge.estimate_low / 100)}–€${Math.round(pledge.estimate_high / 100)}`;
     }
-    return `${pledge.estimate_low ?? pledge.estimate_high} credits`;
+    const val = pledge.estimate_low ?? pledge.estimate_high;
+    return val != null ? `€${Math.round(val / 100)}` : null;
   };
 
   return (
