@@ -45,7 +45,8 @@ export default function TournamentsPage() {
       const visible = (tournamentsData as Tournament[]).filter(t =>
         t.status !== 'Draft' || t.signup_open_at !== null
       );
-          .map(async (t) => {
+      const results: TournamentWithMeta[] = await Promise.all(
+        visible.map(async (t) => {
             const { count } = await supabase
               .from('players')
               .select('id', { count: 'exact', head: true })
