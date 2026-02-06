@@ -454,7 +454,7 @@ export type Database = {
           sets_lost: number
           sets_won: number
           status: Database["public"]["Enums"]["player_status"]
-          tournament_id: string
+          tournament_id: string | null
           updated_at: string
         }
         Insert: {
@@ -477,7 +477,7 @@ export type Database = {
           sets_lost?: number
           sets_won?: number
           status?: Database["public"]["Enums"]["player_status"]
-          tournament_id: string
+          tournament_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -500,7 +500,7 @@ export type Database = {
           sets_lost?: number
           sets_won?: number
           status?: Database["public"]["Enums"]["player_status"]
-          tournament_id?: string
+          tournament_id?: string | null
           updated_at?: string
         }
         Relationships: [
