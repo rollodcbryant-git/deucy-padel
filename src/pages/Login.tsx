@@ -47,7 +47,7 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    const result = await login(phone, pin, selectedTournamentId);
+    const result = await login(phone, pin, selectedTournamentId || undefined);
     setIsLoading(false);
 
     if (result.success) {
