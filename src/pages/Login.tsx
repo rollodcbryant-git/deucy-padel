@@ -204,7 +204,7 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     className="w-full touch-target bg-gradient-primary hover:opacity-90"
-                    disabled={isLoading || !selectedTournamentId}
+                    disabled={isLoading}
                   >
                     {isLoading ? 'Signing in...' : 'Sign In'}
                   </Button>
