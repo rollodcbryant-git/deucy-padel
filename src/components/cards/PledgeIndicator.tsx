@@ -21,7 +21,7 @@ export function PledgeIndicator({ pledge, className }: PledgeIndicatorProps) {
         'inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20',
         className,
       )}>
-        Missing
+        No pledge
       </span>
     );
   }

@@ -137,6 +137,18 @@ export function MatchCard({
           </div>
         )}
 
+        {/* Round Pledge Section - top priority */}
+        {!isPlayed && round && tournament && onPledgeSaved && (
+          <RoundPledgeSection
+            currentPlayerPledge={roundPledges[currentPlayerId]}
+            tournamentId={tournament.id}
+            playerId={currentPlayerId}
+            roundId={round.id}
+            tournament={tournament}
+            onPledgeSaved={onPledgeSaved}
+          />
+        )}
+
         {/* Actions */}
         {!isPlayed && !isOverdue && (
           <div className="space-y-2">
@@ -179,6 +191,78 @@ export function MatchCard({
               </Button>
             </div>
 
+            {/* Match Chat - below Book Court */}
+            <div className="pt-2 border-t border-border space-y-3">
+              <p className="text-xs text-muted-foreground mb-2">Match Chat</p>
+              <div className="flex flex-wrap gap-2">
+                {allPlayers
+                  .filter(p => p.id !== currentPlayerId)
+                  .map((player) => (
+                    <a
+                      key={player.id}
+                      href={`https://wa.me/${player.phone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-muted rounded-full hover:bg-muted/80 transition-colors"
+                    >
+                      <Phone className="h-3 w-3" />
+                      {player.full_name.split(' ')[0]}
+                    </a>
+                  ))}
+              </div>
+
+              {/* WhatsApp group creation */}
+              {allPlayers.length >= 2 && (() => {
+                const roundLabel = round
+                  ? (round.is_playoff ? (round.playoff_type === 'final' ? 'Final' : 'Semi-Final') : `Round ${round.index}`)
+                  : 'Match';
+                const deadlineText = match.deadline_at
+                  ? format(new Date(match.deadline_at), 'EEE d MMM, HH:mm')
+                  : 'TBD';
+                const bookingUrl = tournament?.booking_url || 'https://boixteam.es/booking-gran-via';
+                const tournamentName = tournament?.name || 'Deucy';
+
+                const groupMsg = [
+                  `${tournamentName} – ${roundLabel} 🥤`,
+                  '',
+                  `Team A: ${match.team_a_player1?.full_name || 'TBD'} + ${match.team_a_player2?.full_name || 'TBD'}`,
+                  `Team B: ${match.team_b_player1?.full_name || 'TBD'} + ${match.team_b_player2?.full_name || 'TBD'}`,
+                  '',
+                  `⏰ Deadline: ${deadlineText}`,
+                  `🎾 Book court: ${bookingUrl}`,
+                  '',
+                  "Let's pick a time – who's booking?",
+                ].join('\n');
+
+                const handleCreateGroup = () => {
+                  navigator.clipboard.writeText(groupMsg).then(() => {
+                    toast({ title: 'Message copied! 📋', description: 'Paste it in your new WhatsApp group' });
+                  });
+                  const firstOther = allPlayers.find(p => p.id !== currentPlayerId);
+                  if (firstOther) {
+                    const phone = firstOther.phone.replace(/\D/g, '');
+                    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(groupMsg)}`, '_blank');
+                  }
+                };
+
+                return (
+                  <div className="space-y-1.5">
+                    <Button
+                      variant="outline"
+                      className="w-full touch-target"
+                      onClick={handleCreateGroup}
+                    >
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Create WhatsApp Group
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground text-center leading-tight">
+                      Opens WhatsApp & copies a group message with all players
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+
             {isBookingClaimed && onReportResult && (
               <Button
                 variant="secondary"
@@ -188,92 +272,6 @@ export function MatchCard({
                 Report Result
               </Button>
             )}
-          </div>
-        )}
-
-        {/* Round Pledge Section */}
-        {!isPlayed && round && tournament && onPledgeSaved && (
-          <RoundPledgeSection
-            currentPlayerPledge={roundPledges[currentPlayerId]}
-            tournamentId={tournament.id}
-            playerId={currentPlayerId}
-            roundId={round.id}
-            tournament={tournament}
-            onPledgeSaved={onPledgeSaved}
-          />
-        )}
-
-        {/* Phone list for match chat */}
-        {!isPlayed && (
-          <div className="pt-2 border-t border-border space-y-3">
-            <p className="text-xs text-muted-foreground mb-2">Match Chat</p>
-            <div className="flex flex-wrap gap-2">
-              {allPlayers
-                .filter(p => p.id !== currentPlayerId)
-                .map((player) => (
-                  <a
-                    key={player.id}
-                    href={`https://wa.me/${player.phone.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-muted rounded-full hover:bg-muted/80 transition-colors"
-                  >
-                    <Phone className="h-3 w-3" />
-                    {player.full_name.split(' ')[0]}
-                  </a>
-                ))}
-            </div>
-
-            {/* WhatsApp group creation */}
-            {allPlayers.length >= 2 && (() => {
-              const roundLabel = round
-                ? (round.is_playoff ? (round.playoff_type === 'final' ? 'Final' : 'Semi-Final') : `Round ${round.index}`)
-                : 'Match';
-              const deadlineText = match.deadline_at
-                ? format(new Date(match.deadline_at), 'EEE d MMM, HH:mm')
-                : 'TBD';
-              const bookingUrl = tournament?.booking_url || 'https://boixteam.es/booking-gran-via';
-              const tournamentName = tournament?.name || 'Deucy';
-
-              const groupMsg = [
-                `${tournamentName} – ${roundLabel} 🥤`,
-                '',
-                `Team A: ${match.team_a_player1?.full_name || 'TBD'} + ${match.team_a_player2?.full_name || 'TBD'}`,
-                `Team B: ${match.team_b_player1?.full_name || 'TBD'} + ${match.team_b_player2?.full_name || 'TBD'}`,
-                '',
-                `⏰ Deadline: ${deadlineText}`,
-                `🎾 Book court: ${bookingUrl}`,
-                '',
-                "Let's pick a time – who's booking?",
-              ].join('\n');
-
-              const handleCreateGroup = () => {
-                navigator.clipboard.writeText(groupMsg).then(() => {
-                  toast({ title: 'Message copied! 📋', description: 'Paste it in your new WhatsApp group' });
-                });
-                const firstOther = allPlayers.find(p => p.id !== currentPlayerId);
-                if (firstOther) {
-                  const phone = firstOther.phone.replace(/\D/g, '');
-                  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(groupMsg)}`, '_blank');
-                }
-              };
-
-              return (
-                <div className="space-y-1.5">
-                  <Button
-                    variant="outline"
-                    className="w-full touch-target"
-                    onClick={handleCreateGroup}
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Create WhatsApp Group
-                  </Button>
-                  <p className="text-[10px] text-muted-foreground text-center leading-tight">
-                    Opens WhatsApp & copies a group message with all players
-                  </p>
-                </div>
-              );
-            })()}
           </div>
         )}
       </CardContent>

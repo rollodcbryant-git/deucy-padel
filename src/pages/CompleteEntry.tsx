@@ -20,10 +20,36 @@ export default function CompleteEntryPage() {
   }, [isLoading, session, navigate]);
 
   const handleConfirm = async () => {
-    if (!player) return;
+    if (!player || !tournament) return;
     const { supabase } = await import('@/integrations/supabase/client');
     await supabase.from('players').update({ confirmed: true }).eq('id', player.id);
     await refreshPlayer();
+
+    // If tournament is Live, try to auto-match late joiners
+    if (tournament.status === 'Live') {
+      try {
+        const { data: liveRound } = await supabase
+          .from('rounds')
+          .select('id')
+          .eq('tournament_id', tournament.id)
+          .eq('status', 'Live')
+          .limit(1)
+          .single();
+
+        if (liveRound) {
+          await supabase.functions.invoke('tournament-engine', {
+            body: {
+              action: 'auto_match_remaining',
+              tournament_id: tournament.id,
+              round_id: liveRound.id,
+            },
+          });
+        }
+      } catch (e) {
+        // Non-critical: auto-match may fail if < 4 unmatched
+        console.log('Auto-match attempt:', e);
+      }
+    }
   };
 
   const handlePledgeSaved = () => {
