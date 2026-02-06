@@ -5,7 +5,9 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { supabase } from '@/integrations/supabase/client';
+import { hashPin } from '@/contexts/PlayerContext';
 import { TournamentLobbyCard } from '@/components/lobby/TournamentLobbyCard';
+import { useToast } from '@/hooks/use-toast';
 import type { Tournament, Round } from '@/lib/types';
 import { Trophy, LogOut } from 'lucide-react';
 
