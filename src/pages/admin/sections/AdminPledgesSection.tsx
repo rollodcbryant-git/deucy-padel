@@ -205,12 +205,27 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
               </div>
 
               {editingPledge === pledge.id && (
-                <div className="space-y-2 bg-muted/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <Input type="number" value={estLow} onChange={e => setEstLow(Number(e.target.value))} placeholder="Low" className="h-8 w-20" />
-                    <span className="text-muted-foreground text-xs">–</span>
-                    <Input type="number" value={estHigh} onChange={e => setEstHigh(Number(e.target.value))} placeholder="High" className="h-8 w-20" />
-                    <span className="text-xs text-muted-foreground">credits</span>
+                <div className="space-y-3 bg-muted/50 rounded-lg p-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Expert estimate (€)</label>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">€</span>
+                        <Input type="number" value={estLow} onChange={e => setEstLow(Number(e.target.value))} placeholder="Min" className="h-8 pl-6" />
+                      </div>
+                      <span className="text-muted-foreground text-xs">–</span>
+                      <div className="relative flex-1">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">€</span>
+                        <Input type="number" value={estHigh} onChange={e => setEstHigh(Number(e.target.value))} placeholder="Max" className="h-8 pl-6" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Price (€)</label>
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">€</span>
+                      <Input type="number" value={priceEuro} onChange={e => setPriceEuro(Number(e.target.value))} placeholder="Starting price" className="h-8 pl-6 w-32" />
+                    </div>
                   </div>
                   <Textarea
                     value={adminNote}
