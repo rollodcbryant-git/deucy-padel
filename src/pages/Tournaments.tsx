@@ -24,6 +24,7 @@ export default function TournamentsPage() {
 
   const [tournaments, setTournaments] = useState<TournamentWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
+  const [joiningId, setJoiningId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !session) {
