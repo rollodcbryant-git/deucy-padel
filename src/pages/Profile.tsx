@@ -8,12 +8,13 @@ import { StatusChip } from '@/components/ui/StatusChip';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EditNameDialog } from '@/components/profile/EditNameDialog';
+import { ChangePinDialog } from '@/components/profile/ChangePinDialog';
 import { ProfilePledgeCard } from '@/components/profile/ProfilePledgeCard';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { supabase } from '@/integrations/supabase/client';
 import type { PledgeItem, Round } from '@/lib/types';
-import { Camera, Pencil, AlertTriangle, ChevronRight, LogOut, User } from 'lucide-react';
+import { Camera, Pencil, AlertTriangle, ChevronRight, LogOut, User, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ProfilePage() {
