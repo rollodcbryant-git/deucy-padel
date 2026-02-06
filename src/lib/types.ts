@@ -203,7 +203,7 @@ export interface AuctionLotWithDetails extends AuctionLot {
 // Session type for player auth
 export interface PlayerSession {
   playerId: string;
-  tournamentId: string;
+  tournamentId: string | null;
   playerName: string;
   token: string;
 }
