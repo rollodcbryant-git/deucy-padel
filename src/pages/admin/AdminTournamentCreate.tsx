@@ -139,6 +139,20 @@ export default function AdminTournamentCreate() {
                   className="touch-target"
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tier">Tier</Label>
+                <select
+                  id="tier"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm touch-target"
+                  value={formData.tier}
+                  onChange={(e) => updateField('tier', e.target.value)}
+                >
+                  <option value="Major">Major</option>
+                  <option value="League">League</option>
+                  <option value="Mini">Mini</option>
+                </select>
+              </div>
             </CardContent>
           </Card>
 
@@ -148,31 +162,18 @@ export default function AdminTournamentCreate() {
               <CardTitle className="text-lg">Player Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="min_players">Min Players</Label>
-                  <Input
-                    id="min_players"
-                    type="number"
-                    min={8}
-                    max={24}
-                    value={formData.min_players}
-                    onChange={(e) => updateField('min_players', parseInt(e.target.value))}
-                    className="touch-target"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="max_players">Max Players</Label>
-                  <Input
-                    id="max_players"
-                    type="number"
-                    min={8}
-                    max={24}
-                    value={formData.max_players}
-                    onChange={(e) => updateField('max_players', parseInt(e.target.value))}
-                    className="touch-target"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="max_players">Capacity</Label>
+                <Input
+                  id="max_players"
+                  type="number"
+                  min={4}
+                  max={24}
+                  value={formData.max_players}
+                  onChange={(e) => updateField('max_players', parseInt(e.target.value))}
+                  className="touch-target"
+                />
+                <p className="text-xs text-muted-foreground">Number of player slots</p>
               </div>
 
               <div className="space-y-2">
