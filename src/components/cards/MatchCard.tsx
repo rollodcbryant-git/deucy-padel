@@ -150,17 +150,6 @@ export function MatchCard({
               </div>
             )}
 
-            {/* Court location & booking */}
-            {match.tournament_id && (
-              <div className="rounded-lg bg-muted/40 p-3 space-y-2">
-                <div className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                  <p className="text-xs text-muted-foreground leading-snug">
-                    Book your court and let the group know!
-                  </p>
-                </div>
-              </div>
-            )}
 
             {/* Report result */}
             {isBookingClaimed && onReportResult && (
