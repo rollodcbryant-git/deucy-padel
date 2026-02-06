@@ -176,17 +176,31 @@ export default function AdminTournamentCreate() {
                 <p className="text-xs text-muted-foreground">Number of player slots</p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="round_duration_days">Round Duration (days)</Label>
-                <Input
-                  id="round_duration_days"
-                  type="number"
-                  min={3}
-                  max={30}
-                  value={formData.round_duration_days}
-                  onChange={(e) => updateField('round_duration_days', parseInt(e.target.value))}
-                  className="touch-target"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="rounds_count">Number of Rounds</Label>
+                  <Input
+                    id="rounds_count"
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={formData.rounds_count}
+                    onChange={(e) => updateField('rounds_count', parseInt(e.target.value))}
+                    className="touch-target"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="round_duration_days">Days per Round</Label>
+                  <Input
+                    id="round_duration_days"
+                    type="number"
+                    min={3}
+                    max={30}
+                    value={formData.round_duration_days}
+                    onChange={(e) => updateField('round_duration_days', parseInt(e.target.value))}
+                    className="touch-target"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
