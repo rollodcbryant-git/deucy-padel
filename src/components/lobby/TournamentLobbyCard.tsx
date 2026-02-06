@@ -61,19 +61,28 @@ function TierBadge({ tier }: { tier: TournamentTier }) {
   );
 }
 
-/** Determine which funnel step is "current" based on tournament state */
-function getCurrentStep(status: LobbyStatus): number {
+/** Determine which funnel step is "current" based on tournament state + enrollment */
+function getCurrentStep(status: LobbyStatus, isEnrolled: boolean): number {
   switch (status) {
     case 'filling':
     case 'coming_soon':
       return 0;
     case 'live':
-      return 1;
+      // When enrolled, highlight steps 1 AND 2 (play rounds + earn credits)
+      return isEnrolled ? 2 : 1;
     case 'auction_live':
       return 3;
     case 'finished':
       return 4;
   }
+}
+
+/** Check if a step should be highlighted as "now" */
+function isStepCurrent(stepIndex: number, status: LobbyStatus, isEnrolled: boolean): boolean {
+  if (status === 'live' && isEnrolled) {
+    return stepIndex === 1 || stepIndex === 2;
+  }
+  return stepIndex === getCurrentStep(status, isEnrolled);
 }
 
 export function TournamentLobbyCard({
@@ -98,7 +107,7 @@ export function TournamentLobbyCard({
   const isFull = playerCount >= tournament.max_players;
   const tier = tournament.tier || 'League';
   const roundsCount = tournament.rounds_count || 3;
-  const currentStep = getCurrentStep(lobbyStatus);
+  const currentStep = getCurrentStep(lobbyStatus, isEnrolled);
   const isLiveCard = lobbyStatus === 'live' || lobbyStatus === 'auction_live';
 
   const isOnThisWaitlist = waitlistEntry && waitlistEntry.tournament_id === tournament.id;
@@ -116,8 +125,8 @@ export function TournamentLobbyCard({
   const steps = [
     {
       emoji: '🪪',
-      headline: 'Join + pledge',
-      detail: `Pick a seat and add 1 pledge to enter Round 1`,
+      headline: 'Join for free + pledge',
+      detail: `Free to enter — pick a seat and add 1 pledge to start`,
     },
     {
       emoji: '🎾',
@@ -185,7 +194,10 @@ export function TournamentLobbyCard({
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-sm truncate">{tournament.name}</h3>
               <TierBadge tier={tier} />
-            </div>
+        </div>
+
+        {/* Free entry notice */}
+        <p className="text-[10px] text-muted-foreground/60">🆓 Free to enter · All € are in-app credits, not real money</p>
             {tournament.club_name && (
               <p className="text-[11px] text-muted-foreground truncate">{tournament.club_name}</p>
             )}
@@ -268,9 +280,9 @@ export function TournamentLobbyCard({
             {/* Funnel steps */}
             <div className="space-y-2">
               {steps.map((step, i) => {
-                const isCurrent = i === currentStep;
+                const isCurrent = isStepCurrent(i, lobbyStatus, isEnrolled);
                 const isFuture = i > currentStep;
-                const isPast = i < currentStep;
+                const isPast = i < currentStep && !isCurrent;
 
                 return (
                   <div

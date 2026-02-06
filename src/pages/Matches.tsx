@@ -24,6 +24,7 @@ export default function MatchesPage() {
   const [matches, setMatches] = useState<Map<string, MatchWithPlayers[]>>(new Map());
   const [selectedMatch, setSelectedMatch] = useState<MatchWithPlayers | null>(null);
   const [showReportDialog, setShowReportDialog] = useState(false);
+  const [playerCount, setPlayerCount] = useState(0);
 
   const isEnrolled = !!player && !!tournament;
 
@@ -34,6 +35,14 @@ export default function MatchesPage() {
 
   const loadMatches = async () => {
     if (!tournament || !player) return;
+
+    // Get active player count
+    const { count } = await supabase
+      .from('players')
+      .select('id', { count: 'exact', head: true })
+      .eq('tournament_id', tournament.id)
+      .eq('status', 'Active');
+    setPlayerCount(count || 0);
 
     const { data: roundsData } = await supabase
       .from('rounds').select('*').eq('tournament_id', tournament.id)
@@ -187,6 +196,28 @@ export default function MatchesPage() {
                 <p className="text-sm text-muted-foreground">Matches will appear when the tournament starts</p>
               </div>
             )}
+
+            {/* Waiting for more players notice */}
+            {rounds.length > 0 && tournament && (() => {
+              const liveRound = rounds.find(r => r.status === 'Live');
+              if (!liveRound) return null;
+              const myMatches = matches.get(liveRound.id) || [];
+              if (myMatches.length > 0) return null;
+              // Count active players
+              const remainder = (tournament.max_players > 0 ? Math.min(playerCount, tournament.max_players) : playerCount) % 4;
+              if (remainder === 0) return null;
+              const needed = 4 - remainder;
+              return (
+                <Card className="chaos-card border-primary/20 bg-primary/5">
+                  <CardContent className="p-4 text-center space-y-1">
+                    <p className="text-sm font-medium">⏳ Waiting for {needed} more player{needed > 1 ? 's' : ''}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Matches need groups of 4. Once {needed} more join{needed > 1 ? '' : 's'}, your match will be created.
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
         ) : (
           <Card className="chaos-card">
