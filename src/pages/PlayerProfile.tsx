@@ -24,6 +24,7 @@ export default function PlayerProfilePage() {
   const [rounds, setRounds] = useState<Round[]>([]);
   const [rank, setRank] = useState<number>(0);
   const [uploading, setUploading] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isSelf = currentPlayer?.id === playerId;
@@ -58,6 +59,8 @@ export default function PlayerProfilePage() {
         .gt('credits_balance', (playerRes.data as Player).credits_balance);
 
       setRank((count || 0) + 1);
+    } else {
+      setNotFound(true);
     }
 
     setPledges((pledgeRes.data || []) as PledgeItem[]);
@@ -98,6 +101,21 @@ export default function PlayerProfilePage() {
       setUploading(false);
     }
   };
+
+  if (notFound) {
+    return (
+      <>
+        <PageLayout hasBottomNav={true}>
+          <div className="text-center py-12">
+            <div className="text-4xl mb-3">🔍</div>
+            <p className="font-semibold mb-2">Player not found</p>
+            <Button variant="outline" onClick={() => navigate(-1)}>Go back</Button>
+          </div>
+        </PageLayout>
+        <BottomNav />
+      </>
+    );
+  }
 
   if (isLoading || !profilePlayer || !tournament) {
     return (

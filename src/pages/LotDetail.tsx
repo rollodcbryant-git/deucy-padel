@@ -29,6 +29,7 @@ export default function LotDetailPage() {
   const [bids, setBids] = useState<BidWithPlayer[]>([]);
   const [bidAmount, setBidAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !session) {
@@ -56,15 +57,26 @@ export default function LotDetailPage() {
       const { data } = await supabase.from('auction_lots').select('*').eq('id', lotId).single();
       lotData = data;
     } else if (pledgeItemId) {
-      const { data } = await supabase.from('auction_lots').select('*').eq('pledge_item_id', pledgeItemId).single();
+      const { data } = await supabase.from('auction_lots').select('*').eq('pledge_item_id', pledgeItemId).maybeSingle();
       lotData = data;
+      // If no auction lot exists for this pledge, redirect to the pledge detail view
+      if (!lotData) {
+        navigate(`/auction/${pledgeItemId}`, { replace: true });
+        return;
+      }
     }
-    if (lotData) {
-      setLot(lotData as AuctionLot);
-      const { data: pledgeData } = await supabase.from('pledge_items').select('*').eq('id', lotData.pledge_item_id).single();
-      setPledgeItem(pledgeData as PledgeItem);
-      loadBidsForLot(lotData.id);
+    if (!lotData) {
+      setNotFound(true);
+      return;
     }
+    setLot(lotData as AuctionLot);
+    const { data: pledgeData } = await supabase.from('pledge_items').select('*').eq('id', lotData.pledge_item_id).single();
+    if (!pledgeData) {
+      setNotFound(true);
+      return;
+    }
+    setPledgeItem(pledgeData as PledgeItem);
+    loadBidsForLot(lotData.id);
   };
 
   const loadBidsForLot = async (lid: string) => {
@@ -141,6 +153,18 @@ export default function LotDetailPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (notFound) {
+    return (
+      <PageLayout hasBottomNav={false}>
+        <div className="text-center py-12">
+          <div className="text-4xl mb-3">🔍</div>
+          <p className="font-semibold mb-2">Lot not found</p>
+          <Button variant="outline" onClick={() => navigate('/auction')}>Back to Auction</Button>
+        </div>
+      </PageLayout>
+    );
+  }
 
   if (isLoading || !player || !tournament || !lot || !pledgeItem) {
     return (
