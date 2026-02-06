@@ -163,6 +163,20 @@ export function TournamentLobbyCard({
                 >
                   Join Waitlist
                 </Button>
+              ) : lobbyStatus === 'live' && !isEnrolled && !isFull && !isEnrolledElsewhere && !waitlistEntry ? (
+                <Button size="sm" className="h-8 text-xs font-semibold bg-gradient-primary hover:opacity-90 px-4 shadow-md" onClick={onJoin} disabled={isJoining}>
+                  {isJoining ? 'Joining…' : '🎾 Join'}
+                </Button>
+              ) : lobbyStatus === 'live' && !isEnrolled && isFull && !isOnThisWaitlist && !isEnrolledElsewhere && !waitlistEntry ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs border-primary/30 text-primary"
+                  onClick={onJoinWaitlist}
+                  disabled={waitlistLoading}
+                >
+                  Join Waitlist
+                </Button>
               ) : lobbyStatus === 'live' && !isEnrolled ? (
                 <span className="text-[10px] text-muted-foreground">Live now</span>
               ) : null}
