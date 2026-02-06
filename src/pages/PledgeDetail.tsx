@@ -78,6 +78,7 @@ export default function PledgeDetailPage() {
   };
 
   return (
+    <>
     <PageLayout
       hasBottomNav={true}
       header={

@@ -159,6 +159,7 @@ export default function LotDetailPage() {
   const showDecimals = tournament.display_decimals;
 
   return (
+    <>
     <PageLayout
       hasBottomNav={true}
       header={
