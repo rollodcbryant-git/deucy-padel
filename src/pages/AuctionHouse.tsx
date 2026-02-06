@@ -117,11 +117,27 @@ export default function AuctionHousePage() {
     return items;
   }, [pledges, filter, sort, roundFilter]);
 
-  if (isLoading || !player || !tournament) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-4xl animate-pulse">🏪</div>
       </div>
+    );
+  }
+
+  if (!player || !tournament) {
+    return (
+      <>
+        <PageLayout hasBottomNav={true}>
+          <div className="text-center py-16 space-y-3">
+            <div className="text-4xl">🏪</div>
+            <p className="font-semibold">No active tournament</p>
+            <p className="text-sm text-muted-foreground">Join a tournament to browse the Auction House</p>
+            <Button variant="outline" onClick={() => navigate('/tournaments')} className="mt-2">Browse Tournaments</Button>
+          </div>
+        </PageLayout>
+        <BottomNav />
+      </>
     );
   }
 
