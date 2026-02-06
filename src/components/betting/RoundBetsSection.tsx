@@ -103,7 +103,7 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
       note: `Bet on ${predictedWinner === 'team_a' ? 'Team A' : 'Team B'}`,
     });
 
-    toast({ title: 'Prophecy placed! 🔮', description: `€${stake} on the line (fake €)` });
+    toast({ title: 'Bet placed! 🎲', description: `€${stake} on the line (fake €)` });
     loadData();
   };
 

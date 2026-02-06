@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { StatusChip } from '@/components/ui/StatusChip';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { Player, Tournament } from '@/lib/types';
 import { hashPin } from '@/contexts/PlayerContext';
-import { UserX, UserCheck, Copy, RotateCcw, KeyRound, MessageSquare, Filter } from 'lucide-react';
+import { UserX, UserCheck, Copy, RotateCcw, KeyRound, MessageSquare, Filter, Trash2 } from 'lucide-react';
 
 interface Props {
   players: Player[];
@@ -21,6 +23,8 @@ export default function AdminRosterSection({ players, tournament, onReload }: Pr
   const [resetPinResult, setResetPinResult] = useState<{ name: string; pin: string } | null>(null);
   const [pledgeStatuses, setPledgeStatuses] = useState<PledgeStatusMap>({});
   const [showIncomplete, setShowIncomplete] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Player | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   useEffect(() => {
     if (tournament) loadPledgeStatuses();
@@ -272,8 +276,11 @@ export default function AdminRosterSection({ players, tournament, onReload }: Pr
               ) : (
                 <>
                   <Switch checked={p.confirmed} onCheckedChange={v => toggleConfirm(p.id, v)} className="scale-75" />
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removePlayer(p.id)}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => removePlayer(p.id)} title="Soft remove">
                     <UserX className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setDeleteTarget(p); setDeleteConfirmText(''); }} title="Permanently delete">
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </>
               )}
@@ -286,6 +293,39 @@ export default function AdminRosterSection({ players, tournament, onReload }: Pr
           </p>
         )}
       </div>
+
+      {/* Permanent Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Permanently Delete Player</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove <span className="font-semibold">{deleteTarget?.full_name}</span> and ALL their data (matches, bets, pledges, ledger entries, etc.). This cannot be undone.
+              <br /><br />
+              Type <span className="font-mono font-bold">DELETE</span> to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={deleteConfirmText}
+            onChange={e => setDeleteConfirmText(e.target.value)}
+            placeholder="Type DELETE"
+            className="font-mono"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteConfirmText !== 'DELETE'}
+              onClick={() => {
+                if (deleteTarget) removePlayer(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+            >
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { TournamentLobbyCard } from '@/components/lobby/TournamentLobbyCard';
 import { JoinWaitlistDialog } from '@/components/waitlist/JoinWaitlistDialog';
 import { OnboardingCarousel } from '@/components/onboarding/OnboardingCarousel';
 import { WelcomeAfterJoinDialog } from '@/components/onboarding/WelcomeAfterJoinDialog';
+import { TournamentStartedDialog } from '@/components/onboarding/TournamentStartedDialog';
 import { useWaitlist } from '@/hooks/useWaitlist';
 import { useToast } from '@/hooks/use-toast';
 import type { Tournament, Round } from '@/lib/types';
@@ -36,6 +37,9 @@ export default function TournamentsPage() {
   const [welcomeDialog, setWelcomeDialog] = useState<{ open: boolean; tournamentName: string; tournamentStatus: string }>({
     open: false, tournamentName: '', tournamentStatus: '',
   });
+  const [tournamentStartedDialog, setTournamentStartedDialog] = useState<{ open: boolean; tournamentName: string }>({
+    open: false, tournamentName: '',
+  });
 
   // Waitlist
   const { entry: waitlistEntry, position: waitlistPosition, loading: waitlistLoading, joinWaitlist, leaveWaitlist, refresh: refreshWaitlist } = useWaitlist(player?.phone);
@@ -55,6 +59,18 @@ export default function TournamentsPage() {
       }
     }
   }, [session, isLoading, navigate]);
+
+  // Detect if enrolled tournament has started since user last visited
+  useEffect(() => {
+    if (!enrolledTournament || !player) return;
+    const isLive = enrolledTournament.status === 'Live' || enrolledTournament.status === 'AuctionLive';
+    if (!isLive) return;
+    const key = `deucy_seen_live_${enrolledTournament.id}`;
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, 'true');
+      setTournamentStartedDialog({ open: true, tournamentName: enrolledTournament.name });
+    }
+  }, [enrolledTournament, player]);
 
   const loadTournaments = async () => {
     try {
@@ -330,6 +346,12 @@ export default function TournamentsPage() {
         onClose={() => setWelcomeDialog(prev => ({ ...prev, open: false }))}
         tournamentName={welcomeDialog.tournamentName}
         tournamentStatus={welcomeDialog.tournamentStatus}
+      />
+
+      <TournamentStartedDialog
+        open={tournamentStartedDialog.open}
+        onClose={() => setTournamentStartedDialog(prev => ({ ...prev, open: false }))}
+        tournamentName={tournamentStartedDialog.tournamentName}
       />
     </>
   );
