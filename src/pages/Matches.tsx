@@ -49,6 +49,22 @@ export default function MatchesPage() {
       .order('index', { ascending: true });
     setRounds((roundsData || []) as Round[]);
 
+    // Auto-match: if there's a live round, trigger auto_match_remaining silently
+    const liveRound = (roundsData || []).find((r: any) => r.status === 'Live');
+    if (liveRound) {
+      try {
+        await supabase.functions.invoke('tournament-engine', {
+          body: {
+            action: 'auto_match_remaining',
+            tournament_id: tournament.id,
+            round_id: liveRound.id,
+          },
+        });
+      } catch (e) {
+        console.log('Auto-match check:', e);
+      }
+    }
+
     const { data: matchesData } = await supabase
       .from('matches').select('*').eq('tournament_id', tournament.id)
       .or(`team_a_player1_id.eq.${player.id},team_a_player2_id.eq.${player.id},team_b_player1_id.eq.${player.id},team_b_player2_id.eq.${player.id},bye_player_id.eq.${player.id}`);
