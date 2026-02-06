@@ -12,7 +12,7 @@ import { hashPin } from '@/contexts/PlayerContext';
 import { normalizePhone } from '@/lib/phone';
 import { Phone, Lock, KeyRound, Settings, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import redPadelBall from '@/assets/red-padel-ball.png';
+
 
 const REMEMBER_PIN_KEY = 'padel_remember_pin';
 const SAVED_PHONE_KEY = 'padel_saved_phone';
@@ -137,7 +137,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <img src={redPadelBall} alt="Padel ball" className="w-16 h-16 mx-auto mb-4" />
+          
           <h1 className="text-3xl font-bold text-gradient-primary">Deucy</h1>
           <p className="text-muted-foreground">Enter your phone and PIN to continue</p>
         </div>
