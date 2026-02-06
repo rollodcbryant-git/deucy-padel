@@ -11,6 +11,7 @@ interface TournamentProgressAccordionProps {
   player: Player;
   rounds: Round[];
   matchesByRound: Map<string, MatchWithPlayers[]>;
+  playerRank: number;
   onClaimBooking: (match: MatchWithPlayers) => void;
   onReportResult: (match: MatchWithPlayers) => void;
   onCopyContacts: (match: MatchWithPlayers) => void;
