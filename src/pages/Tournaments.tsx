@@ -88,6 +88,43 @@ export default function TournamentsPage() {
     }
   };
 
+  const handleJoinTournament = async (tournament: Tournament) => {
+    if (!player || !session) return;
+
+    try {
+      // Check if player already has a record for this tournament
+      const { data: existing } = await supabase
+        .from('players')
+        .select('id')
+        .eq('phone', player.phone)
+        .eq('tournament_id', tournament.id);
+
+      if (existing && existing.length > 0) {
+        toast({ title: 'Already joined', description: 'You already have a record in this tournament.' });
+        return;
+      }
+
+      // Create a new player record for this tournament, copying account info
+      const { error } = await supabase.from('players').insert({
+        tournament_id: tournament.id,
+        full_name: player.full_name,
+        phone: player.phone,
+        pin_hash: player.pin_hash,
+        gender: player.gender,
+        credits_balance: tournament.starting_credits,
+        session_token: session.token,
+      });
+
+      if (error) throw error;
+
+      toast({ title: 'Joined! 🎾', description: `You're now in ${tournament.name}` });
+      loadTournaments();
+    } catch (err: any) {
+      console.error('Join error:', err);
+      toast({ title: 'Failed to join', description: err.message || 'Something went wrong', variant: 'destructive' });
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
