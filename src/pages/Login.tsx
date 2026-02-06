@@ -37,26 +37,6 @@ export default function LoginPage() {
     }
   }, [session, sessionLoading, navigate]);
 
-  // Load available tournaments if no t= param
-  useEffect(() => {
-    if (tournamentIdParam) {
-      setSelectedTournamentId(tournamentIdParam);
-      return;
-    }
-    const load = async () => {
-      const { data } = await supabase
-        .from('tournaments')
-        .select('*')
-        .in('status', ['SignupOpen', 'Live', 'AuctionLive'])
-        .order('created_at', { ascending: false });
-      setTournaments((data || []) as Tournament[]);
-      if (data && data.length === 1) {
-        setSelectedTournamentId(data[0].id);
-      }
-      setLoadingTournaments(false);
-    };
-    load();
-  }, [tournamentIdParam]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
