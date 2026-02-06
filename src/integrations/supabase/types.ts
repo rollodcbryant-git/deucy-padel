@@ -863,6 +863,66 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist_entries: {
+        Row: {
+          assigned_at: string | null
+          assigned_tournament_id: string | null
+          created_at: string
+          full_name: string
+          id: string
+          invite_expires_at: string | null
+          note: string | null
+          phone: string
+          priority: boolean
+          status: Database["public"]["Enums"]["waitlist_status"]
+          tournament_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_tournament_id?: string | null
+          created_at?: string
+          full_name: string
+          id?: string
+          invite_expires_at?: string | null
+          note?: string | null
+          phone: string
+          priority?: boolean
+          status?: Database["public"]["Enums"]["waitlist_status"]
+          tournament_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_tournament_id?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          invite_expires_at?: string | null
+          note?: string | null
+          phone?: string
+          priority?: boolean
+          status?: Database["public"]["Enums"]["waitlist_status"]
+          tournament_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_entries_assigned_tournament_id_fkey"
+            columns: ["assigned_tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_entries_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -912,6 +972,14 @@ export type Database = {
         | "AuctionLive"
         | "Closed"
       tournament_tier: "Major" | "League" | "Mini"
+      waitlist_status:
+        | "waiting"
+        | "invited"
+        | "assigned"
+        | "confirmed"
+        | "removed"
+        | "no_response"
+        | "dropped"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1077,6 +1145,15 @@ export const Constants = {
         "Closed",
       ],
       tournament_tier: ["Major", "League", "Mini"],
+      waitlist_status: [
+        "waiting",
+        "invited",
+        "assigned",
+        "confirmed",
+        "removed",
+        "no_response",
+        "dropped",
+      ],
     },
   },
 } as const

@@ -5,11 +5,12 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { supabase } from '@/integrations/supabase/client';
-import { hashPin } from '@/contexts/PlayerContext';
 import { TournamentLobbyCard } from '@/components/lobby/TournamentLobbyCard';
+import { JoinWaitlistDialog } from '@/components/waitlist/JoinWaitlistDialog';
+import { useWaitlist } from '@/hooks/useWaitlist';
 import { useToast } from '@/hooks/use-toast';
 import type { Tournament, Round } from '@/lib/types';
-import { Trophy, LogOut } from 'lucide-react';
+import { Trophy, LogOut, Clock } from 'lucide-react';
 
 interface TournamentWithMeta {
   tournament: Tournament;
@@ -25,6 +26,11 @@ export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<TournamentWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState<string | null>(null);
+
+  // Waitlist
+  const { entry: waitlistEntry, position: waitlistPosition, loading: waitlistLoading, joinWaitlist, leaveWaitlist, refresh: refreshWaitlist } = useWaitlist(player?.phone);
+  const [waitlistDialogOpen, setWaitlistDialogOpen] = useState(false);
+  const [waitlistTargetTournament, setWaitlistTargetTournament] = useState<Tournament | null>(null);
 
   useEffect(() => {
     if (!isLoading && !session) {
@@ -44,34 +50,31 @@ export default function TournamentsPage() {
 
       if (!tournamentsData) { setLoading(false); return; }
 
-      // Show Draft tournaments that have a signup_open_at date (Coming Soon teasers)
-      // and all non-Draft tournaments
       const visible = (tournamentsData as Tournament[]).filter(t =>
         t.status !== 'Draft' || t.signup_open_at !== null
       );
       const results: TournamentWithMeta[] = await Promise.all(
         visible.map(async (t) => {
-            const { count } = await supabase
-              .from('players')
-              .select('id', { count: 'exact', head: true })
+          const { count } = await supabase
+            .from('players')
+            .select('id', { count: 'exact', head: true })
+            .eq('tournament_id', t.id)
+            .eq('status', 'Active');
+
+          let liveRound: Round | null = null;
+          if (t.status === 'Live' || t.status === 'AuctionLive') {
+            const { data: rounds } = await supabase
+              .from('rounds').select('*')
               .eq('tournament_id', t.id)
-              .eq('status', 'Active');
+              .eq('status', 'Live')
+              .limit(1);
+            if (rounds && rounds.length > 0) liveRound = rounds[0] as Round;
+          }
 
-            let liveRound: Round | null = null;
-            if (t.status === 'Live' || t.status === 'AuctionLive') {
-              const { data: rounds } = await supabase
-                .from('rounds').select('*')
-                .eq('tournament_id', t.id)
-                .eq('status', 'Live')
-                .limit(1);
-              if (rounds && rounds.length > 0) liveRound = rounds[0] as Round;
-            }
-
-            return { tournament: t, playerCount: count || 0, liveRound };
-          }),
+          return { tournament: t, playerCount: count || 0, liveRound };
+        }),
       );
 
-      // Sort: Live first, then Filling, then Coming soon, then Finished
       const statusOrder: Record<string, number> = {
         Live: 0, AuctionLive: 0, SignupOpen: 1, Finished: 3, Closed: 4,
       };
@@ -94,7 +97,6 @@ export default function TournamentsPage() {
     setJoiningId(tournament.id);
 
     try {
-      // Check if player already has a record for this tournament
       const { data: existing } = await supabase
         .from('players')
         .select('id')
@@ -106,7 +108,6 @@ export default function TournamentsPage() {
         return;
       }
 
-      // Create a new player record for this tournament, copying account info
       const { error } = await supabase.from('players').insert({
         tournament_id: tournament.id,
         full_name: player.full_name,
@@ -130,10 +131,38 @@ export default function TournamentsPage() {
     }
   };
 
+  const handleOpenWaitlistDialog = (tournament?: Tournament) => {
+    setWaitlistTargetTournament(tournament || null);
+    setWaitlistDialogOpen(true);
+  };
+
+  const handleWaitlistSubmit = async (data: { fullName: string; phone: string; note?: string }) => {
+    const result = await joinWaitlist({
+      fullName: data.fullName,
+      phone: data.phone,
+      note: data.note,
+      tournamentId: waitlistTargetTournament?.id || null,
+    });
+    if (!result.error) {
+      toast({ title: 'Waitlist joined 🎾', description: "We'll tap you when a seat drops." });
+    }
+    return result;
+  };
+
+  const handleLeaveWaitlist = async () => {
+    await leaveWaitlist();
+    toast({ title: 'Left the waitlist' });
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
   };
+
+  // Check if there are any open tournaments (SignupOpen and not full)
+  const hasOpenSlots = tournaments.some(t =>
+    t.tournament.status === 'SignupOpen' && t.playerCount < t.tournament.max_players
+  );
 
   if (isLoading) {
     return (
@@ -162,6 +191,46 @@ export default function TournamentsPage() {
         }
       >
         <div className="space-y-3">
+          {/* Global waitlist banner when no open slots and not already on waitlist and not enrolled */}
+          {!loading && !hasOpenSlots && !enrolledTournament && !waitlistEntry && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center space-y-2">
+              <div className="flex items-center justify-center gap-2 text-sm font-semibold">
+                <Clock className="h-4 w-4 text-primary" />
+                No seats right now
+              </div>
+              <p className="text-xs text-muted-foreground">Get notified when a spot opens up</p>
+              <Button
+                size="sm"
+                className="bg-gradient-primary text-xs"
+                onClick={() => handleOpenWaitlistDialog()}
+              >
+                Join the Waitlist
+              </Button>
+            </div>
+          )}
+
+          {/* Show general waitlist status */}
+          {!loading && waitlistEntry && !waitlistEntry.tournament_id && (
+            <div className="rounded-xl border border-muted bg-muted/30 p-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs">
+                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  <span className="font-medium">General waitlist — position #{waitlistPosition || '…'}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] text-destructive px-2"
+                  onClick={handleLeaveWaitlist}
+                  disabled={waitlistLoading}
+                >
+                  Leave
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">We'll tap you when a seat drops.</p>
+            </div>
+          )}
+
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map(i => (
@@ -189,12 +258,26 @@ export default function TournamentsPage() {
                 onJoin={() => handleJoinTournament(tournament)}
                 isJoining={joiningId === tournament.id}
                 onView={() => navigate('/matches')}
+                waitlistEntry={waitlistEntry}
+                waitlistPosition={waitlistPosition}
+                onJoinWaitlist={() => handleOpenWaitlistDialog(tournament)}
+                onLeaveWaitlist={handleLeaveWaitlist}
+                waitlistLoading={waitlistLoading}
               />
             ))
           )}
         </div>
       </PageLayout>
       <BottomNav />
+
+      <JoinWaitlistDialog
+        open={waitlistDialogOpen}
+        onOpenChange={setWaitlistDialogOpen}
+        tournamentName={waitlistTargetTournament?.name}
+        defaultName={player?.full_name || ''}
+        defaultPhone={player?.phone || ''}
+        onSubmit={handleWaitlistSubmit}
+      />
     </>
   );
 }
