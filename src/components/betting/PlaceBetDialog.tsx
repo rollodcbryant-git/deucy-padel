@@ -137,16 +137,22 @@ export function PlaceBetDialog({
 
           {/* Payout preview */}
           {stake > 0 && selectedTeam && (
-            <div className="rounded-lg bg-muted/30 p-3 space-y-1">
+            <div className="rounded-lg bg-muted/30 p-3 space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-1">
                   <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                  Potential payout
+                  If you win
                 </span>
-                <span className="font-bold text-primary">€{potentialPayout}</span>
+                <span className="font-bold text-primary">+€{potentialPayout - stake}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-1 text-destructive">
+                  ↓ If you lose
+                </span>
+                <span className="font-bold text-destructive">-€{stake}</span>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                {multiplier}x multiplier · Stake: €{stake} · Round budget: €{roundRemaining} left
+                {multiplier}x multiplier · Stake: €{stake}
               </p>
             </div>
           )}
