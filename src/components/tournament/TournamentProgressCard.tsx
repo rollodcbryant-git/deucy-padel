@@ -5,7 +5,6 @@ import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { CreditsDisplay } from '@/components/ui/CreditsDisplay';
 import { ChevronDown, Trophy, List } from 'lucide-react';
-import { ChevronDown, Trophy, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Tournament, Player, Round } from '@/lib/types';
 
