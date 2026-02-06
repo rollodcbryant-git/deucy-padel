@@ -19,7 +19,7 @@ interface BidWithPlayer extends Bid {
 }
 
 export default function LotDetailPage() {
-  const { lotId } = useParams();
+  const { lotId, pledgeItemId } = useParams();
   const navigate = useNavigate();
   const { player, tournament, session, isLoading, refreshPlayer } = usePlayer();
   const { toast } = useToast();
@@ -35,40 +35,50 @@ export default function LotDetailPage() {
       navigate('/');
       return;
     }
-    if (lotId && player) {
+    if ((lotId || pledgeItemId) && player) {
       loadLot();
     }
-  }, [lotId, session, player, isLoading, navigate]);
+  }, [lotId, pledgeItemId, session, player, isLoading, navigate]);
 
   useEffect(() => {
-    if (!lotId) return;
+    if (!lot) return;
     const channel = supabase
-      .channel(`lot-${lotId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'auction_lots', filter: `id=eq.${lotId}` }, () => loadLot())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bids', filter: `lot_id=eq.${lotId}` }, () => { loadBids(); refreshPlayer(); })
+      .channel(`lot-${lot.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'auction_lots', filter: `id=eq.${lot.id}` }, () => loadLot())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bids', filter: `lot_id=eq.${lot.id}` }, () => { loadBids(); refreshPlayer(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [lotId]);
+  }, [lot?.id]);
 
   const loadLot = async () => {
-    if (!lotId) return;
-    const { data: lotData } = await supabase.from('auction_lots').select('*').eq('id', lotId).single();
+    let lotData: any = null;
+    if (lotId) {
+      const { data } = await supabase.from('auction_lots').select('*').eq('id', lotId).single();
+      lotData = data;
+    } else if (pledgeItemId) {
+      const { data } = await supabase.from('auction_lots').select('*').eq('pledge_item_id', pledgeItemId).single();
+      lotData = data;
+    }
     if (lotData) {
       setLot(lotData as AuctionLot);
       const { data: pledgeData } = await supabase.from('pledge_items').select('*').eq('id', lotData.pledge_item_id).single();
       setPledgeItem(pledgeData as PledgeItem);
+      loadBidsForLot(lotData.id);
     }
-    loadBids();
   };
 
-  const loadBids = async () => {
-    if (!lotId) return;
-    const { data: bidsData } = await supabase.from('bids').select('*').eq('lot_id', lotId).order('created_at', { ascending: false });
+  const loadBidsForLot = async (lid: string) => {
+    const { data: bidsData } = await supabase.from('bids').select('*').eq('lot_id', lid).order('created_at', { ascending: false });
     if (!bidsData) return;
     const playerIds = [...new Set(bidsData.map(b => b.bidder_player_id))];
     const { data: players } = await supabase.from('players').select('*').in('id', playerIds);
     const playerMap = new Map((players || []).map(p => [p.id, p as Player]));
     setBids(bidsData.map(b => ({ ...b, player: playerMap.get(b.bidder_player_id) })) as BidWithPlayer[]);
+  };
+
+  const loadBids = async () => {
+    if (!lot) return;
+    loadBidsForLot(lot.id);
   };
 
   const getMinBid = () => {

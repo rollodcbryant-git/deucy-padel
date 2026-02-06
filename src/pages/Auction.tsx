@@ -167,7 +167,7 @@ export default function AuctionPage() {
           {/* Lots grid */}
           <div className="space-y-3">
             {filteredLots.map((lot) => (
-              <Card key={lot.id} className="chaos-card cursor-pointer hover:border-primary/50 transition-all" onClick={() => navigate(`/auction/${lot.id}`)}>
+              <Card key={lot.id} className="chaos-card cursor-pointer hover:border-primary/50 transition-all" onClick={() => navigate(`/auction/lot/${lot.id}`)}>
                 <CardContent className="p-4">
                   <div className="flex gap-4">
                     <div className="h-20 w-20 rounded-lg bg-muted flex items-center justify-center text-3xl shrink-0">
