@@ -54,7 +54,6 @@ const App = () => (
             <Route path="/complete-entry" element={<CompleteEntry />} />
             
             {/* In-tournament pages (use player context for tournament) */}
-            <Route path="/home" element={<Home />} />
             <Route path="/matches" element={<Matches />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             

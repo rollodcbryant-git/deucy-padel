@@ -240,21 +240,13 @@ export default function MatchesPage() {
                         </CardContent>
                       </Card>
                     ) : (
-                      <div key={match.id} className="space-y-2">
-                        <MatchCard
-                          match={match}
-                          currentPlayerId={player.id}
-                          onClaimBooking={() => handleClaimBooking(match)}
-                          onReportResult={() => handleReportResult(match)}
-                        />
-                        {/* Copy contacts button */}
-                        {match.status !== 'Played' && match.status !== 'AutoResolved' && (
-                          <Button variant="ghost" size="sm" className="w-full text-muted-foreground"
-                            onClick={() => handleCopyContacts(match)}>
-                            <Copy className="mr-1 h-3 w-3" />Copy Match Contacts
-                          </Button>
-                        )}
-                      </div>
+                      <MatchCard
+                        key={match.id}
+                        match={match}
+                        currentPlayerId={player.id}
+                        onClaimBooking={() => handleClaimBooking(match)}
+                        onReportResult={() => handleReportResult(match)}
+                      />
                     )
                   ))
                 )}

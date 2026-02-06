@@ -92,7 +92,7 @@ export default function LeaderboardPage() {
                 <div className="flex-1">
                   <p className="font-semibold text-primary">{player.full_name} (you)</p>
                   <p className="text-xs text-muted-foreground">
-                    {player.match_wins}W - {player.match_losses}L • Sets: +{player.sets_won - player.sets_lost}
+                    {player.match_wins}W - {player.match_losses}L • Sets: {player.sets_won - player.sets_lost > 0 ? '+' : ''}{player.sets_won - player.sets_lost}
                   </p>
                 </div>
                 <CreditsDisplay amount={player.credits_balance} variant="compact" />
