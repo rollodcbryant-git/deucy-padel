@@ -40,7 +40,7 @@ export default function AdminUtilitiesSection({ tournament, onReload, callEngine
       token,
     };
     localStorage.setItem('padel_chaos_session', JSON.stringify(session));
-    navigate('/home');
+    navigate('/tournaments');
   };
   const getPublishedUrl = () => {
     const origin = window.location.origin;

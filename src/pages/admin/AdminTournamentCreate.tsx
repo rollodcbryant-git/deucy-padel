@@ -17,10 +17,12 @@ export default function AdminTournamentCreate() {
     name: '',
     club_name: '',
     booking_url: '',
+    tier: 'League' as 'Major' | 'League' | 'Mini',
     min_players: 8,
-    max_players: 24,
+    max_players: 8,
     round_duration_days: 10,
-    starting_credits: 1000,
+    rounds_count: 3,
+    starting_credits: 2000,
     stake_per_player: 20,
     participation_bonus: 50,
     penalty_amount: 50,
@@ -137,6 +139,20 @@ export default function AdminTournamentCreate() {
                   className="touch-target"
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tier">Tier</Label>
+                <select
+                  id="tier"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm touch-target"
+                  value={formData.tier}
+                  onChange={(e) => updateField('tier', e.target.value)}
+                >
+                  <option value="Major">Major</option>
+                  <option value="League">League</option>
+                  <option value="Mini">Mini</option>
+                </select>
+              </div>
             </CardContent>
           </Card>
 
@@ -146,44 +162,45 @@ export default function AdminTournamentCreate() {
               <CardTitle className="text-lg">Player Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="min_players">Min Players</Label>
-                  <Input
-                    id="min_players"
-                    type="number"
-                    min={8}
-                    max={24}
-                    value={formData.min_players}
-                    onChange={(e) => updateField('min_players', parseInt(e.target.value))}
-                    className="touch-target"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="max_players">Max Players</Label>
-                  <Input
-                    id="max_players"
-                    type="number"
-                    min={8}
-                    max={24}
-                    value={formData.max_players}
-                    onChange={(e) => updateField('max_players', parseInt(e.target.value))}
-                    className="touch-target"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
-                <Label htmlFor="round_duration_days">Round Duration (days)</Label>
+                <Label htmlFor="max_players">Capacity</Label>
                 <Input
-                  id="round_duration_days"
+                  id="max_players"
                   type="number"
-                  min={3}
-                  max={30}
-                  value={formData.round_duration_days}
-                  onChange={(e) => updateField('round_duration_days', parseInt(e.target.value))}
+                  min={4}
+                  max={24}
+                  value={formData.max_players}
+                  onChange={(e) => updateField('max_players', parseInt(e.target.value))}
                   className="touch-target"
                 />
+                <p className="text-xs text-muted-foreground">Number of player slots</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="rounds_count">Number of Rounds</Label>
+                  <Input
+                    id="rounds_count"
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={formData.rounds_count}
+                    onChange={(e) => updateField('rounds_count', parseInt(e.target.value))}
+                    className="touch-target"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="round_duration_days">Days per Round</Label>
+                  <Input
+                    id="round_duration_days"
+                    type="number"
+                    min={3}
+                    max={30}
+                    value={formData.round_duration_days}
+                    onChange={(e) => updateField('round_duration_days', parseInt(e.target.value))}
+                    className="touch-target"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

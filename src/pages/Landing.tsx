@@ -21,7 +21,7 @@ export default function LandingPage() {
   useEffect(() => {
     if (session && !sessionLoading) {
       // Already logged in, redirect to home
-      navigate('/home');
+      navigate('/tournaments');
       return;
     }
 
