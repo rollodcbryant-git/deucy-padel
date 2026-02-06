@@ -130,32 +130,8 @@ export default function LoginPage() {
           <p className="text-muted-foreground">Enter your phone and PIN to continue</p>
         </div>
 
-        {/* Tournament selector (if no t= param and multiple tournaments) */}
-        {!tournamentIdParam && !loadingTournaments && tournaments.length > 1 && (
-          <Card className="chaos-card">
-            <CardContent className="p-4 space-y-2">
-              <Label>Select Tournament</Label>
-              <select
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                value={selectedTournamentId || ''}
-                onChange={(e) => setSelectedTournamentId(e.target.value || null)}
-              >
-                <option value="">Choose a tournament…</option>
-                {tournaments.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}{t.club_name ? ` @ ${t.club_name}` : ''}
-                  </option>
-                ))}
-              </select>
-            </CardContent>
-          </Card>
-        )}
 
-        {!tournamentIdParam && !loadingTournaments && tournaments.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground">
-            No active tournaments found. Ask your organizer for an invite link.
-          </p>
-        )}
+
 
         {!showReset ? (
           <>
