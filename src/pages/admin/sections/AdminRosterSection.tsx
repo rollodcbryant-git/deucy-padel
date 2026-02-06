@@ -37,7 +37,6 @@ export default function AdminRosterSection({ players, tournament, onReload }: Pr
     players.forEach(p => { map[p.id] = 'Missing'; });
     (data || []).forEach(item => {
       const current = map[item.pledged_by_player_id];
-      // Priority: Approved > Submitted(Draft) > Hidden > Missing
       if (item.status === 'Approved' && current !== 'Approved') {
         map[item.pledged_by_player_id] = 'Approved';
       } else if (item.status === 'Draft' && current === 'Missing') {
@@ -62,9 +61,89 @@ export default function AdminRosterSection({ players, tournament, onReload }: Pr
     onReload();
   };
 
+  /** TRUE REMOVAL: hard-delete player + all related data */
   const removePlayer = async (id: string) => {
-    await supabase.from('players').update({ status: 'Removed' }).eq('id', id);
-    toast({ title: 'Player removed' });
+    if (!tournament) return;
+    const tid = tournament.id;
+
+    // Delete bets placed by this player, refund if pending
+    const { data: playerBets } = await supabase
+      .from('match_bets')
+      .select('*')
+      .eq('player_id', id)
+      .eq('tournament_id', tid)
+      .eq('status', 'Pending');
+    
+    // Delete all bets by this player
+    await supabase.from('match_bets').delete().eq('player_id', id).eq('tournament_id', tid);
+
+    // Delete escrow holds for this player
+    await supabase.from('escrow_holds').delete().eq('bidder_player_id', id);
+
+    // Delete bids by this player
+    const { data: playerBids } = await supabase
+      .from('bids')
+      .select('lot_id')
+      .eq('bidder_player_id', id);
+    await supabase.from('bids').delete().eq('bidder_player_id', id);
+
+    // Reset any auction lots where this player was winning
+    if (playerBids && playerBids.length > 0) {
+      const lotIds = [...new Set(playerBids.map(b => b.lot_id))];
+      for (const lotId of lotIds) {
+        const { data: lot } = await supabase.from('auction_lots').select('*').eq('id', lotId).single();
+        if (lot && lot.current_winner_player_id === id) {
+          // Find next highest bidder
+          const { data: nextBid } = await supabase
+            .from('bids')
+            .select('*')
+            .eq('lot_id', lotId)
+            .order('amount', { ascending: false })
+            .limit(1);
+          if (nextBid && nextBid.length > 0) {
+            await supabase.from('auction_lots').update({
+              current_bid: nextBid[0].amount,
+              current_winner_player_id: nextBid[0].bidder_player_id,
+            }).eq('id', lotId);
+          } else {
+            await supabase.from('auction_lots').update({
+              current_bid: null,
+              current_winner_player_id: null,
+            }).eq('id', lotId);
+          }
+        }
+      }
+    }
+
+    // Delete pledge items by this player
+    await supabase.from('pledge_items').delete().eq('pledged_by_player_id', id).eq('tournament_id', tid);
+
+    // Delete credit ledger entries for this player
+    await supabase.from('credit_ledger_entries').delete().eq('player_id', id).eq('tournament_id', tid);
+
+    // Delete notifications
+    await supabase.from('notifications').delete().eq('player_id', id).eq('tournament_id', tid);
+
+    // Remove from matches (void any matches they're in that aren't played)
+    const { data: activeMatches } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('tournament_id', tid)
+      .or(`team_a_player1_id.eq.${id},team_a_player2_id.eq.${id},team_b_player1_id.eq.${id},team_b_player2_id.eq.${id},bye_player_id.eq.${id}`)
+      .in('status', ['Scheduled', 'BookingClaimed']);
+
+    for (const m of activeMatches || []) {
+      if (m.is_bye && m.bye_player_id === id) {
+        await supabase.from('matches').delete().eq('id', m.id);
+      } else {
+        await supabase.from('matches').update({ status: 'AutoResolved', is_unfinished: true }).eq('id', m.id);
+      }
+    }
+
+    // Finally, hard-delete the player record
+    await supabase.from('players').delete().eq('id', id);
+
+    toast({ title: 'Player fully removed from tournament' });
     onReload();
   };
 
@@ -132,7 +211,6 @@ export default function AdminRosterSection({ players, tournament, onReload }: Pr
 
   return (
     <div className="space-y-3">
-      {/* PIN reset result banner */}
       {resetPinResult && (
         <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-2">
           <p className="text-sm font-medium">New PIN for {resetPinResult.name}:</p>

@@ -163,17 +163,18 @@ export default function AdminTournamentCreate() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="max_players">Capacity</Label>
-                <Input
+                <Label htmlFor="max_players">Capacity (must be multiple of 4)</Label>
+                <select
                   id="max_players"
-                  type="number"
-                  min={4}
-                  max={24}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm touch-target"
                   value={formData.max_players}
                   onChange={(e) => updateField('max_players', parseInt(e.target.value))}
-                  className="touch-target"
-                />
-                <p className="text-xs text-muted-foreground">Number of player slots</p>
+                >
+                  {[8, 12, 16, 20, 24].map(n => (
+                    <option key={n} value={n}>{n} players</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">Padel requires groups of 4</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

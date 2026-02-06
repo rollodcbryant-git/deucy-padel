@@ -5,7 +5,6 @@ import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { PlayerLink } from '@/components/ui/PlayerLink';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { formatEuros } from '@/lib/euros';
 import { Flame, Lock, Zap } from 'lucide-react';
 import type { MatchWithPlayers, MatchBet, Round } from '@/lib/types';
 
@@ -32,7 +31,6 @@ export function BetMatchCard({
   const isOverdue = match.status === 'Overdue' || match.status === 'AutoResolved';
   const isSettled = isPlayed || isOverdue;
 
-  // Check if current player is in this match
   const isInMatch = [
     match.team_a_player1_id,
     match.team_a_player2_id,
@@ -50,13 +48,10 @@ export function BetMatchCard({
       isInMatch && 'opacity-60',
     )}>
       <CardContent className="p-3 space-y-2">
-        {/* Header with status */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isSettled ? (
-              <StatusChip variant={isPlayed ? 'success' : 'error'} size="sm">
-                {match.sets_a}-{match.sets_b}
-              </StatusChip>
+              <StatusChip variant={isPlayed ? 'success' : 'error'} size="sm">{match.sets_a}-{match.sets_b}</StatusChip>
             ) : (
               <StatusChip variant="neutral" size="sm">Pending</StatusChip>
             )}
@@ -71,36 +66,25 @@ export function BetMatchCard({
           )}
         </div>
 
-        {/* Teams */}
         <div className="flex items-center gap-2">
           <div className="flex-1 space-y-0.5">
             <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Team A</p>
             <div className="flex flex-col gap-0.5">
-              {match.team_a_player1 && (
-                <PlayerLink player={match.team_a_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />
-              )}
-              {match.team_a_player2 && (
-                <PlayerLink player={match.team_a_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />
-              )}
+              {match.team_a_player1 && <PlayerLink player={match.team_a_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />}
+              {match.team_a_player2 && <PlayerLink player={match.team_a_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />}
             </div>
           </div>
-
           <div className="text-xs font-bold text-muted-foreground px-2">VS</div>
-
           <div className="flex-1 space-y-0.5 text-right">
             <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Team B</p>
             <div className="flex flex-col gap-0.5 items-end">
-              {match.team_b_player1 && (
-                <PlayerLink player={match.team_b_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />
-              )}
-              {match.team_b_player2 && (
-                <PlayerLink player={match.team_b_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />
-              )}
+              {match.team_b_player1 && <PlayerLink player={match.team_b_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />}
+              {match.team_b_player2 && <PlayerLink player={match.team_b_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />}
             </div>
           </div>
         </div>
 
-        {/* My bet */}
+        {/* My bet — display in whole € */}
         {myBet && (
           <div className={cn(
             'rounded-lg p-2 text-xs',
@@ -109,13 +93,11 @@ export function BetMatchCard({
             myBet.status === 'Pending' && 'bg-chaos-orange/10 border border-chaos-orange/30',
           )}>
             <div className="flex justify-between items-center">
-              <span>
-                Your prophecy: <span className="font-semibold">{myBet.predicted_winner === 'team_a' ? 'Team A' : 'Team B'}</span>
-              </span>
+              <span>Your prophecy: <span className="font-semibold">{myBet.predicted_winner === 'team_a' ? 'Team A' : 'Team B'}</span></span>
               <span className="font-semibold">
-                {myBet.status === 'Won' ? `+${formatEuros(myBet.payout || 0)}` :
-                 myBet.status === 'Lost' ? `-${formatEuros(myBet.stake)}` :
-                 `${formatEuros(myBet.stake)} staked`}
+                {myBet.status === 'Won' ? `+€${myBet.payout || 0}` :
+                 myBet.status === 'Lost' ? `-€${myBet.stake}` :
+                 `€${myBet.stake} staked`}
               </span>
             </div>
             {myBet.status === 'Pending' && (
@@ -124,14 +106,8 @@ export function BetMatchCard({
           </div>
         )}
 
-        {/* Bet button */}
         {canBet && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full h-8 text-xs"
-            onClick={() => onPlaceBet(match)}
-          >
+          <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={() => onPlaceBet(match)}>
             <Zap className="mr-1 h-3 w-3" /> Place your prophecy
           </Button>
         )}
