@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Trophy, Gavel, Home, Calendar, User } from 'lucide-react';
+import { Trophy, Gavel, Calendar, User } from 'lucide-react';
 
 interface NavItem {
   path: string;
@@ -9,7 +9,6 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { path: '/home', label: 'Home', icon: <Home className="h-5 w-5" /> },
   { path: '/matches', label: 'Matches', icon: <Calendar className="h-5 w-5" /> },
   { path: '/leaderboard', label: 'Ranking', icon: <Trophy className="h-5 w-5" /> },
   { path: '/auction', label: 'Auction', icon: <Gavel className="h-5 w-5" /> },

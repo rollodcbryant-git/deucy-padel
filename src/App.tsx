@@ -49,8 +49,9 @@ const App = () => (
             <Route path="/complete-entry" element={<CompleteEntry />} />
             
             {/* Player routes */}
-            <Route path="/home" element={<Home />} />
+            <Route path="/home" element={<Navigate to="/matches" replace />} />
             <Route path="/matches" element={<Matches />} />
+            <Route path="/tournaments" element={<AllTournaments />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             
             <Route path="/auction" element={<AuctionHouse />} />
