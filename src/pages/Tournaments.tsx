@@ -119,10 +119,13 @@ export default function TournamentsPage() {
       if (error) throw error;
 
       toast({ title: 'Joined! 🎾', description: `You're now in ${tournament.name}` });
+      await refreshPlayer();
       loadTournaments();
     } catch (err: any) {
       console.error('Join error:', err);
       toast({ title: 'Failed to join', description: err.message || 'Something went wrong', variant: 'destructive' });
+    } finally {
+      setJoiningId(null);
     }
   };
 
