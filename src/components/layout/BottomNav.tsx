@@ -11,12 +11,13 @@ interface NavItem {
 
 export function BottomNav() {
   const location = useLocation();
-  const { player, session } = usePlayer();
+  const { player } = usePlayer();
 
-  // Don't render for logged-out users
-  if (!session || !player) return null;
+  // Hide on login/join pages only
+  const hiddenPaths = ['/login', '/join', '/admin'];
+  if (hiddenPaths.some(p => location.pathname.startsWith(p))) return null;
 
-  const tournamentId = player.tournament_id;
+  const tournamentId = player?.tournament_id;
 
   const navItems: NavItem[] = [
     { path: '/', label: 'Home', icon: <Home className="h-5 w-5" /> },
