@@ -79,6 +79,10 @@ export type Database = {
         Row: {
           anti_sniping_enabled: boolean
           created_at: string
+          delivery_deadline: string | null
+          delivery_location: string | null
+          delivery_maps_url: string | null
+          duration_hours: number
           ends_at: string | null
           id: string
           starts_at: string | null
@@ -88,6 +92,10 @@ export type Database = {
         Insert: {
           anti_sniping_enabled?: boolean
           created_at?: string
+          delivery_deadline?: string | null
+          delivery_location?: string | null
+          delivery_maps_url?: string | null
+          duration_hours?: number
           ends_at?: string | null
           id?: string
           starts_at?: string | null
@@ -97,6 +105,10 @@ export type Database = {
         Update: {
           anti_sniping_enabled?: boolean
           created_at?: string
+          delivery_deadline?: string | null
+          delivery_location?: string | null
+          delivery_maps_url?: string | null
+          duration_hours?: number
           ends_at?: string | null
           id?: string
           starts_at?: string | null
