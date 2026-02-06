@@ -22,10 +22,13 @@ interface MatchCardProps {
 export function MatchCard({
   match,
   currentPlayerId,
+  round,
+  tournament,
   onClaimBooking,
   onReportResult,
   className,
 }: MatchCardProps) {
+  const { toast } = useToast();
   const isBookingClaimed = match.status === 'BookingClaimed' || match.booking_claimed_by_player_id;
   const isPlayed = match.status === 'Played';
   const isOverdue = match.status === 'Overdue' || match.status === 'AutoResolved';
