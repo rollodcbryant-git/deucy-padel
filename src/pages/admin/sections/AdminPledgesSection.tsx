@@ -199,7 +199,7 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {pledge.category} · by {playerMap.get(pledge.pledged_by_player_id)?.full_name || '?'}
-                    {pledge.estimate_low != null && ` · ${pledge.estimate_low}–${pledge.estimate_high}c`}
+                    {pledge.estimate_low != null && ` · €${Math.round((pledge.estimate_low || 0) / 100)}–€${Math.round((pledge.estimate_high || 0) / 100)}`}
                   </p>
                 </div>
               </div>
