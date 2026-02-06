@@ -640,7 +640,7 @@ async function processMatchResult(supabase: any, body: any) {
 
   await checkRoundCompletion(supabase, match.round_id, match.tournament_id);
 
-  return jsonResponse({ success: true, pot, teamAShare, teamBShare });
+  return jsonResponse({ success: true, teamANet, teamBNet });
 }
 
 // ============================================================
