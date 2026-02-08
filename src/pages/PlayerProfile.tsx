@@ -181,6 +181,9 @@ export default function PlayerProfilePage() {
             <StatusChip variant="neutral" size="sm">
               🎾 {profilePlayer.matches_played} played
             </StatusChip>
+            <StatusChip variant="info" size="sm">
+              Sets Won: {profilePlayer.sets_won}
+            </StatusChip>
             <StatusChip variant={setDiff >= 0 ? 'success' : 'warning'} size="sm">
               Sets: {setDiff >= 0 ? '+' : ''}{setDiff}
             </StatusChip>

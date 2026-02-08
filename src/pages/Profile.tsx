@@ -199,6 +199,7 @@ export default function ProfilePage() {
             </div>
 
             <p className="text-sm text-muted-foreground">Rank #{rank}</p>
+            <p className="text-xs text-muted-foreground">Sets Won: {player.sets_won}</p>
 
             <CreditsDisplay
               amount={player.credits_balance}

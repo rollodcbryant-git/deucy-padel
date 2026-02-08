@@ -64,6 +64,7 @@ export function MatchCard({
     return (
       <div className="flex items-center gap-2">
         <PlayerLink player={player} showAvatar avatarClassName="h-10 w-10" className="font-medium" />
+        <span className="text-[10px] text-muted-foreground whitespace-nowrap">SW: {player.sets_won}</span>
         {round && <PledgeIndicator pledge={roundPledges[player.id]} />}
       </div>
     );
