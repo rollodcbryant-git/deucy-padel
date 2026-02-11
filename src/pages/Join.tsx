@@ -61,7 +61,7 @@ export default function JoinPage() {
       return;
     }
     if (pin !== confirmPin) {
-      toast({ title: 'PINs don't match', description: 'Please make sure both PINs are the same.', variant: 'destructive' });
+      toast({ title: 'PINs don\'t match', description: 'Please make sure both PINs are the same.', variant: 'destructive' });
       return;
     }
 
