@@ -92,10 +92,15 @@ export function MatchCard({
           )}
         </div>
 
-        {/* Partner section */}
+        {/* Team A */}
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Your Partner</p>
-          {renderPlayerWithPledge(partner)}
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">
+            {isTeamA ? 'Your Team' : 'Team A'}
+          </p>
+          <div className="flex flex-col gap-2">
+            {renderPlayerWithPledge(match.team_a_player1)}
+            {renderPlayerWithPledge(match.team_a_player2)}
+          </div>
         </div>
 
         {/* VS section */}
@@ -105,15 +110,14 @@ export function MatchCard({
           <div className="flex-1 h-px bg-border" />
         </div>
 
-        {/* Opponents section */}
+        {/* Team B */}
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Opponents</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">
+            {!isTeamA ? 'Your Team' : 'Team B'}
+          </p>
           <div className="flex flex-col gap-2">
-            {opponents.filter(Boolean).map((opponent, i) => (
-              <div key={opponent?.id || i}>
-                {renderPlayerWithPledge(opponent)}
-              </div>
-            ))}
+            {renderPlayerWithPledge(match.team_b_player1)}
+            {renderPlayerWithPledge(match.team_b_player2)}
           </div>
         </div>
 
