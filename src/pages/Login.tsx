@@ -195,16 +195,23 @@ export default function LoginPage() {
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="pin"
-                        type="password"
+                        type={showPin ? 'text' : 'password'}
                         inputMode="numeric"
                         pattern="[0-9]*"
                         maxLength={4}
                         placeholder="••••"
                         value={pin}
                         onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                        className="pl-10 touch-target text-center tracking-[0.5em] text-lg"
+                        className="pl-10 pr-10 touch-target text-center tracking-[0.5em] text-lg"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPin(!showPin)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
 
