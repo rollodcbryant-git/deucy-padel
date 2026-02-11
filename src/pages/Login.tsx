@@ -176,13 +176,17 @@ export default function LoginPage() {
                       <Input
                         id="phone"
                         type="tel"
-                        placeholder="612 345 678"
+                        placeholder="+34 612 345 678"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="pl-10 touch-target"
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        onBlur={() => phone.trim() && validatePhone(phone)}
+                        className={`pl-10 touch-target ${phoneError ? 'border-destructive ring-destructive/30 ring-2' : ''}`}
                         required
                       />
                     </div>
+                    {phoneError && (
+                      <p className="text-xs text-destructive mt-1">{phoneError}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
