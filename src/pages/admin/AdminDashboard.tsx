@@ -71,6 +71,15 @@ export default function AdminDashboard() {
 
   const checkAuthAndLoad = async () => {
     try {
+      // Check passcode-based auth first
+      const passcodeAuth = localStorage.getItem('deucy_admin_authenticated') === 'true';
+      if (passcodeAuth) {
+        setIsAuthorized(true);
+        await loadTournaments();
+        return;
+      }
+
+      // Fallback to Supabase auth
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate('/admin'); return; }
 
@@ -134,6 +143,7 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = async () => {
+    localStorage.removeItem('deucy_admin_authenticated');
     await supabase.auth.signOut();
     navigate('/admin');
   };

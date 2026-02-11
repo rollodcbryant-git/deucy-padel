@@ -196,13 +196,17 @@ export default function MatchesPage() {
               onCopyContacts={handleCopyContacts}
             />
 
-            {/* Round Bets section */}
+            {/* Round Bets section - visually distinct */}
             {tournament!.betting_enabled && (
-              <RoundBetsSection
-                tournament={tournament!}
-                player={player!}
-                currentRound={rounds.find(r => r.status === 'Live') || null}
-              />
+              <div className="mt-6 pt-4 border-t-2 border-primary/20">
+                <div className="rounded-xl bg-muted/30 border border-border p-4">
+                  <RoundBetsSection
+                    tournament={tournament!}
+                    player={player!}
+                    currentRound={rounds.find(r => r.status === 'Live') || null}
+                  />
+                </div>
+              </div>
             )}
 
             {rounds.length === 0 && (
