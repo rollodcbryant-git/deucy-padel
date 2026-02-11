@@ -143,6 +143,7 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = async () => {
+    localStorage.removeItem('deucy_admin_authenticated');
     await supabase.auth.signOut();
     navigate('/admin');
   };
