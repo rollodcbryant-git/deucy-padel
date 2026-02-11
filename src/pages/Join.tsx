@@ -54,7 +54,8 @@ export default function JoinPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validatePhone(phone)) return;
+    // Show warning but don't block submission
+    validatePhone(phone);
 
     if (pin.length !== 4) {
       toast({ title: 'Invalid PIN', description: 'PIN must be exactly 4 digits.', variant: 'destructive' });

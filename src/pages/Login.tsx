@@ -66,7 +66,8 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validatePhone(phone)) return;
+    // Show warning but don't block submission
+    validatePhone(phone);
 
     if (pin.length !== 4) {
       toast({ title: 'Invalid PIN', description: 'PIN must be 4 digits', variant: 'destructive' });
