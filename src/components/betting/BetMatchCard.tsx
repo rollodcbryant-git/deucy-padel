@@ -107,7 +107,7 @@ export function BetMatchCard({
         )}
 
         {canBet && (
-          <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={() => onPlaceBet(match)}>
+          <Button variant="hot" size="sm" className="w-full h-8 text-xs animate-pulse" onClick={() => onPlaceBet(match)}>
             <Zap className="mr-1 h-3 w-3" /> Place your bet
           </Button>
         )}
