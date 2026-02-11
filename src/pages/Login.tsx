@@ -48,8 +48,25 @@ export default function LoginPage() {
     }
   }, [session, sessionLoading, navigate]);
 
+  const validatePhone = (value: string): boolean => {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('+')) {
+      setPhoneError('Add country code (ex: +34) so WhatsApp links work.');
+      return false;
+    }
+    setPhoneError('');
+    return true;
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    if (phoneError && value.trim().startsWith('+')) setPhoneError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validatePhone(phone)) return;
 
     if (pin.length !== 4) {
       toast({ title: 'Invalid PIN', description: 'PIN must be 4 digits', variant: 'destructive' });
