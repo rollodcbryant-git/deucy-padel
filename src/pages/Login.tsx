@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { hashPin } from '@/contexts/PlayerContext';
 import { normalizePhone } from '@/lib/phone';
-import { Phone, Lock, KeyRound, Settings, Loader2 } from 'lucide-react';
+import { Phone, Lock, KeyRound, Settings, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 
