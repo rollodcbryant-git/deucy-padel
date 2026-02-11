@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { hashPin } from '@/contexts/PlayerContext';
 import { normalizePhone } from '@/lib/phone';
-import { Phone, Lock, KeyRound, Settings, Loader2 } from 'lucide-react';
+import { Phone, Lock, KeyRound, Settings, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 
@@ -38,6 +38,8 @@ export default function LoginPage() {
   const [resetPhone, setResetPhone] = useState('');
   const [newPin, setNewPin] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [showPin, setShowPin] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
 
   // Redirect if already logged in
   useEffect(() => {
@@ -46,8 +48,25 @@ export default function LoginPage() {
     }
   }, [session, sessionLoading, navigate]);
 
+  const validatePhone = (value: string): boolean => {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('+')) {
+      setPhoneError('Add country code (ex: +34) so WhatsApp links work.');
+      return false;
+    }
+    setPhoneError('');
+    return true;
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    if (phoneError && value.trim().startsWith('+')) setPhoneError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validatePhone(phone)) return;
 
     if (pin.length !== 4) {
       toast({ title: 'Invalid PIN', description: 'PIN must be 4 digits', variant: 'destructive' });
@@ -157,13 +176,17 @@ export default function LoginPage() {
                       <Input
                         id="phone"
                         type="tel"
-                        placeholder="612 345 678"
+                        placeholder="+34 612 345 678"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="pl-10 touch-target"
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        onBlur={() => phone.trim() && validatePhone(phone)}
+                        className={`pl-10 touch-target ${phoneError ? 'border-destructive ring-destructive/30 ring-2' : ''}`}
                         required
                       />
                     </div>
+                    {phoneError && (
+                      <p className="text-xs text-destructive mt-1">{phoneError}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -172,16 +195,23 @@ export default function LoginPage() {
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="pin"
-                        type="password"
+                        type={showPin ? 'text' : 'password'}
                         inputMode="numeric"
                         pattern="[0-9]*"
                         maxLength={4}
                         placeholder="••••"
                         value={pin}
                         onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                        className="pl-10 touch-target text-center tracking-[0.5em] text-lg"
+                        className="pl-10 pr-10 touch-target text-center tracking-[0.5em] text-lg"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPin(!showPin)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
 

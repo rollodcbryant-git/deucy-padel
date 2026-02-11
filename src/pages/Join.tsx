@@ -9,10 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { hashPin } from '@/contexts/PlayerContext';
 import { normalizePhone } from '@/lib/phone';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Copy, Check, User, Phone, Users } from 'lucide-react';
+import { ArrowLeft, User, Phone, Users, Eye, EyeOff } from 'lucide-react';
 import type { PlayerGender } from '@/lib/types';
-
-type Step = 'form' | 'pin';
 
 export default function JoinPage() {
   const [searchParams] = useSearchParams();
@@ -20,27 +18,58 @@ export default function JoinPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<Step>('form');
   const [isLoading, setIsLoading] = useState(false);
-  const [generatedPin, setGeneratedPin] = useState('');
-  const [copied, setCopied] = useState(false);
 
   // Form state
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [gender, setGender] = useState<PlayerGender | ''>('');
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
 
-  const generatePin = () => {
-    return Math.floor(1000 + Math.random() * 9000).toString();
+  const validatePhone = (value: string): boolean => {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('+')) {
+      setPhoneError('Add country code (ex: +34) so WhatsApp links work.');
+      return false;
+    }
+    const digits = trimmed.replace(/[\s\-().+]/g, '');
+    if (digits.length < 7) {
+      setPhoneError('Phone number is too short.');
+      return false;
+    }
+    setPhoneError('');
+    return true;
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    if (phoneError && value.trim().startsWith('+')) {
+      setPhoneError('');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validatePhone(phone)) return;
+
+    if (pin.length !== 4) {
+      toast({ title: 'Invalid PIN', description: 'PIN must be exactly 4 digits.', variant: 'destructive' });
+      return;
+    }
+    if (pin !== confirmPin) {
+      toast({ title: 'PINs don\'t match', description: 'Please make sure both PINs are the same.', variant: 'destructive' });
+      return;
+    }
+
     setIsLoading(true);
     const normalizedPhone = normalizePhone(phone);
 
     try {
-      // Check if phone already exists (globally or in specific tournament)
+      // Check if phone already exists
       let existingQuery = supabase
         .from('players')
         .select('id')
@@ -62,10 +91,8 @@ export default function JoinPage() {
         return;
       }
 
-      const pin = generatePin();
       const pinHash = hashPin(pin);
 
-      // If a tournament is specified, get starting credits
       let startingCredits = 1000;
       if (tournamentId) {
         const { data: tournament } = await supabase
@@ -76,7 +103,6 @@ export default function JoinPage() {
         if (tournament) startingCredits = tournament.starting_credits;
       }
 
-      // Create player (tournament_id is optional now)
       const { data: newPlayer, error } = await supabase.from('players').insert({
         tournament_id: tournamentId || undefined,
         full_name: fullName,
@@ -88,10 +114,7 @@ export default function JoinPage() {
 
       if (error) throw error;
 
-      setGeneratedPin(pin);
-      setStep('pin');
-
-      // Auto-login the new player
+      // Auto-login
       if (newPlayer) {
         const token = crypto.randomUUID();
         await supabase.from('players').update({ session_token: token }).eq('id', newPlayer.id);
@@ -104,10 +127,13 @@ export default function JoinPage() {
         localStorage.setItem('padel_chaos_session', JSON.stringify(session));
       }
 
-      toast({
-        title: 'Account created! 🎾',
-        description: 'Save your PIN - you\'ll need it to log in.',
-      });
+      toast({ title: 'Account created! 🎾', description: 'Welcome to Deucy!' });
+
+      if (tournamentId) {
+        window.location.href = '/complete-entry';
+      } else {
+        window.location.href = '/tournaments';
+      }
     } catch (error: any) {
       console.error('Join error:', error);
       toast({
@@ -120,70 +146,13 @@ export default function JoinPage() {
     }
   };
 
-  const copyPin = async () => {
-    await navigator.clipboard.writeText(generatedPin);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleContinue = () => {
-    if (tournamentId) {
-      window.location.href = '/complete-entry';
-    } else {
-      window.location.href = '/tournaments';
-    }
-  };
-
-  if (step === 'pin') {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-6 text-center">
-          <div className="text-6xl mb-4">🔐</div>
-          <h1 className="text-3xl font-bold text-gradient-primary">Your Secret PIN</h1>
-          <p className="text-muted-foreground">
-            Save this PIN somewhere safe. You'll need it to log in.
-          </p>
-
-          <Card className="chaos-card">
-            <CardContent className="p-8">
-              <div className="text-5xl font-mono font-bold tracking-[0.5em] text-primary mb-4">
-                {generatedPin}
-              </div>
-              <Button variant="outline" onClick={copyPin} className="touch-target">
-                {copied ? (
-                  <><Check className="mr-2 h-4 w-4 text-primary" />Copied!</>
-                ) : (
-                  <><Copy className="mr-2 h-4 w-4" />Copy PIN</>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>⚠️ This PIN will only be shown once</p>
-            <p>📱 Save it in your notes or take a screenshot</p>
-          </div>
-
-          <Button
-            variant="hot"
-            className="w-full touch-target"
-            onClick={handleContinue}
-          >
-            {tournamentId ? "I've Saved It - Continue" : "I've Saved It - Browse Tournaments"}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <div className="text-6xl mb-4">🎾</div>
-          <h1 className="text-3xl font-bold text-gradient-primary">Create Account</h1>
+          <h1 className="text-4xl font-bold text-gradient-primary">Deucy</h1>
           <p className="text-muted-foreground">
-            {tournamentId ? 'Sign up to join the tournament' : 'Sign up and browse available tournaments'}
+            {tournamentId ? 'Sign up to join the tournament' : 'Create your account'}
           </p>
         </div>
 
@@ -218,14 +187,19 @@ export default function JoinPage() {
                     type="tel"
                     placeholder="+34 612 345 678"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="pl-10 touch-target"
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    onBlur={() => phone.trim() && validatePhone(phone)}
+                    className={`pl-10 touch-target ${phoneError ? 'border-destructive ring-destructive/30 ring-2' : ''}`}
                     required
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Used for match coordination via WhatsApp
-                </p>
+                {phoneError ? (
+                  <p className="text-xs text-destructive">{phoneError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Include country code (e.g. +34) for WhatsApp
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -244,9 +218,53 @@ export default function JoinPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Helps us create balanced team pairings
-                </p>
+              </div>
+
+              {/* PIN fields */}
+              <div className="space-y-2">
+                <Label htmlFor="pin">Create 4-Digit PIN</Label>
+                <div className="relative">
+                  <Input
+                    id="pin"
+                    type={showPin ? 'text' : 'password'}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    placeholder="••••"
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    className="text-center tracking-[0.5em] text-lg touch-target pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(!showPin)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPin">Confirm PIN</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPin"
+                    type={showPin ? 'text' : 'password'}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    placeholder="••••"
+                    value={confirmPin}
+                    onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    className={`text-center tracking-[0.5em] text-lg touch-target ${confirmPin && confirmPin !== pin ? 'border-destructive' : ''}`}
+                    required
+                  />
+                </div>
+                {confirmPin && confirmPin !== pin && (
+                  <p className="text-xs text-destructive">PINs don't match</p>
+                )}
               </div>
 
               <Button
