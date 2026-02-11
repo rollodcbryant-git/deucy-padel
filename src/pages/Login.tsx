@@ -38,6 +38,8 @@ export default function LoginPage() {
   const [resetPhone, setResetPhone] = useState('');
   const [newPin, setNewPin] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [showPin, setShowPin] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
 
   // Redirect if already logged in
   useEffect(() => {
