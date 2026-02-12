@@ -115,6 +115,17 @@ export default function JoinPage() {
 
       if (error) throw error;
 
+      // Create StartingGrant ledger entry when joining a tournament
+      if (newPlayer && tournamentId) {
+        await supabase.from('credit_ledger_entries').insert({
+          tournament_id: tournamentId,
+          player_id: newPlayer.id,
+          type: 'StartingGrant' as const,
+          amount: startingCredits,
+          note: 'Starting credits',
+        });
+      }
+
       // Auto-login
       if (newPlayer) {
         const token = crypto.randomUUID();

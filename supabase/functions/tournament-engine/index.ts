@@ -121,15 +121,25 @@ async function startTournament(supabase: any, body: any) {
     .update({ status: "Live", rounds_count: roundsCount })
     .eq("id", tournament_id);
 
-  // Grant starting credits
-  const creditEntries = players.map((p: any) => ({
-    tournament_id,
-    player_id: p.id,
-    type: "StartingGrant",
-    amount: tournament.starting_credits,
-    note: "Starting credits",
-  }));
-  await supabase.from("credit_ledger_entries").insert(creditEntries);
+  // Grant starting credits (skip players who already have a StartingGrant from join)
+  const { data: existingGrants } = await supabase
+    .from("credit_ledger_entries")
+    .select("player_id")
+    .eq("tournament_id", tournament_id)
+    .eq("type", "StartingGrant");
+  const alreadyGranted = new Set((existingGrants || []).map((e: any) => e.player_id));
+
+  const playersNeedingGrant = players.filter((p: any) => !alreadyGranted.has(p.id));
+  if (playersNeedingGrant.length > 0) {
+    const creditEntries = playersNeedingGrant.map((p: any) => ({
+      tournament_id,
+      player_id: p.id,
+      type: "StartingGrant",
+      amount: tournament.starting_credits,
+      note: "Starting credits",
+    }));
+    await supabase.from("credit_ledger_entries").insert(creditEntries);
+  }
 
   for (const p of players) {
     await supabase
