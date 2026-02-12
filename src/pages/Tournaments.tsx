@@ -168,6 +168,19 @@ export default function TournamentsPage() {
 
       if (error) throw error;
 
+      // Create StartingGrant ledger entry
+      if (newPlayer) {
+        await supabase.from('credit_ledger_entries').insert({
+          tournament_id: tournament.id,
+          player_id: newPlayer.id,
+          type: 'StartingGrant' as const,
+          amount: tournament.starting_credits,
+          note: 'Starting credits',
+        });
+      }
+
+      if (error) throw error;
+
       // Update session to point to the new tournament-specific player
       if (newPlayer) {
         const updatedSession = { ...session, playerId: newPlayer.id, tournamentId: tournament.id };
