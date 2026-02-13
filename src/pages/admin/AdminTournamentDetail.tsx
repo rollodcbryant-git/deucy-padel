@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { Tournament, Player, Round, Match, PledgeItem } from '@/lib/types';
-import { ArrowLeft, Loader2, RefreshCw, Settings, Users, Calendar, Swords, Coins, Gift, Gavel, Wrench, Zap, ClipboardList, Trophy } from 'lucide-react';
+import { ArrowLeft, Loader2, RefreshCw, Copy, Settings, Users, Calendar, Swords, Coins, Gift, Gavel, Wrench, Zap, ClipboardList, Trophy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 import AdminSetupSection from './sections/AdminSetupSection';
@@ -130,6 +130,16 @@ export default function AdminTournamentDetail() {
             <h1 className="text-lg font-bold truncate">{tournament.name}</h1>
             <StatusChip variant={getStatusVariant(tournament.status)} size="sm">{tournament.status}</StatusChip>
           </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+            const origin = window.location.origin;
+            const publishedUrl = (origin.includes('preview--') || origin.includes('lovable.dev'))
+              ? 'https://deucy-padel.lovable.app' : origin;
+            const link = `${publishedUrl}/?t=${tournament.id}`;
+            navigator.clipboard.writeText(link);
+            toast({ title: 'Invite link copied! 🔗' });
+          }}>
+            <Copy className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={loadData}>
             <RefreshCw className="h-4 w-4" />
           </Button>
