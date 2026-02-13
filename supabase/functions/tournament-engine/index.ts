@@ -71,6 +71,10 @@ Deno.serve(async (req) => {
         return await settleBetsForMatch(supabase, body);
       case "auto_match_remaining":
         return await autoMatchRemaining(supabase, body);
+      case "extend_round":
+        return await extendRound(supabase, body);
+      case "lock_round":
+        return await lockRound(supabase, body);
       default:
         return jsonResponse({ error: `Unknown action: ${action}` }, 400);
     }
@@ -1338,4 +1342,39 @@ async function autoMatchRemaining(supabase: any, body: any) {
     matches_created: result.matchCount,
     byes: result.byes.length,
   });
+}
+
+// ============================================================
+// EXTEND ROUND
+// ============================================================
+async function extendRound(supabase: any, body: any) {
+  const { round_id, days } = body;
+  if (!round_id || !days) throw new Error("round_id and days are required");
+
+  const { data: round } = await supabase
+    .from("rounds")
+    .select("*")
+    .eq("id", round_id)
+    .single();
+  if (!round) throw new Error("Round not found");
+  if (!round.end_at) throw new Error("Round has no end date");
+
+  const newEnd = new Date(new Date(round.end_at).getTime() + days * 24 * 60 * 60 * 1000);
+  await supabase.from("rounds").update({ end_at: newEnd.toISOString() }).eq("id", round_id);
+  await supabase.from("matches").update({ deadline_at: newEnd.toISOString() })
+    .eq("round_id", round_id)
+    .in("status", ["Scheduled", "BookingClaimed"]);
+
+  return jsonResponse({ success: true, new_end: newEnd.toISOString(), extended_by_days: days });
+}
+
+// ============================================================
+// LOCK ROUND
+// ============================================================
+async function lockRound(supabase: any, body: any) {
+  const { round_id } = body;
+  if (!round_id) throw new Error("round_id is required");
+
+  await supabase.from("rounds").update({ status: "Locked" }).eq("id", round_id);
+  return jsonResponse({ success: true, status: "Locked" });
 }

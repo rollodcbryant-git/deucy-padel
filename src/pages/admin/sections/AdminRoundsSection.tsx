@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
@@ -56,20 +55,11 @@ export default function AdminRoundsSection({ tournament, rounds, matches, onRelo
   const totalRoundsCount = tournament.rounds_count || 0;
 
   const extendRound = async (roundId: string, days: number) => {
-    const round = rounds.find(r => r.id === roundId);
-    if (!round?.end_at) return;
-    const newEnd = new Date(new Date(round.end_at).getTime() + days * 24 * 60 * 60 * 1000);
-    await supabase.from('rounds').update({ end_at: newEnd.toISOString() }).eq('id', roundId);
-    await supabase.from('matches').update({ deadline_at: newEnd.toISOString() })
-      .eq('round_id', roundId).in('status', ['Scheduled', 'BookingClaimed']);
-    toast({ title: `Extended by ${days} day(s)` });
-    onReload();
+    await callEngine('extend_round', { round_id: roundId, days });
   };
 
   const lockRound = async (roundId: string) => {
-    await supabase.from('rounds').update({ status: 'Locked' }).eq('id', roundId);
-    toast({ title: 'Round locked' });
-    onReload();
+    await callEngine('lock_round', { round_id: roundId });
   };
 
   const handleRegenerate = (roundId: string) => {
