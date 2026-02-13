@@ -20,7 +20,7 @@ type SortMode = 'random' | 'expensive' | 'newest';
 
 export default function AuctionHousePage() {
   const navigate = useNavigate();
-  const { player, tournament, session, isLoading } = usePlayer();
+  const { player, tournament, session, isLoading, refreshPlayer } = usePlayer();
 
   const [pledges, setPledges] = useState<PledgeItem[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -53,6 +53,7 @@ export default function AuctionHousePage() {
     setShowIntro(false);
     if (player) {
       await supabase.from('players').update({ has_seen_auction_intro: true }).eq('id', player.id);
+      await refreshPlayer();
     }
     if (action === 'pledge') {
       setShowForm(true);
