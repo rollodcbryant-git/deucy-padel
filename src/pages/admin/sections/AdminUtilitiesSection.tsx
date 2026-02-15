@@ -149,6 +149,11 @@ export default function AdminUtilitiesSection({ tournament, onReload, callEngine
         <Database className="mr-2 h-4 w-4" />Seed Demo (8 players + start)
       </Button>
 
+      <Button variant="outline" className="w-full justify-start text-primary border-primary/30"
+        onClick={() => callEngine('recalculate_balances')} disabled={isUpdating}>
+        <RotateCcw className="mr-2 h-4 w-4" />Rebuild Balances from History
+      </Button>
+
       <Button variant="outline" className="w-full justify-start text-destructive border-destructive/30"
         onClick={() => setShowResetDialog(true)} disabled={resetting}>
         <RotateCcw className="mr-2 h-4 w-4" />Reset Tournament (back to start)
