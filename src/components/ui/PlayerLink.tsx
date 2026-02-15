@@ -18,11 +18,11 @@ export function PlayerLink({ player, showAvatar = false, className, avatarClassN
   return (
     <button
       onClick={(e) => { e.stopPropagation(); navigate(`/player/${player.id}`); }}
-      className={cn('inline-flex items-center gap-2 hover:text-primary transition-colors text-left', className)}
+      className={cn('inline-flex items-center gap-2 hover:text-primary transition-colors text-left min-w-0', className)}
     >
-      {showAvatar && <PlayerAvatar player={player} className={avatarClassName} />}
+      {showAvatar && <PlayerAvatar player={player} className={cn('shrink-0', avatarClassName)} />}
       {children || (
-        <span className="font-semibold truncate max-w-[120px]">
+        <span className="font-semibold truncate max-w-[100px]">
           {player.full_name}
           {isSelf && <span className="text-primary ml-1">(you)</span>}
         </span>

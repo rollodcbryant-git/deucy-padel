@@ -55,7 +55,7 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
 
   if (!tournament.betting_enabled || !currentRound) return null;
 
-  // All values in whole € (integers)
+  // All values in cents
   const roundStaked = myBets.filter(b => b.status === 'Pending').reduce((sum, b) => sum + b.stake, 0);
 
   const handlePlaceBet = (match: MatchWithPlayers) => {
@@ -63,16 +63,18 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
     setShowBetDialog(true);
   };
 
-  const handleSubmitBet = async (matchId: string, predictedWinner: 'team_a' | 'team_b', stake: number) => {
+  // stake is in whole €, convert to cents for storage
+  const handleSubmitBet = async (matchId: string, predictedWinner: 'team_a' | 'team_b', stakeEuros: number) => {
     // Hard cap €5
-    if (stake > 5) {
+    if (stakeEuros > 5) {
       toast({ title: 'Easy tiger 🐯', description: 'Max €5 per bet.', variant: 'destructive' });
       return;
     }
 
-    const minProtected = tournament.min_protected_balance || 2;
-    if (player.credits_balance - stake < minProtected) {
-      toast({ title: 'Easy tiger 🐯', description: `Can't drop below €${minProtected} minimum balance.`, variant: 'destructive' });
+    const stakeCents = stakeEuros * 100;
+    const minProtected = tournament.min_protected_balance || 200;
+    if (player.credits_balance - stakeCents < minProtected) {
+      toast({ title: 'Easy tiger 🐯', description: `Can't drop below the minimum balance.`, variant: 'destructive' });
       return;
     }
 
@@ -82,7 +84,7 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
       tournament_id: tournament.id,
       round_id: currentRound!.id,
       predicted_winner: predictedWinner,
-      stake,
+      stake: stakeCents,
       status: 'Pending',
     });
 
@@ -91,7 +93,7 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
       return;
     }
 
-    await supabase.from('players').update({ credits_balance: player.credits_balance - stake }).eq('id', player.id);
+    await supabase.from('players').update({ credits_balance: player.credits_balance - stakeCents }).eq('id', player.id);
 
     await supabase.from('credit_ledger_entries').insert({
       tournament_id: tournament.id,
@@ -99,16 +101,17 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
       match_id: matchId,
       round_id: currentRound!.id,
       type: 'BetStake',
-      amount: -stake,
-      note: `Bet on ${predictedWinner === 'team_a' ? 'Team A' : 'Team B'}`,
+      amount: -stakeCents,
+      note: `Bet €${stakeEuros} on ${predictedWinner === 'team_a' ? 'Team A' : 'Team B'}`,
     });
 
-    toast({ title: 'Bet placed! 🎲', description: `€${stake} on the line (fake €)` });
+    toast({ title: 'Bet placed! 🎲', description: `€${stakeEuros} on the line (fake €)` });
     loadData();
   };
 
   const myWinnings = myBets.filter(b => b.status === 'Won').reduce((sum, b) => sum + (b.payout || 0), 0);
   const myLosses = myBets.filter(b => b.status === 'Lost').reduce((sum, b) => sum + b.stake, 0);
+  const fmtE = (cents: number) => `€${Math.round(cents / 100)}`;
 
   return (
     <div className="space-y-3">
@@ -118,7 +121,7 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
           Round Bets
         </h3>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-          <span>Budget: €{Math.max(0, (tournament.per_round_bet_cap || 5) - roundStaked)} left</span>
+          <span>Budget: {fmtE(Math.max(0, (tournament.per_round_bet_cap * 100 || 500) - roundStaked))} left</span>
         </div>
       </div>
 
@@ -126,8 +129,8 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
         <div className="rounded-lg bg-muted/30 p-2 flex items-center justify-between text-xs">
           <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Round results</span>
           <span>
-            {myWinnings > 0 && <span className="text-primary font-semibold mr-2">+€{myWinnings}</span>}
-            {myLosses > 0 && <span className="text-destructive font-semibold">-€{myLosses}</span>}
+            {myWinnings > 0 && <span className="text-primary font-semibold mr-2">+{fmtE(myWinnings)}</span>}
+            {myLosses > 0 && <span className="text-destructive font-semibold">-{fmtE(myLosses)}</span>}
           </span>
         </div>
       )}
@@ -158,8 +161,8 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
         onOpenChange={setShowBetDialog}
         match={selectedMatch}
         tournament={tournament}
-        availableBalance={player.credits_balance}
-        roundStakedSoFar={roundStaked}
+        availableBalance={Math.round(player.credits_balance / 100)}
+        roundStakedSoFar={Math.round(roundStaked / 100)}
         onSubmit={handleSubmitBet}
       />
     </div>

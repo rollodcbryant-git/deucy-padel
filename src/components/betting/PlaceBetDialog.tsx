@@ -39,8 +39,8 @@ export function PlaceBetDialog({
   if (!match) return null;
 
   const perBetMax = 5; // hard cap €5, always
-  const roundCap = tournament.per_round_bet_cap || 10;
-  const minProtected = tournament.min_protected_balance || 5;
+  const roundCap = tournament.per_round_bet_cap || 10; // whole euros
+  const minProtected = Math.round((tournament.min_protected_balance || 200) / 100); // convert cents to euros
   const multiplier = Number(tournament.payout_multiplier) || 2.0;
 
   const roundRemaining = Math.max(0, roundCap - roundStakedSoFar);

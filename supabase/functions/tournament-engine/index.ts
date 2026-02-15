@@ -1185,6 +1185,7 @@ async function autoSettleBets(
 
   for (const bet of pendingBets) {
     const isWinner = bet.predicted_winner === winner;
+    // stake is in cents, payout is stake * multiplier (also in cents)
     const payout = isWinner ? Math.round(bet.stake * multiplier) : 0;
     const now = new Date().toISOString();
 
@@ -1199,7 +1200,7 @@ async function autoSettleBets(
       .eq("id", bet.id);
 
     if (isWinner) {
-      // Credit payout to player
+      // Credit payout to player (payout is total return including stake)
       const { data: player } = await supabase
         .from("players")
         .select("credits_balance")
@@ -1220,7 +1221,7 @@ async function autoSettleBets(
         round_id: bet.round_id,
         type: "BetPayout",
         amount: payout,
-        note: `Bet won! ${multiplier}x payout`,
+        note: `Bet won! ${multiplier}x payout (+€${Math.round(payout / 100)})`,
       });
 
       bankChange -= payout;
@@ -1400,13 +1401,64 @@ async function recalculateBalances(supabase: any, body: any) {
     .eq("tournament_id", tournament_id);
   if (!players) throw new Error("No players found");
 
-  // Get all ledger entries for this tournament
-  const { data: ledger } = await supabase
-    .from("credit_ledger_entries")
+  // Fix legacy bet data: migrate any bets with small stake values (whole euros) to cents
+  // Heuristic: if stake < 100, it's likely in whole euros and needs *100
+  const { data: allBets } = await supabase
+    .from("match_bets")
     .select("*")
     .eq("tournament_id", tournament_id);
 
-  // Also re-settle any unsettled bets for played matches
+  let betsMigrated = 0;
+  for (const bet of allBets || []) {
+    if (bet.stake > 0 && bet.stake < 100) {
+      // This is likely in whole euros, convert to cents
+      const newStake = bet.stake * 100;
+      const newPayout = bet.payout ? bet.payout * 100 : bet.payout;
+      await supabase
+        .from("match_bets")
+        .update({ stake: newStake, payout: newPayout })
+        .eq("id", bet.id);
+      betsMigrated++;
+    }
+  }
+
+  // Fix legacy ledger entries: BetStake and BetPayout entries with small amounts
+  const { data: betLedger } = await supabase
+    .from("credit_ledger_entries")
+    .select("*")
+    .eq("tournament_id", tournament_id)
+    .in("type", ["BetStake", "BetPayout"]);
+
+  let ledgerFixed = 0;
+  for (const entry of betLedger || []) {
+    const absAmount = Math.abs(entry.amount);
+    if (absAmount > 0 && absAmount < 100) {
+      // Likely whole euros, convert to cents
+      const newAmount = entry.amount * 100;
+      await supabase
+        .from("credit_ledger_entries")
+        .update({ amount: newAmount })
+        .eq("id", entry.id);
+      ledgerFixed++;
+    }
+  }
+
+  // Also fix MatchStake entries (legacy set-loss deductions) by removing them
+  // since players should NOT lose € for losing sets
+  const { data: matchStakeEntries } = await supabase
+    .from("credit_ledger_entries")
+    .select("id")
+    .eq("tournament_id", tournament_id)
+    .eq("type", "MatchStake");
+
+  let matchStakesRemoved = 0;
+  if (matchStakeEntries && matchStakeEntries.length > 0) {
+    const ids = matchStakeEntries.map((e: any) => e.id);
+    await supabase.from("credit_ledger_entries").delete().in("id", ids);
+    matchStakesRemoved = ids.length;
+  }
+
+  // Re-settle any unsettled bets for played matches
   const { data: pendingBets } = await supabase
     .from("match_bets")
     .select("*")
@@ -1415,7 +1467,6 @@ async function recalculateBalances(supabase: any, body: any) {
 
   let betsResettled = 0;
   if (pendingBets && pendingBets.length > 0) {
-    // Get played matches
     const matchIds = [...new Set(pendingBets.map((b: any) => b.match_id))];
     const { data: matches } = await supabase
       .from("matches")
@@ -1462,7 +1513,6 @@ async function recalculateBalances(supabase: any, body: any) {
   }
 
   // Now recalculate each player's balance from the full ledger
-  // Re-fetch ledger after potential new entries
   const { data: fullLedger } = await supabase
     .from("credit_ledger_entries")
     .select("*")
@@ -1493,5 +1543,8 @@ async function recalculateBalances(supabase: any, body: any) {
     players_checked: players.length,
     players_updated: playersUpdated,
     bets_resettled: betsResettled,
+    bets_migrated_to_cents: betsMigrated,
+    ledger_entries_fixed: ledgerFixed,
+    match_stakes_removed: matchStakesRemoved,
   });
 }

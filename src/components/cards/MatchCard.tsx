@@ -66,9 +66,9 @@ export function MatchCard({
   const renderPlayerWithPledge = (player: Player | undefined) => {
     if (!player) return <span className="font-semibold text-muted-foreground">TBD</span>;
     return (
-      <div className="flex items-center gap-2 min-w-0">
-        <PlayerLink player={player} showAvatar avatarClassName="h-8 w-8" className="font-medium min-w-0 flex-shrink" />
-        {round && <PledgeIndicator pledge={roundPledges[player.id]} />}
+      <div className="flex items-center gap-1.5 min-w-0">
+        <PlayerLink player={player} showAvatar avatarClassName="h-7 w-7" className="font-medium min-w-0 flex-shrink truncate" />
+        {round && <PledgeIndicator pledge={roundPledges[player.id]} className="shrink-0" />}
       </div>
     );
   };
