@@ -238,7 +238,7 @@ export function TournamentLobbyCard({
                   <span className="text-xs font-bold text-muted-foreground w-5">#{i + 1}</span>
                   <PlayerAvatar player={p} className="h-6 w-6 text-[9px]" />
                   <span className="text-sm font-medium truncate flex-1">{p.full_name}</span>
-                  <span className="text-sm text-primary font-semibold">{p.sets_won} SW</span>
+                  <span className="text-sm text-primary font-semibold">{p.sets_won}</span>
                 </div>
               ))}
             </div>
