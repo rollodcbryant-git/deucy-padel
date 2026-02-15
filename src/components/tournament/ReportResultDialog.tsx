@@ -39,7 +39,7 @@ export function ReportResultDialog({ open, onOpenChange, onSubmit }: ReportResul
       return;
     }
 
-    const hasWinner = a === 2 || b === 2;
+    const hasWinner = (a >= 2 && a > b) || (b >= 2 && b > a);
     if (!isUnfinished && !hasWinner) {
       toast({ title: 'Invalid score', description: 'One team must win 2 sets (or mark as unfinished)', variant: 'destructive' });
       return;
