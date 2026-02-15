@@ -68,7 +68,7 @@ export function TournamentLobbyCard({
     if (!isLiveCard) return;
     const load = async () => {
       const [playersRes, roundsRes] = await Promise.all([
-        supabase.from('players').select('*').eq('tournament_id', tournament.id).eq('status', 'Active').order('credits_balance', { ascending: false }).limit(3),
+        supabase.from('players').select('*').eq('tournament_id', tournament.id).eq('status', 'Active').order('sets_won', { ascending: false }).limit(3),
         supabase.from('rounds').select('*').eq('tournament_id', tournament.id).order('index', { ascending: true }),
       ]);
       setTopPlayers((playersRes.data || []) as Player[]);
@@ -230,7 +230,7 @@ export function TournamentLobbyCard({
         {topPlayers.length > 0 && (
           <div className="space-y-2">
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Trophy className="h-3.5 w-3.5 text-chaos-orange" /> Top (€ balance)
+              <Trophy className="h-3.5 w-3.5 text-chaos-orange" /> Top (Sets Won)
             </p>
             <div className="flex flex-col gap-1.5">
               {topPlayers.map((p, i) => (
@@ -238,7 +238,7 @@ export function TournamentLobbyCard({
                   <span className="text-xs font-bold text-muted-foreground w-5">#{i + 1}</span>
                   <PlayerAvatar player={p} className="h-6 w-6 text-[9px]" />
                   <span className="text-sm font-medium truncate flex-1">{p.full_name}</span>
-                  <span className="text-sm text-primary font-semibold">{formatEuros(p.credits_balance)}</span>
+                  <span className="text-sm text-primary font-semibold">{p.sets_won} SW</span>
                 </div>
               ))}
             </div>

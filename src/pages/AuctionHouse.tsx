@@ -43,7 +43,8 @@ export default function AuctionHousePage() {
     }
     if (tournament && player) {
       loadData();
-      if (!player.has_seen_auction_intro) {
+      const dismissed = localStorage.getItem(`auction_intro_dismissed_${player.id}`);
+      if (!player.has_seen_auction_intro && !dismissed) {
         setShowIntro(true);
       }
     }
@@ -164,6 +165,11 @@ export default function AuctionHousePage() {
         onViewGallery={() => handleIntroComplete('view')}
         onAddPledge={() => handleIntroComplete('pledge')}
         onSkip={() => handleIntroComplete('skip')}
+        onDontShowAgain={() => {
+          if (player) {
+            localStorage.setItem(`auction_intro_dismissed_${player.id}`, 'true');
+          }
+        }}
       />
       <PageLayout
         header={
