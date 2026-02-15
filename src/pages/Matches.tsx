@@ -8,11 +8,17 @@ import { usePlayer } from '@/contexts/PlayerContext';
 import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { supabase } from '@/integrations/supabase/client';
 import type { MatchWithPlayers, Round, Player } from '@/lib/types';
-import { Calendar, Lock } from 'lucide-react';
-import { TournamentProgressAccordion } from '@/components/tournament/TournamentProgressAccordion';
-import { ReportResultDialog } from '@/components/tournament/ReportResultDialog';
+import { Calendar, Lock, ChevronDown, ChevronUp } from 'lucide-react';
+import { MatchCard } from '@/components/cards/MatchCard';
+import { RoundTimeline } from '@/components/tournament/RoundTimeline';
 import { RoundBetsSection } from '@/components/betting/RoundBetsSection';
+import { CountdownTimer } from '@/components/ui/CountdownTimer';
+
+import { ReportResultDialog } from '@/components/tournament/ReportResultDialog';
+import { useRoundSummaries } from '@/hooks/useRoundSummaries';
+import { useRoundPledges } from '@/hooks/useRoundPledges';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export default function MatchesPage() {
   const navigate = useNavigate();
@@ -25,50 +31,51 @@ export default function MatchesPage() {
   const [selectedMatch, setSelectedMatch] = useState<MatchWithPlayers | null>(null);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [playerCount, setPlayerCount] = useState(0);
+  const [showBets, setShowBets] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
+  const [betsCount, setBetsCount] = useState(0);
 
   const isEnrolled = !!player && !!tournament;
+
+  const liveRound = rounds.find(r => r.status === 'Live') || null;
+  const myLiveMatches = liveRound ? (matches.get(liveRound.id) || []) : [];
+  const myActiveMatch = myLiveMatches.find(m => m.status !== 'Played' && m.status !== 'AutoResolved') || myLiveMatches[0] || null;
+
+  const summaries = useRoundSummaries(rounds, matches, player?.id || '');
+  const { pledges: roundPledges, refresh: refreshPledges } = useRoundPledges(tournament?.id, liveRound?.id);
 
   useEffect(() => {
     if (!isLoading && !session) { navigate('/'); return; }
     if (tournament && player) loadMatches();
   }, [session, tournament, player, isLoading, navigate]);
 
+  // Load bet count for active match
+  useEffect(() => {
+    if (!myActiveMatch || myActiveMatch.is_bye) return;
+    supabase.from('match_bets').select('id', { count: 'exact', head: true }).eq('match_id', myActiveMatch.id)
+      .then(({ count }) => setBetsCount(count || 0));
+  }, [myActiveMatch?.id]);
+
   const loadMatches = async () => {
     if (!tournament || !player) return;
 
-    // Get active player count
-    const { count } = await supabase
-      .from('players')
-      .select('id', { count: 'exact', head: true })
-      .eq('tournament_id', tournament.id)
-      .eq('status', 'Active');
+    const { count } = await supabase.from('players').select('id', { count: 'exact', head: true }).eq('tournament_id', tournament.id).eq('status', 'Active');
     setPlayerCount(count || 0);
 
-    const { data: roundsData } = await supabase
-      .from('rounds').select('*').eq('tournament_id', tournament.id)
-      .order('index', { ascending: true });
+    const { data: roundsData } = await supabase.from('rounds').select('*').eq('tournament_id', tournament.id).order('index', { ascending: true });
     setRounds((roundsData || []) as Round[]);
 
-    // Auto-match: if there's a live round, trigger auto_match_remaining silently
-    const liveRound = (roundsData || []).find((r: any) => r.status === 'Live');
-    if (liveRound) {
+    const liveR = (roundsData || []).find((r: any) => r.status === 'Live');
+    if (liveR) {
       try {
         await supabase.functions.invoke('tournament-engine', {
-          body: {
-            action: 'auto_match_remaining',
-            tournament_id: tournament.id,
-            round_id: liveRound.id,
-          },
+          body: { action: 'auto_match_remaining', tournament_id: tournament.id, round_id: liveR.id },
         });
-      } catch (e) {
-        console.log('Auto-match check:', e);
-      }
+      } catch (e) { console.log('Auto-match check:', e); }
     }
 
-    const { data: matchesData } = await supabase
-      .from('matches').select('*').eq('tournament_id', tournament.id)
+    const { data: matchesData } = await supabase.from('matches').select('*').eq('tournament_id', tournament.id)
       .or(`team_a_player1_id.eq.${player.id},team_a_player2_id.eq.${player.id},team_b_player1_id.eq.${player.id},team_b_player2_id.eq.${player.id},bye_player_id.eq.${player.id}`);
-
     if (!matchesData) return;
 
     const playerIds = new Set<string>();
@@ -114,10 +121,7 @@ export default function MatchesPage() {
   };
 
   const handleCopyContacts = (match: MatchWithPlayers) => {
-    const allPlayers = [
-      match.team_a_player1, match.team_a_player2,
-      match.team_b_player1, match.team_b_player2,
-    ].filter(Boolean) as Player[];
+    const allPlayers = [match.team_a_player1, match.team_a_player2, match.team_b_player1, match.team_b_player2].filter(Boolean) as Player[];
     const text = allPlayers.map(p => `${p.full_name}: ${p.phone}`).join('\n');
     navigator.clipboard.writeText(text);
     toast({ title: 'Contacts copied! 📋', description: 'Paste into your WhatsApp group' });
@@ -126,14 +130,7 @@ export default function MatchesPage() {
   const handleSubmitResult = async (setsA: number, setsB: number, isUnfinished: boolean) => {
     if (!selectedMatch || !player) return;
     const { data, error } = await supabase.functions.invoke('tournament-engine', {
-      body: {
-        action: 'process_match_result',
-        match_id: selectedMatch.id,
-        sets_a: setsA,
-        sets_b: setsB,
-        is_unfinished: isUnfinished,
-        player_id: player.id,
-      },
+      body: { action: 'process_match_result', match_id: selectedMatch.id, sets_a: setsA, sets_b: setsB, is_unfinished: isUnfinished, player_id: player.id },
     });
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
@@ -152,6 +149,7 @@ export default function MatchesPage() {
   }
 
   const pledgeMissing = isEnrolled && pledgeStatus === 'missing';
+  const roundsCount = tournament?.rounds_count || 3;
 
   return (
     <>
@@ -170,6 +168,7 @@ export default function MatchesPage() {
       >
         {isEnrolled ? (
           <div className="space-y-4">
+            {/* Pledge missing warning */}
             {pledgeMissing && (
               <Card className="chaos-card border-chaos-orange/50 bg-chaos-orange/5">
                 <CardContent className="p-5 flex items-center gap-4">
@@ -178,34 +177,134 @@ export default function MatchesPage() {
                     <p className="font-semibold text-chaos-orange">Locked until pledge submitted</p>
                     <p className="text-xs text-muted-foreground">Add your pledge to be scheduled for matches</p>
                   </div>
-                  <Button size="sm" onClick={() => navigate('/complete-entry')}
-                    className="bg-gradient-primary hover:opacity-90 shrink-0">
+                  <Button size="sm" onClick={() => navigate('/complete-entry')} className="bg-gradient-primary hover:opacity-90 shrink-0">
                     Add Pledge
                   </Button>
                 </CardContent>
               </Card>
             )}
 
-            <TournamentProgressAccordion
-              tournament={tournament!}
-              player={player!}
-              rounds={rounds}
-              matchesByRound={matches}
-              onClaimBooking={handleClaimBooking}
-              onReportResult={handleReportResult}
-              onCopyContacts={handleCopyContacts}
-            />
+            {/* A) YOUR MATCH - always expanded */}
+            {myActiveMatch && !myActiveMatch.is_bye && (
+              <MatchCard
+                match={myActiveMatch}
+                currentPlayerId={player!.id}
+                round={liveRound || undefined}
+                tournament={tournament!}
+                roundPledges={roundPledges}
+                betsCount={betsCount}
+                onClaimBooking={() => handleClaimBooking(myActiveMatch)}
+                onReportResult={() => handleReportResult(myActiveMatch)}
+                onPledgeSaved={refreshPledges}
+              />
+            )}
 
-            {/* Round Bets section - visually distinct */}
-            {tournament!.betting_enabled && (
-              <div className="mt-6 pt-4 border-t-2 border-primary/20">
-                <div className="rounded-xl bg-muted/30 border border-border p-4">
-                  <RoundBetsSection
+            {myActiveMatch?.is_bye && (
+              <Card className="chaos-card border-accent/30">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl mb-2">😎</div>
+                  <p className="text-accent font-medium">Bye Round</p>
+                  <p className="text-sm text-muted-foreground">Enjoy the rest!</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* No match yet */}
+            {!myActiveMatch && liveRound && (() => {
+              const remainder = (tournament!.max_players > 0 ? Math.min(playerCount, tournament!.max_players) : playerCount) % 4;
+              if (remainder === 0) return null;
+              const needed = 4 - remainder;
+              return (
+                <Card className="chaos-card border-primary/20 bg-primary/5">
+                  <CardContent className="p-4 text-center space-y-1">
+                    <p className="text-sm font-medium">⏳ Waiting for {needed} more player{needed > 1 ? 's' : ''}</p>
+                    <p className="text-xs text-muted-foreground">Matches need groups of 4.</p>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {/* B) TOURNAMENT PROGRESS - compact collapsible */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowProgress(!showProgress)}
+                className="w-full flex items-center justify-between text-sm"
+              >
+                <span className="font-semibold text-muted-foreground uppercase tracking-wide text-xs">Tournament Progress</span>
+                {showProgress ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+
+              {/* Compact progress strip always visible */}
+              <div className="flex items-center gap-1.5 py-1 overflow-x-auto">
+                {Array.from({ length: roundsCount }, (_, i) => {
+                  const rd = rounds.find(r => r.index === i + 1 && !r.is_playoff);
+                  const status = rd?.status || 'Upcoming';
+                  const isCurrent = status === 'Live';
+                  const isCompleted = status === 'Completed' || status === 'Locked';
+                  return (
+                    <div key={i} className="flex items-center gap-1 shrink-0">
+                      <div className={cn(
+                        'text-[10px] font-bold px-2 py-1 rounded-md border whitespace-nowrap',
+                        isCurrent && 'bg-primary/20 border-primary/40 text-primary',
+                        isCompleted && 'bg-muted/60 border-border text-muted-foreground line-through',
+                        !isCurrent && !isCompleted && 'bg-muted/30 border-border/50 text-muted-foreground/50',
+                      )}>
+                        Round {i + 1}
+                      </div>
+                      {i < roundsCount - 1 && <span className="text-muted-foreground/40 text-[10px]">→</span>}
+                    </div>
+                  );
+                })}
+                {tournament!.playoffs_enabled && (
+                  <>
+                    <span className="text-muted-foreground/40 text-[10px]">→</span>
+                    <div className="text-[10px] font-bold px-2 py-1 rounded-md border bg-chaos-orange/10 border-chaos-orange/30 text-chaos-orange shrink-0">🏆 Finals</div>
+                  </>
+                )}
+              </div>
+
+              {liveRound?.end_at && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  ⏳ Round {liveRound.index} ends in <CountdownTimer targetDate={liveRound.end_at} variant="compact" className="text-xs inline font-medium text-foreground" />
+                </div>
+              )}
+
+              {/* Full round timeline when expanded */}
+              {showProgress && (
+                <div className="animate-in slide-in-from-top-2 duration-200 pt-2">
+                  <RoundTimeline
+                    summaries={summaries}
+                    currentPlayerId={player!.id}
                     tournament={tournament!}
-                    player={player!}
-                    currentRound={rounds.find(r => r.status === 'Live') || null}
+                    onClaimBooking={handleClaimBooking}
+                    onReportResult={handleReportResult}
+                    onCopyContacts={handleCopyContacts}
                   />
                 </div>
+              )}
+            </div>
+
+            {/* C) ROUND BETS - collapsed by default */}
+            {tournament!.betting_enabled && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => setShowBets(!showBets)}
+                  className="w-full flex items-center justify-between rounded-xl bg-muted/30 border border-border p-3"
+                >
+                  <span className="font-semibold text-sm flex items-center gap-2">
+                    🎲 Round Bets
+                  </span>
+                  {showBets ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                </button>
+                {showBets && (
+                  <div className="animate-in slide-in-from-top-2 duration-200 rounded-xl bg-muted/30 border border-border p-4">
+                    <RoundBetsSection
+                      tournament={tournament!}
+                      player={player!}
+                      currentRound={liveRound}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -216,44 +315,14 @@ export default function MatchesPage() {
                 <p className="text-sm text-muted-foreground">Matches will appear when the tournament starts</p>
               </div>
             )}
-
-            {/* Waiting for more players notice */}
-            {rounds.length > 0 && tournament && (() => {
-              const liveRound = rounds.find(r => r.status === 'Live');
-              if (!liveRound) return null;
-              const myMatches = matches.get(liveRound.id) || [];
-              if (myMatches.length > 0) return null;
-              // Count active players
-              const remainder = (tournament.max_players > 0 ? Math.min(playerCount, tournament.max_players) : playerCount) % 4;
-              if (remainder === 0) return null;
-              const needed = 4 - remainder;
-              return (
-                <Card className="chaos-card border-primary/20 bg-primary/5">
-                  <CardContent className="p-4 text-center space-y-1">
-                    <p className="text-sm font-medium">⏳ Waiting for {needed} more player{needed > 1 ? 's' : ''}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Matches need groups of 4. Once {needed} more join{needed > 1 ? '' : 's'}, your match will be created.
-                    </p>
-                  </CardContent>
-                </Card>
-              );
-            })()}
           </div>
         ) : (
           <Card className="chaos-card">
             <CardContent className="p-8 text-center space-y-4">
               <div className="text-4xl">🎾</div>
               <p className="font-semibold">No active tournament</p>
-              <p className="text-sm text-muted-foreground">
-                Join a tournament to start playing
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => navigate('/tournaments')}
-                className="mt-2"
-              >
-                Browse Tournaments
-              </Button>
+              <p className="text-sm text-muted-foreground">Join a tournament to start playing</p>
+              <Button variant="outline" onClick={() => navigate('/tournaments')} className="mt-2">Browse Tournaments</Button>
             </CardContent>
           </Card>
         )}
