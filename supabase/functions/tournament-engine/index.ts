@@ -1405,7 +1405,7 @@ async function lockRound(supabase: any, body: any) {
 }
 
 // ============================================================
-// RECALCULATE BALANCES FROM LEDGER (admin utility)
+// REBUILD BALANCES FROM HISTORY (wipe + recalculate)
 // ============================================================
 async function recalculateBalances(supabase: any, body: any) {
   const { tournament_id } = body;
@@ -1418,147 +1418,186 @@ async function recalculateBalances(supabase: any, body: any) {
     .single();
   if (!tournament) throw new Error("Tournament not found");
 
-  // Get all players in the tournament
   const { data: players } = await supabase
     .from("players")
     .select("*")
     .eq("tournament_id", tournament_id);
-  if (!players) throw new Error("No players found");
+  if (!players || players.length === 0) throw new Error("No players found");
 
-  // Fix legacy bet data: migrate any bets with small stake values (whole euros) to cents
-  // Heuristic: if stake < 100, it's likely in whole euros and needs *100
+  // 1) WIPE all existing ledger entries for this tournament
+  await supabase
+    .from("credit_ledger_entries")
+    .delete()
+    .eq("tournament_id", tournament_id);
+
+  const winPerSet = tournament.euros_per_set_win || 300; // cents per set won
+  const multiplier = Number(tournament.payout_multiplier) || 2.0;
+  const startingCredits = tournament.starting_credits || 2000;
+
+  const newLedger: any[] = [];
+  const issues: string[] = [];
+
+  // 2) StartingGrant for every player
+  for (const p of players) {
+    newLedger.push({
+      tournament_id,
+      player_id: p.id,
+      type: "StartingGrant",
+      amount: startingCredits,
+      note: "Starting balance",
+    });
+  }
+
+  // 3) Match payouts from actual results
+  const { data: playedMatches } = await supabase
+    .from("matches")
+    .select("*")
+    .eq("tournament_id", tournament_id)
+    .in("status", ["Played", "AutoResolved"])
+    .eq("is_bye", false);
+
+  for (const match of playedMatches || []) {
+    const teamAIds = [match.team_a_player1_id, match.team_a_player2_id].filter(Boolean);
+    const teamBIds = [match.team_b_player1_id, match.team_b_player2_id].filter(Boolean);
+
+    // Team A players earn for sets_a, Team B for sets_b
+    if (match.sets_a > 0) {
+      for (const pid of teamAIds) {
+        const earnings = match.sets_a * winPerSet;
+        newLedger.push({
+          tournament_id,
+          player_id: pid,
+          match_id: match.id,
+          round_id: match.round_id,
+          type: "MatchPayout",
+          amount: earnings,
+          note: `+€${(earnings / 100).toFixed(0)} (${match.sets_a} set${match.sets_a > 1 ? 's' : ''} won)`,
+        });
+      }
+    }
+    if (match.sets_b > 0) {
+      for (const pid of teamBIds) {
+        const earnings = match.sets_b * winPerSet;
+        newLedger.push({
+          tournament_id,
+          player_id: pid,
+          match_id: match.id,
+          round_id: match.round_id,
+          type: "MatchPayout",
+          amount: earnings,
+          note: `+€${(earnings / 100).toFixed(0)} (${match.sets_b} set${match.sets_b > 1 ? 's' : ''} won)`,
+        });
+      }
+    }
+
+    // Check: played match should have at least one set
+    if (match.sets_a === 0 && match.sets_b === 0 && match.status === "Played") {
+      issues.push(`Match ${match.id} played but 0-0 score`);
+    }
+  }
+
+  // 4) Betting outcomes from settled bets only
   const { data: allBets } = await supabase
     .from("match_bets")
     .select("*")
     .eq("tournament_id", tournament_id);
 
-  let betsMigrated = 0;
+  // First, re-settle any pending bets for played matches
   for (const bet of allBets || []) {
-    if (bet.stake > 0 && bet.stake < 100) {
-      // This is likely in whole euros, convert to cents
-      const newStake = bet.stake * 100;
-      const newPayout = bet.payout ? bet.payout * 100 : bet.payout;
-      await supabase
-        .from("match_bets")
-        .update({ stake: newStake, payout: newPayout })
-        .eq("id", bet.id);
-      betsMigrated++;
-    }
-  }
-
-  // Fix legacy ledger entries: BetStake and BetPayout entries with small amounts
-  const { data: betLedger } = await supabase
-    .from("credit_ledger_entries")
-    .select("*")
-    .eq("tournament_id", tournament_id)
-    .in("type", ["BetStake", "BetPayout"]);
-
-  let ledgerFixed = 0;
-  for (const entry of betLedger || []) {
-    const absAmount = Math.abs(entry.amount);
-    if (absAmount > 0 && absAmount < 100) {
-      // Likely whole euros, convert to cents
-      const newAmount = entry.amount * 100;
-      await supabase
-        .from("credit_ledger_entries")
-        .update({ amount: newAmount })
-        .eq("id", entry.id);
-      ledgerFixed++;
-    }
-  }
-
-  // Also fix MatchStake entries (legacy set-loss deductions) by removing them
-  // since players should NOT lose € for losing sets
-  const { data: matchStakeEntries } = await supabase
-    .from("credit_ledger_entries")
-    .select("id")
-    .eq("tournament_id", tournament_id)
-    .eq("type", "MatchStake");
-
-  let matchStakesRemoved = 0;
-  if (matchStakeEntries && matchStakeEntries.length > 0) {
-    const ids = matchStakeEntries.map((e: any) => e.id);
-    await supabase.from("credit_ledger_entries").delete().in("id", ids);
-    matchStakesRemoved = ids.length;
-  }
-
-  // Re-settle any unsettled bets for played matches
-  const { data: pendingBets } = await supabase
-    .from("match_bets")
-    .select("*")
-    .eq("tournament_id", tournament_id)
-    .eq("status", "Pending");
-
-  let betsResettled = 0;
-  if (pendingBets && pendingBets.length > 0) {
-    const matchIds = [...new Set(pendingBets.map((b: any) => b.match_id))];
-    const { data: matches } = await supabase
-      .from("matches")
-      .select("*")
-      .in("id", matchIds)
-      .eq("status", "Played");
-
-    for (const match of matches || []) {
-      const matchBets = pendingBets.filter((b: any) => b.match_id === match.id);
-      if (matchBets.length === 0) continue;
-
-      const multiplier = Number(tournament.payout_multiplier) || 2.0;
-      const winner = match.sets_a > match.sets_b ? "team_a" : "team_b";
-
-      for (const bet of matchBets) {
+    if (bet.status === "Pending") {
+      // Check if match is played
+      const match = (playedMatches || []).find((m: any) => m.id === bet.match_id);
+      if (match) {
+        const winner = match.sets_a > match.sets_b ? "team_a" : "team_b";
         const isWinner = bet.predicted_winner === winner;
         const payout = isWinner ? Math.round(bet.stake * multiplier) : 0;
-        const now = new Date().toISOString();
-
         await supabase
           .from("match_bets")
           .update({
             status: isWinner ? "Won" : "Lost",
-            payout: isWinner ? payout : 0,
-            settled_at: now,
+            payout,
+            settled_at: new Date().toISOString(),
           })
           .eq("id", bet.id);
-
-        if (isWinner) {
-          await supabase.from("credit_ledger_entries").insert({
-            tournament_id,
-            player_id: bet.player_id,
-            match_id: bet.match_id,
-            round_id: bet.round_id,
-            type: "BetPayout",
-            amount: payout,
-            note: `Bet won! ${multiplier}x payout (recalc)`,
-          });
-        }
-
-        betsResettled++;
+        bet.status = isWinner ? "Won" : "Lost";
+        bet.payout = payout;
       }
     }
   }
 
-  // Now recalculate each player's balance from the full ledger
-  const { data: fullLedger } = await supabase
-    .from("credit_ledger_entries")
-    .select("*")
-    .eq("tournament_id", tournament_id);
+  // Now create ledger entries for all settled bets
+  for (const bet of allBets || []) {
+    if (bet.status === "Won") {
+      // Profit = payout - stake (since stake was never deducted)
+      const profit = (bet.payout || Math.round(bet.stake * multiplier)) - bet.stake;
+      newLedger.push({
+        tournament_id,
+        player_id: bet.player_id,
+        match_id: bet.match_id,
+        round_id: bet.round_id,
+        type: "BetPayout",
+        amount: profit,
+        note: `+€${(profit / 100).toFixed(0)} bet profit (${multiplier}x)`,
+      });
+    } else if (bet.status === "Lost") {
+      newLedger.push({
+        tournament_id,
+        player_id: bet.player_id,
+        match_id: bet.match_id,
+        round_id: bet.round_id,
+        type: "BetStake",
+        amount: -bet.stake,
+        note: `-€${(bet.stake / 100).toFixed(0)} lost bet`,
+      });
+    }
+    // Pending bets for unplayed matches: no ledger entry yet
 
-  const ledgerByPlayer = new Map<string, number>();
-  for (const entry of fullLedger || []) {
-    ledgerByPlayer.set(
-      entry.player_id,
-      (ledgerByPlayer.get(entry.player_id) || 0) + entry.amount,
-    );
+    // Validate: settled bet but no matching played match
+    if ((bet.status === "Won" || bet.status === "Lost") && bet.settled_at) {
+      const match = (playedMatches || []).find((m: any) => m.id === bet.match_id);
+      if (!match) {
+        issues.push(`Bet ${bet.id} settled but match not found/played`);
+      }
+    }
+  }
+
+  // 5) Insert all new ledger entries
+  if (newLedger.length > 0) {
+    // Insert in batches of 50 to avoid payload limits
+    for (let i = 0; i < newLedger.length; i += 50) {
+      const batch = newLedger.slice(i, i + 50);
+      await supabase.from("credit_ledger_entries").insert(batch);
+    }
+  }
+
+  // 6) Compute and set balances
+  const balanceMap = new Map<string, number>();
+  for (const entry of newLedger) {
+    balanceMap.set(entry.player_id, (balanceMap.get(entry.player_id) || 0) + entry.amount);
   }
 
   let playersUpdated = 0;
-  for (const player of players) {
-    const computedBalance = ledgerByPlayer.get(player.id) || 0;
-    if (computedBalance !== player.credits_balance) {
-      await supabase
-        .from("players")
-        .update({ credits_balance: computedBalance })
-        .eq("id", player.id);
-      playersUpdated++;
+  const playerReport: any[] = [];
+  for (const p of players) {
+    const computed = balanceMap.get(p.id) || 0;
+    const old = p.credits_balance;
+    if (computed !== old) playersUpdated++;
+
+    await supabase
+      .from("players")
+      .update({ credits_balance: computed })
+      .eq("id", p.id);
+
+    playerReport.push({
+      name: p.full_name,
+      old_balance: old,
+      new_balance: computed,
+      changed: computed !== old,
+    });
+
+    // Validate: negative balance
+    if (computed < 0) {
+      issues.push(`${p.full_name} has negative balance: ${computed}`);
     }
   }
 
@@ -1566,9 +1605,9 @@ async function recalculateBalances(supabase: any, body: any) {
     success: true,
     players_checked: players.length,
     players_updated: playersUpdated,
-    bets_resettled: betsResettled,
-    bets_migrated_to_cents: betsMigrated,
-    ledger_entries_fixed: ledgerFixed,
-    match_stakes_removed: matchStakesRemoved,
+    ledger_entries_created: newLedger.length,
+    issues_flagged: issues.length,
+    issues,
+    player_report: playerReport,
   });
 }

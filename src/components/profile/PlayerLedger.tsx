@@ -14,13 +14,12 @@ interface PlayerLedgerProps {
 
 const typeLabels: Record<string, string> = {
   StartingGrant: '🎁 Starting balance',
-  ParticipationBonus: '🎾 Round bonus',
-  MatchPayout: '💶 Sets won',
-  MatchStake: '📉 Match loss',
+  MatchPayout: '🎾 Set win',
+  BetStake: '🎲 Lost bet',
+  BetPayout: '🎲 Won bet',
   Penalty: '⚠️ Penalty',
   AdminAdjustment: '🔧 Admin adjustment',
-  BetStake: '🎲 Bet placed',
-  BetPayout: '🎲 Bet won!',
+  ParticipationBonus: '🎾 Round bonus',
   AuctionHold: '🔒 Auction hold',
   AuctionRelease: '🔓 Auction release',
   AuctionSettlement: '🔨 Auction win',
