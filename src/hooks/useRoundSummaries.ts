@@ -47,8 +47,8 @@ export function useRoundSummaries(
         else matchResult = 'draw';
       }
 
-      // Approximate net credits from sets (euros_per_set_win/loss are tournament-level)
-      const playerNetCredits = (playerSetsWon - playerSetsLost) * 200; // default cents per set
+      // Net credits: only sets WON earn credits (300 cents per set won by default, no loss deduction)
+      const playerNetCredits = playerSetsWon * 300;
 
       return {
         round,

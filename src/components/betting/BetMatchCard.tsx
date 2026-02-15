@@ -43,7 +43,8 @@ export function BetMatchCard({
   const myBet = existingBets.find(b => b.player_id === currentPlayerId && b.match_id === match.id);
   const canBet = !isInMatch && !isSettled && !bettingLocked && !myBet;
 
-  // Betting market totals
+  // Betting market totals (values in cents, display as whole €)
+  const fmtE = (cents: number) => `€${Math.round(cents / 100)}`;
   const totalTeamA = existingBets.filter(b => b.predicted_winner === 'team_a').reduce((s, b) => s + b.stake, 0);
   const totalTeamB = existingBets.filter(b => b.predicted_winner === 'team_b').reduce((s, b) => s + b.stake, 0);
   const totalStaked = totalTeamA + totalTeamB;
@@ -88,20 +89,20 @@ export function BetMatchCard({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex-1 space-y-0.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex-1 space-y-0.5 min-w-0">
             <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Team A</p>
             <div className="flex flex-col gap-0.5">
-              {match.team_a_player1 && <PlayerLink player={match.team_a_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />}
-              {match.team_a_player2 && <PlayerLink player={match.team_a_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />}
+              {match.team_a_player1 && <PlayerLink player={match.team_a_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium min-w-0" />}
+              {match.team_a_player2 && <PlayerLink player={match.team_a_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium min-w-0" />}
             </div>
           </div>
-          <div className="text-xs font-bold text-muted-foreground px-2">VS</div>
-          <div className="flex-1 space-y-0.5 text-right">
+          <div className="text-xs font-bold text-muted-foreground px-2 shrink-0">VS</div>
+          <div className="flex-1 space-y-0.5 text-right min-w-0">
             <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Team B</p>
             <div className="flex flex-col gap-0.5 items-end">
-              {match.team_b_player1 && <PlayerLink player={match.team_b_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />}
-              {match.team_b_player2 && <PlayerLink player={match.team_b_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium" />}
+              {match.team_b_player1 && <PlayerLink player={match.team_b_player1} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium min-w-0" />}
+              {match.team_b_player2 && <PlayerLink player={match.team_b_player2} showAvatar avatarClassName="h-5 w-5" className="text-xs font-medium min-w-0" />}
             </div>
           </div>
         </div>
@@ -110,9 +111,9 @@ export function BetMatchCard({
         {totalStaked > 0 && (
           <div className="space-y-1">
             <div className="flex justify-between text-[10px] text-muted-foreground">
-              <span>Team A: €{totalTeamA}</span>
-              <span>€{totalStaked} total</span>
-              <span>Team B: €{totalTeamB}</span>
+              <span>Team A: {fmtE(totalTeamA)}</span>
+              <span>{fmtE(totalStaked)} total</span>
+              <span>Team B: {fmtE(totalTeamB)}</span>
             </div>
             <div className="flex h-2 rounded-full overflow-hidden bg-muted">
               <div
@@ -150,7 +151,7 @@ export function BetMatchCard({
                   <span className="text-muted-foreground mx-1">→</span>
                   <span className="font-medium">{bet.predicted_winner === 'team_a' ? 'Team A' : 'Team B'}</span>
                   <span className="text-muted-foreground mx-1">·</span>
-                  <span className="font-semibold">€{bet.stake}</span>
+                  <span className="font-semibold">{fmtE(bet.stake)}</span>
                 </div>
               );
             })}
@@ -168,9 +169,9 @@ export function BetMatchCard({
             <div className="flex justify-between items-center">
               <span>Your bet: <span className="font-semibold">{myBet.predicted_winner === 'team_a' ? 'Team A' : 'Team B'}</span></span>
               <span className="font-semibold">
-                {myBet.status === 'Won' ? `+€${myBet.payout || 0}` :
-                 myBet.status === 'Lost' ? `-€${myBet.stake}` :
-                 `€${myBet.stake} staked`}
+                {myBet.status === 'Won' ? `+${fmtE(myBet.payout || 0)}` :
+                 myBet.status === 'Lost' ? `-${fmtE(myBet.stake)}` :
+                 `${fmtE(myBet.stake)} staked`}
               </span>
             </div>
             {myBet.status === 'Pending' && (

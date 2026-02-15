@@ -224,12 +224,12 @@ export function TournamentLobbyCard({
                 return (
                   <div key={i} className="flex items-center gap-1 shrink-0">
                     <div className={cn(
-                      'text-[10px] font-bold px-2 py-1 rounded-md border',
+                      'text-[10px] font-bold px-2 py-1 rounded-md border whitespace-nowrap',
                       isCurrent && 'bg-primary/20 border-primary/40 text-primary',
                       isCompleted && 'bg-muted/60 border-border text-muted-foreground line-through',
                       !isCurrent && !isCompleted && 'bg-muted/30 border-border/50 text-muted-foreground/60',
                     )}>
-                      R{i + 1}
+                      Round {i + 1}
                     </div>
                     {i < roundsCount - 1 && (
                       <span className="text-muted-foreground/40 text-[10px]">→</span>
