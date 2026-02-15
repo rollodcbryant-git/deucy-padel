@@ -93,19 +93,8 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
       return;
     }
 
-    await supabase.from('players').update({ credits_balance: player.credits_balance - stakeCents }).eq('id', player.id);
-
-    await supabase.from('credit_ledger_entries').insert({
-      tournament_id: tournament.id,
-      player_id: player.id,
-      match_id: matchId,
-      round_id: currentRound!.id,
-      type: 'BetStake',
-      amount: -stakeCents,
-      note: `Bet €${stakeEuros} on ${predictedWinner === 'team_a' ? 'Team A' : 'Team B'}`,
-    });
-
-    toast({ title: 'Bet placed! 🎲', description: `€${stakeEuros} on the line (fake €)` });
+    // Do NOT deduct balance now — it will be deducted/credited on settlement
+    toast({ title: 'Bet placed! 🎲', description: `€${stakeEuros} pending until match result (fake €)` });
     loadData();
   };
 
@@ -120,7 +109,10 @@ export function RoundBetsSection({ tournament, player, currentRound }: RoundBets
           <Zap className="h-4 w-4 text-chaos-orange" />
           Round Bets
         </h3>
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          {roundStaked > 0 && (
+            <span>Locked in bets: {fmtE(roundStaked)}</span>
+          )}
           <span>Budget: {fmtE(Math.max(0, (tournament.per_round_bet_cap * 100 || 500) - roundStaked))} left</span>
         </div>
       </div>

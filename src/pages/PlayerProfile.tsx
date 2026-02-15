@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Player, PledgeItem, Round } from '@/lib/types';
 import { ArrowLeft, Camera } from 'lucide-react';
 import { formatEuros } from '@/lib/euros';
+import { PlayerLedger } from '@/components/profile/PlayerLedger';
 
 export default function PlayerProfilePage() {
   const { playerId } = useParams<{ playerId: string }>();
@@ -259,6 +260,14 @@ export default function PlayerProfilePage() {
               <p className="text-sm text-muted-foreground">No pledges yet</p>
             </div>
           )}
+
+          {/* Credit Ledger - always visible */}
+          <PlayerLedger
+            playerId={profilePlayer.id}
+            tournamentId={tournament.id}
+            showDecimals={showDecimals}
+            startingCredits={tournament.starting_credits}
+          />
         </div>
       </PageLayout>
       <BottomNav />

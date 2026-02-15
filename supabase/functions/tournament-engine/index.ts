@@ -1200,7 +1200,8 @@ async function autoSettleBets(
       .eq("id", bet.id);
 
     if (isWinner) {
-      // Credit payout to player (payout is total return including stake)
+      // Credit net profit to player (payout minus stake, since stake was never deducted)
+      const netProfit = payout - bet.stake;
       const { data: player } = await supabase
         .from("players")
         .select("credits_balance")
@@ -1210,7 +1211,7 @@ async function autoSettleBets(
       if (player) {
         await supabase
           .from("players")
-          .update({ credits_balance: player.credits_balance + payout })
+          .update({ credits_balance: player.credits_balance + netProfit })
           .eq("id", bet.player_id);
       }
 
@@ -1220,13 +1221,36 @@ async function autoSettleBets(
         match_id: matchId,
         round_id: bet.round_id,
         type: "BetPayout",
-        amount: payout,
-        note: `Bet won! ${multiplier}x payout (+€${Math.round(payout / 100)})`,
+        amount: netProfit,
+        note: `Bet won! +€${Math.round(netProfit / 100)} profit (${multiplier}x)`,
       });
 
-      bankChange -= payout;
+      bankChange -= netProfit;
     } else {
-      // Losing bet: stake already deducted, goes to bank
+      // Losing bet: deduct stake NOW (was not deducted at placement)
+      const { data: player } = await supabase
+        .from("players")
+        .select("credits_balance")
+        .eq("id", bet.player_id)
+        .single();
+
+      if (player) {
+        await supabase
+          .from("players")
+          .update({ credits_balance: player.credits_balance - bet.stake })
+          .eq("id", bet.player_id);
+      }
+
+      await supabase.from("credit_ledger_entries").insert({
+        tournament_id: tournamentId,
+        player_id: bet.player_id,
+        match_id: matchId,
+        round_id: bet.round_id,
+        type: "BetStake",
+        amount: -bet.stake,
+        note: `Bet lost: -€${Math.round(bet.stake / 100)}`,
+      });
+
       bankChange += bet.stake;
     }
   }

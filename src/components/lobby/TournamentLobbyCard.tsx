@@ -37,27 +37,6 @@ function getLobbyStatus(tournament: Tournament): LobbyStatus {
   return 'coming_soon';
 }
 
-function getCurrentStep(status: LobbyStatus, isEnrolled: boolean): number {
-  switch (status) {
-    case 'filling':
-    case 'coming_soon':
-      return 0;
-    case 'live':
-      return isEnrolled ? 2 : 1;
-    case 'auction_live':
-      return 3;
-    case 'finished':
-      return 4;
-  }
-}
-
-function isStepCurrent(stepIndex: number, status: LobbyStatus, isEnrolled: boolean): boolean {
-  if (status === 'live' && isEnrolled) {
-    return stepIndex === 1 || stepIndex === 2;
-  }
-  return stepIndex === getCurrentStep(status, isEnrolled);
-}
-
 export function TournamentLobbyCard({
   tournament,
   liveRound,
@@ -80,13 +59,11 @@ export function TournamentLobbyCard({
   const lobbyStatus = getLobbyStatus(tournament);
   const isFull = playerCount >= tournament.max_players;
   const roundsCount = tournament.rounds_count || 3;
-  const currentStep = getCurrentStep(lobbyStatus, isEnrolled);
   const isLiveCard = lobbyStatus === 'live' || lobbyStatus === 'auction_live';
   const isComingSoon = lobbyStatus === 'coming_soon' || lobbyStatus === 'filling';
 
   const isOnThisWaitlist = waitlistEntry && waitlistEntry.tournament_id === tournament.id;
 
-  // Load top 3 + rounds for live card
   useEffect(() => {
     if (!isLiveCard) return;
     const load = async () => {
@@ -101,40 +78,26 @@ export function TournamentLobbyCard({
   }, [isLiveCard, tournament.id]);
 
   const perSetWin = formatEuros(tournament.euros_per_set_win);
-
-  const steps = [
-    { emoji: '🪪', headline: 'Join for free + pledge', detail: 'Free to enter — pick a seat and add 1 pledge to start' },
-    { emoji: '🎾', headline: `${roundsCount} rounds — ${tournament.round_duration_days} days each`, detail: `You get ${tournament.round_duration_days} days to book and play your match` },
-    { emoji: '💶', headline: 'Earn credits per set', detail: `Win a set: +${perSetWin} per player` },
-    { emoji: '🔨', headline: '24-hour auction finale', detail: 'Bid with your credits — winners collect items in person' },
-  ];
-
-  const statusTag = isLiveCard
-    ? { label: 'LIVE', className: 'bg-primary/20 text-primary border-primary/40 animate-pulse' }
-    : isComingSoon
-    ? { label: 'COMING SOON', className: 'bg-chaos-orange/15 text-chaos-orange border-chaos-orange/30' }
-    : lobbyStatus === 'finished'
-    ? { label: 'FINISHED', className: 'bg-muted/50 text-muted-foreground border-border' }
-    : { label: '', className: '' };
+  const showMinimal = isEnrolled;
 
   const renderCTA = () => {
     if (isEnrolled) {
       return (
-        <Button size="sm" variant="outline" className="h-8 text-xs border-primary/30 text-primary font-semibold" onClick={onView}>
+        <Button size="sm" variant="outline" className="h-9 text-xs border-primary/30 text-primary font-semibold px-5" onClick={onView}>
           View
         </Button>
       );
     }
     if ((lobbyStatus === 'filling' || lobbyStatus === 'live') && !isFull && !isEnrolledElsewhere && !waitlistEntry) {
       return (
-        <Button size="sm" className="h-8 text-xs font-semibold bg-gradient-primary hover:opacity-90 px-5 shadow-md" onClick={onJoin} disabled={isJoining}>
+        <Button size="sm" className="h-9 text-xs font-semibold bg-gradient-primary hover:opacity-90 px-6 shadow-md" onClick={onJoin} disabled={isJoining}>
           {isJoining ? 'Joining…' : '🎾 Join'}
         </Button>
       );
     }
     if ((lobbyStatus === 'filling' || lobbyStatus === 'live') && isFull && !isOnThisWaitlist && !isEnrolledElsewhere && !waitlistEntry) {
       return (
-        <Button size="sm" variant="outline" className="h-7 text-xs border-primary/30 text-primary" onClick={onJoinWaitlist} disabled={waitlistLoading}>
+        <Button size="sm" variant="outline" className="h-8 text-xs border-primary/30 text-primary" onClick={onJoinWaitlist} disabled={waitlistLoading}>
           Join Waitlist
         </Button>
       );
@@ -142,149 +105,158 @@ export function TournamentLobbyCard({
     return null;
   };
 
-  const showMinimal = isEnrolled;
-
-  return (
-    <Card className={cn(
-      'chaos-card transition-all',
-      isLiveCard && 'ring-2 ring-primary/50 border-primary/60 bg-primary/10 shadow-lg shadow-primary/10',
-      isLiveCard && isEnrolled && 'ring-2 ring-primary/60 border-primary/70 bg-primary/15 shadow-xl shadow-primary/15',
-      !isLiveCard && !isEnrolled && 'opacity-75',
-    )}>
-      <CardContent className={cn('space-y-3', isLiveCard ? 'p-4' : 'p-3')}>
-        {/* Hero strip */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <h3 className={cn(
-              'font-bold truncate',
-              isLiveCard ? 'text-lg' : 'text-sm',
-            )}>
-              {tournament.name}
-            </h3>
-            {isLiveCard && tournament.club_name && (
-              <p className="text-xs text-muted-foreground">{tournament.club_name}</p>
-            )}
-          </div>
-          {statusTag.label && (
+  // ─── COMING SOON / SECONDARY CARD ───
+  if (!isLiveCard) {
+    return (
+      <Card className={cn(
+        'chaos-card transition-all opacity-70',
+        lobbyStatus === 'finished' && 'opacity-50',
+      )}>
+        <CardContent className="p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="font-semibold text-sm truncate flex-1">{tournament.name}</h3>
             <span className={cn(
-              'inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider border shrink-0',
-              statusTag.className,
+              'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border shrink-0',
+              isComingSoon ? 'bg-chaos-orange/15 text-chaos-orange border-chaos-orange/30' :
+              'bg-muted/50 text-muted-foreground border-border',
             )}>
-              {statusTag.label}
+              {isComingSoon ? 'COMING SOON' : 'FINISHED'}
             </span>
-          )}
-        </div>
+          </div>
 
-        {/* Capacity + Countdown + CTA */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Users className="h-3 w-3" />
               {playerCount} / {tournament.max_players}
             </span>
-
-            {lobbyStatus === 'live' && liveRound?.end_at && (
-              <span className="text-[11px]">
-                Round {liveRound.index} ends in <CountdownTimer targetDate={liveRound.end_at} variant="compact" className="text-xs inline font-medium text-foreground" />
-              </span>
-            )}
-
-            {lobbyStatus === 'filling' && tournament.signup_close_at && (
-              <span className="text-[11px]">
-                Closes <CountdownTimer targetDate={tournament.signup_close_at} variant="compact" className="text-xs inline" />
-              </span>
-            )}
-
             {lobbyStatus === 'coming_soon' && tournament.signup_open_at && (
               <span className="text-[11px]">
                 Opens <CountdownTimer targetDate={tournament.signup_open_at} variant="compact" className="text-xs inline" />
               </span>
             )}
-
-            {lobbyStatus === 'finished' && tournament.ended_at && (
+            {lobbyStatus === 'filling' && tournament.signup_close_at && (
               <span className="text-[11px]">
-                Ended {new Date(tournament.ended_at).toLocaleDateString()}
+                Closes <CountdownTimer targetDate={tournament.signup_close_at} variant="compact" className="text-xs inline" />
               </span>
             )}
+            {lobbyStatus === 'finished' && tournament.ended_at && (
+              <span className="text-[11px]">Ended {new Date(tournament.ended_at).toLocaleDateString()}</span>
+            )}
+            <div className="shrink-0">{renderCTA()}</div>
           </div>
 
-          <div className="shrink-0">{renderCTA()}</div>
-        </div>
+          {isOnThisWaitlist && onLeaveWaitlist && (
+            <WaitlistStatusBadge entry={waitlistEntry} position={waitlistPosition ?? null} onLeave={onLeaveWaitlist} loading={waitlistLoading} />
+          )}
+          {isEnrolledElsewhere && lobbyStatus === 'filling' && (
+            <p className="text-[10px] text-muted-foreground/70">Already in: {enrolledTournamentName}</p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
-        {/* LIVE card: Round structure visual */}
-        {isLiveCard && (
-          <div className="space-y-3">
-            {/* Round roadmap */}
-            <div className="flex items-center gap-1 overflow-x-auto py-1">
-              {Array.from({ length: roundsCount }, (_, i) => {
-                const roundData = allRounds.find(r => r.index === i + 1 && !r.is_playoff);
-                const status = roundData?.status || 'Upcoming';
-                const isCurrent = status === 'Live';
-                const isCompleted = status === 'Completed' || status === 'Locked';
-                return (
-                  <div key={i} className="flex items-center gap-1 shrink-0">
-                    <div className={cn(
-                      'text-[10px] font-bold px-2 py-1 rounded-md border whitespace-nowrap',
-                      isCurrent && 'bg-primary/20 border-primary/40 text-primary',
-                      isCompleted && 'bg-muted/60 border-border text-muted-foreground line-through',
-                      !isCurrent && !isCompleted && 'bg-muted/30 border-border/50 text-muted-foreground/60',
-                    )}>
-                      Round {i + 1}
-                    </div>
-                    {i < roundsCount - 1 && (
-                      <span className="text-muted-foreground/40 text-[10px]">→</span>
-                    )}
-                  </div>
-                );
-              })}
-              {tournament.playoffs_enabled && (
-                <>
-                  <span className="text-muted-foreground/40 text-[10px]">→</span>
-                  <div className="text-[10px] font-bold px-2 py-1 rounded-md border bg-chaos-orange/10 border-chaos-orange/30 text-chaos-orange shrink-0">
-                    🏆 Finals
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Top 3 preview */}
-            {topPlayers.length > 0 && (
-              <div className="flex items-center gap-3 py-1">
-                <Trophy className="h-3.5 w-3.5 text-chaos-orange shrink-0" />
-                <div className="flex items-center gap-2 overflow-hidden">
-                  {topPlayers.map((p, i) => (
-                    <div key={p.id} className="flex items-center gap-1 shrink-0">
-                      <span className="text-[10px] font-bold text-muted-foreground">#{i + 1}</span>
-                      <PlayerAvatar player={p} className="h-5 w-5 text-[8px]" />
-                      <span className="text-[10px] font-medium truncate max-w-[60px]">{p.full_name.split(' ')[0]}</span>
-                      <span className="text-[10px] text-primary font-semibold">{formatEuros(p.credits_balance)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+  // ─── LIVE CARD ───
+  return (
+    <Card className={cn(
+      'chaos-card transition-all ring-2 ring-primary/50 border-primary/60 shadow-lg shadow-primary/10',
+      isEnrolled ? 'ring-primary/60 border-primary/70 bg-primary/15 shadow-xl shadow-primary/15' : 'bg-primary/10',
+    )}>
+      <CardContent className="p-5 space-y-4">
+        {/* A) Header row */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bold text-xl truncate">{tournament.name}</h3>
+            {tournament.club_name && (
+              <p className="text-xs text-muted-foreground mt-0.5">{tournament.club_name}</p>
             )}
           </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border bg-primary/20 text-primary border-primary/40 animate-pulse">
+              LIVE
+            </span>
+            {renderCTA()}
+          </div>
+        </div>
+
+        {/* B) Core stats */}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Users className="h-4 w-4" />
+            <span className="font-medium text-foreground">{playerCount}</span>/{tournament.max_players}
+          </span>
+          {liveRound?.end_at && (
+            <span className="flex items-center gap-1.5">
+              ⏳ Round {liveRound.index} ends in{' '}
+              <CountdownTimer targetDate={liveRound.end_at} variant="compact" className="text-sm inline font-medium text-foreground" />
+            </span>
+          )}
+        </div>
+
+        {/* C) Progress strip */}
+        <div className="flex items-center gap-1.5 py-1">
+          {Array.from({ length: roundsCount }, (_, i) => {
+            const roundData = allRounds.find(r => r.index === i + 1 && !r.is_playoff);
+            const status = roundData?.status || 'Upcoming';
+            const isCurrent = status === 'Live';
+            const isCompleted = status === 'Completed' || status === 'Locked';
+            return (
+              <div key={i} className="flex items-center gap-1.5 shrink-0">
+                <div className={cn(
+                  'text-xs font-bold px-2.5 py-1 rounded-md border whitespace-nowrap',
+                  isCurrent && 'bg-primary/20 border-primary/40 text-primary',
+                  isCompleted && 'bg-muted/60 border-border text-muted-foreground line-through',
+                  !isCurrent && !isCompleted && 'bg-muted/30 border-border/50 text-muted-foreground/50',
+                )}>
+                  Round {i + 1}
+                </div>
+                {i < roundsCount - 1 && (
+                  <span className="text-muted-foreground/40 text-xs">→</span>
+                )}
+              </div>
+            );
+          })}
+          {tournament.playoffs_enabled && (
+            <>
+              <span className="text-muted-foreground/40 text-xs">→</span>
+              <div className="text-xs font-bold px-2.5 py-1 rounded-md border bg-chaos-orange/10 border-chaos-orange/30 text-chaos-orange shrink-0">
+                🏆 Finals
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* D) Top 3 leaders */}
+        {topPlayers.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Trophy className="h-3.5 w-3.5 text-chaos-orange" /> Top (€ balance)
+            </p>
+            <div className="flex flex-col gap-1.5">
+              {topPlayers.map((p, i) => (
+                <div key={p.id} className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-muted-foreground w-5">#{i + 1}</span>
+                  <PlayerAvatar player={p} className="h-6 w-6 text-[9px]" />
+                  <span className="text-sm font-medium truncate flex-1">{p.full_name}</span>
+                  <span className="text-sm text-primary font-semibold">{formatEuros(p.credits_balance)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
-        {/* Waitlist status */}
+        {/* Waitlist / enrollment notices */}
         {isOnThisWaitlist && onLeaveWaitlist && (
-          <WaitlistStatusBadge
-            entry={waitlistEntry}
-            position={waitlistPosition ?? null}
-            onLeave={onLeaveWaitlist}
-            loading={waitlistLoading}
-          />
+          <WaitlistStatusBadge entry={waitlistEntry} position={waitlistPosition ?? null} onLeave={onLeaveWaitlist} loading={waitlistLoading} />
         )}
-
-        {/* Enrolled notices */}
-        {isEnrolledElsewhere && (lobbyStatus === 'filling' || lobbyStatus === 'live') && (
+        {isEnrolledElsewhere && (
           <p className="text-[10px] text-muted-foreground/70">Already in: {enrolledTournamentName}</p>
         )}
         {isEnrolled && (
-          <p className="text-[10px] text-primary/70 font-medium">You're in this tournament</p>
+          <p className="text-xs text-primary/70 font-medium">✅ You're in this tournament</p>
         )}
 
-        {/* Expand trigger */}
+        {/* Expand: How it works */}
         {!showMinimal && (
           <>
             <button
@@ -297,40 +269,22 @@ export function TournamentLobbyCard({
 
             {isOpen && (
               <div className="space-y-2 border-t border-border pt-3 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-                {steps.map((step, i) => {
-                  const isCurrent = isStepCurrent(i, lobbyStatus, isEnrolled);
-                  const isFuture = i > currentStep;
-                  const isPast = i < currentStep && !isCurrent;
-
-                  return (
-                    <div
-                      key={i}
-                      className={cn(
-                        'flex items-start gap-3 p-2.5 rounded-lg transition-all',
-                        isCurrent && 'bg-primary/10 border border-primary/30',
-                        isPast && 'opacity-60',
-                        isFuture && 'opacity-40',
-                        !isCurrent && 'border border-transparent',
-                      )}
-                    >
-                      <div className={cn(
-                        'flex items-center justify-center w-8 h-8 rounded-full text-base shrink-0',
-                        isCurrent ? 'bg-primary/20' : 'bg-muted/50',
-                      )}>
-                        {step.emoji}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className={cn('text-xs font-semibold', isCurrent && 'text-primary')}>
-                          {step.headline}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground leading-snug">{step.detail}</p>
-                      </div>
-                      {isCurrent && (
-                        <span className="text-[9px] font-semibold text-primary uppercase tracking-wider shrink-0 mt-1">Now</span>
-                      )}
+                {[
+                  { emoji: '🪪', headline: 'Join for free + pledge', detail: 'Free to enter — pick a seat and add 1 pledge to start' },
+                  { emoji: '🎾', headline: `${roundsCount} rounds — ${tournament.round_duration_days} days each`, detail: `You get ${tournament.round_duration_days} days to book and play your match` },
+                  { emoji: '💶', headline: 'Earn credits per set', detail: `Win a set: +${perSetWin} per player` },
+                  { emoji: '🔨', headline: '24-hour auction finale', detail: 'Bid with your credits — winners collect items in person' },
+                ].map((step, i) => (
+                  <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg border border-transparent">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full text-base shrink-0 bg-muted/50">
+                      {step.emoji}
                     </div>
-                  );
-                })}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold">{step.headline}</p>
+                      <p className="text-[11px] text-muted-foreground leading-snug">{step.detail}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </>
