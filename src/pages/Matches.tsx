@@ -15,8 +15,10 @@ import { RoundBetsSection } from '@/components/betting/RoundBetsSection';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 
 import { ReportResultDialog } from '@/components/tournament/ReportResultDialog';
+import { InstallAppModal } from '@/components/onboarding/InstallAppModal';
 import { useRoundSummaries } from '@/hooks/useRoundSummaries';
 import { useRoundPledges } from '@/hooks/useRoundPledges';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +27,8 @@ export default function MatchesPage() {
   const { player, tournament, session, isLoading, refreshPlayer } = usePlayer();
   const { toast } = useToast();
   const { pledgeStatus } = usePledgeStatus(player, tournament);
+  const pwa = usePwaInstall(player?.id);
+  const [showInstall, setShowInstall] = useState(false);
 
   const [rounds, setRounds] = useState<Round[]>([]);
   const [matches, setMatches] = useState<Map<string, MatchWithPlayers[]>>(new Map());
@@ -43,6 +47,15 @@ export default function MatchesPage() {
 
   const summaries = useRoundSummaries(rounds, matches, player?.id || '');
   const { pledges: roundPledges, refresh: refreshPledges } = useRoundPledges(tournament?.id, liveRound?.id);
+
+  // Auto-show install popup once per user
+  useEffect(() => {
+    if (player && pwa.shouldShowAuto) {
+      // Small delay so the page loads first
+      const t = setTimeout(() => setShowInstall(true), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [player?.id, pwa.shouldShowAuto]);
 
   useEffect(() => {
     if (!isLoading && !session) { navigate('/'); return; }
@@ -326,6 +339,17 @@ export default function MatchesPage() {
         open={showReportDialog}
         onOpenChange={setShowReportDialog}
         onSubmit={handleSubmitResult}
+      />
+
+      <InstallAppModal
+        open={showInstall}
+        onOpenChange={setShowInstall}
+        isIos={pwa.isIos}
+        isAndroid={pwa.isAndroid}
+        isSafari={pwa.isSafari}
+        canNativeInstall={pwa.canNativeInstall}
+        onDismiss={pwa.dismiss}
+        onTriggerInstall={pwa.triggerInstall}
       />
     </>
   );

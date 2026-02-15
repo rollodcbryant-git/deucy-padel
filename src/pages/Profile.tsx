@@ -15,7 +15,9 @@ import { usePlayer } from '@/contexts/PlayerContext';
 import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { supabase } from '@/integrations/supabase/client';
 import type { PledgeItem, Round } from '@/lib/types';
-import { Camera, Pencil, AlertTriangle, ChevronRight, LogOut, User, KeyRound } from 'lucide-react';
+import { Camera, Pencil, AlertTriangle, ChevronRight, LogOut, User, KeyRound, Smartphone } from 'lucide-react';
+import { InstallAppModal } from '@/components/onboarding/InstallAppModal';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ProfilePage() {
@@ -29,8 +31,10 @@ export default function ProfilePage() {
   const [rank, setRank] = useState(0);
   const [showEditName, setShowEditName] = useState(false);
   const [showChangePin, setShowChangePin] = useState(false);
+  const [showInstall, setShowInstall] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pwa = usePwaInstall(player?.id);
 
   useEffect(() => {
     if (!isLoading && !session) {
@@ -294,7 +298,7 @@ export default function ProfilePage() {
             </Card>
           </div>
 
-          {/* Change PIN */}
+          {/* Security & App */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
               Security
@@ -307,6 +311,16 @@ export default function ProfilePage() {
               <KeyRound className="h-4 w-4 mr-2" />
               Change PIN
             </Button>
+            {!pwa.isStandalone && (
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setShowInstall(true)}
+              >
+                <Smartphone className="h-4 w-4 mr-2" />
+                Install app
+              </Button>
+            )}
           </div>
         </div>
       </PageLayout>
@@ -325,6 +339,17 @@ export default function ProfilePage() {
         onOpenChange={setShowChangePin}
         playerId={player.id}
         currentPinHash={player.pin_hash}
+      />
+
+      <InstallAppModal
+        open={showInstall}
+        onOpenChange={setShowInstall}
+        isIos={pwa.isIos}
+        isAndroid={pwa.isAndroid}
+        isSafari={pwa.isSafari}
+        canNativeInstall={pwa.canNativeInstall}
+        onDismiss={pwa.dismiss}
+        onTriggerInstall={pwa.triggerInstall}
       />
     </>
   );
