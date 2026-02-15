@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { CountdownTimer } from '@/components/ui/CountdownTimer';
 import { cn } from '@/lib/utils';
-import { Phone, ExternalLink, Check, MapPin, MessageCircle } from 'lucide-react';
+import { Phone, ExternalLink, Check, MapPin, MessageCircle, Flame } from 'lucide-react';
 import { PlayerLink } from '@/components/ui/PlayerLink';
 import { PledgeIndicator } from './PledgeIndicator';
 import { RoundPledgeSection } from './RoundPledgeSection';
@@ -18,6 +18,7 @@ interface MatchCardProps {
   round?: Round;
   tournament?: Tournament;
   roundPledges?: RoundPledgeMap;
+  betsCount?: number;
   onClaimBooking?: () => void;
   onReportResult?: () => void;
   onPledgeSaved?: () => void;
@@ -30,6 +31,7 @@ export function MatchCard({
   round,
   tournament,
   roundPledges = {},
+  betsCount = 0,
   onClaimBooking,
   onReportResult,
   onPledgeSaved,
@@ -40,17 +42,15 @@ export function MatchCard({
   const isPlayed = match.status === 'Played';
   const isOverdue = match.status === 'Overdue' || match.status === 'AutoResolved';
 
+  const isInMatch =
+    match.team_a_player1_id === currentPlayerId ||
+    match.team_a_player2_id === currentPlayerId ||
+    match.team_b_player1_id === currentPlayerId ||
+    match.team_b_player2_id === currentPlayerId;
+
   const isTeamA =
     match.team_a_player1_id === currentPlayerId ||
     match.team_a_player2_id === currentPlayerId;
-
-  const partner = isTeamA
-    ? (match.team_a_player1_id === currentPlayerId ? match.team_a_player2 : match.team_a_player1)
-    : (match.team_b_player1_id === currentPlayerId ? match.team_b_player2 : match.team_b_player1);
-
-  const opponents = isTeamA
-    ? [match.team_b_player1, match.team_b_player2]
-    : [match.team_a_player1, match.team_a_player2];
 
   const allPlayers = [
     match.team_a_player1,
@@ -59,7 +59,11 @@ export function MatchCard({
     match.team_b_player2,
   ].filter(Boolean) as Player[];
 
-  const renderPlayerWithPledge = (player: Player | undefined, label?: string) => {
+  const roundLabel = round
+    ? (round.is_playoff ? (round.playoff_type === 'final' ? '🏆 Final' : '⚔️ Semi-Final') : `Round ${round.index}`)
+    : '';
+
+  const renderPlayerWithPledge = (player: Player | undefined) => {
     if (!player) return <span className="font-semibold text-muted-foreground">TBD</span>;
     return (
       <div className="flex items-center gap-2">
@@ -71,26 +75,55 @@ export function MatchCard({
   };
 
   return (
-    <Card className={cn('chaos-card', className)}>
+    <Card className={cn(
+      'chaos-card transition-all',
+      isInMatch && !isPlayed && !isOverdue && 'ring-2 ring-primary/50 border-primary/60 shadow-lg shadow-primary/10',
+      className,
+    )}>
       <CardContent className="p-4 space-y-4">
-        {/* Status bar */}
+        {/* Header: label + status + countdown */}
         <div className="flex items-center justify-between">
-          <StatusChip
-            variant={
-              isPlayed ? 'success' :
-              isOverdue ? 'error' :
-              isBookingClaimed ? 'info' : 'neutral'
-            }
-          >
-            {isPlayed ? 'Played' :
-             isOverdue ? 'Overdue' :
-             isBookingClaimed ? 'Booked' : 'Pending'}
-          </StatusChip>
-
-          {match.deadline_at && !isPlayed && !isOverdue && (
-            <CountdownTimer targetDate={match.deadline_at} variant="compact" />
-          )}
+          <div className="flex items-center gap-2">
+            {isInMatch && !isPlayed && !isOverdue && (
+              <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                Your match ({roundLabel})
+              </span>
+            )}
+            {!isInMatch && roundLabel && (
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                {roundLabel}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <StatusChip
+              variant={
+                isPlayed ? 'success' :
+                isOverdue ? 'error' :
+                isBookingClaimed ? 'info' : 'neutral'
+              }
+              size="sm"
+            >
+              {isPlayed ? 'Played' :
+               isOverdue ? 'Overdue' :
+               isBookingClaimed ? 'Booked' : 'Pending'}
+            </StatusChip>
+            {betsCount > 0 && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-chaos-orange border border-chaos-orange/50 rounded-full px-1.5 py-0.5">
+                <Flame className="h-2.5 w-2.5" /> Hot
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* Countdown */}
+        {match.deadline_at && !isPlayed && !isOverdue && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>⏳</span>
+            <CountdownTimer targetDate={match.deadline_at} variant="compact" className="text-xs" />
+            <span>left</span>
+          </div>
+        )}
 
         {/* Team A */}
         <div className="space-y-2">
@@ -218,9 +251,6 @@ export function MatchCard({
 
               {/* WhatsApp group creation */}
               {allPlayers.length >= 2 && (() => {
-                const roundLabel = round
-                  ? (round.is_playoff ? (round.playoff_type === 'final' ? 'Final' : 'Semi-Final') : `Round ${round.index}`)
-                  : 'Match';
                 const deadlineText = match.deadline_at
                   ? format(new Date(match.deadline_at), 'EEE d MMM, HH:mm')
                   : 'TBD';

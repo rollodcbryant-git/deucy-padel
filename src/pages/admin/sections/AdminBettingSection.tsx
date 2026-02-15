@@ -7,7 +7,7 @@ import { StatusChip } from '@/components/ui/StatusChip';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
 import type { Tournament, MatchBet } from '@/lib/types';
-import { Zap, Banknote, Shield, TrendingUp, Trash2, Sparkles } from 'lucide-react';
+import { Zap, Banknote, Shield, TrendingUp, Trash2, Sparkles, RefreshCcw } from 'lucide-react';
 
 interface Props {
   tournament: Tournament;
@@ -204,6 +204,29 @@ export default function AdminBettingSection({ tournament, onReload }: Props) {
 
           <Button variant="outline" size="sm" className="w-full h-8 text-xs text-destructive border-destructive/30" onClick={resetAllBets}>
             <Trash2 className="mr-1 h-3 w-3" /> Reset All Bets
+          </Button>
+
+          <Button variant="outline" size="sm" className="w-full h-8 text-xs text-chaos-orange border-chaos-orange/30" onClick={async () => {
+            setSaving(true);
+            try {
+              const { data, error } = await supabase.functions.invoke('tournament-engine', {
+                body: { action: 'recalculate_balances', tournament_id: tournament.id },
+              });
+              if (error) throw error;
+              if (data?.error) throw new Error(data.error);
+              toast({
+                title: 'Balances recalculated ✅',
+                description: `${data.players_updated} balances fixed, ${data.bets_resettled} bets re-settled`,
+              });
+              onReload();
+              loadBets();
+            } catch (err: any) {
+              toast({ title: 'Recalculation failed', description: err.message, variant: 'destructive' });
+            } finally {
+              setSaving(false);
+            }
+          }} disabled={saving}>
+            <RefreshCcw className="mr-1 h-3 w-3" /> Recalculate All Bets + Balances
           </Button>
         </>
       )}

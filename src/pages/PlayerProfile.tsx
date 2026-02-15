@@ -227,7 +227,7 @@ export default function PlayerProfilePage() {
                         <p className="font-semibold">{pledge.title}</p>
                         {round && (
                           <span className="text-[10px] font-bold rounded-full bg-muted px-2 py-0.5">
-                            R{round.index}
+                            Round {round.index}
                           </span>
                         )}
                       </div>
