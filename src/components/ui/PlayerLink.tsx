@@ -22,7 +22,7 @@ export function PlayerLink({ player, showAvatar = false, className, avatarClassN
     >
       {showAvatar && <PlayerAvatar player={player} className={avatarClassName} />}
       {children || (
-        <span className="font-semibold truncate">
+        <span className="font-semibold truncate max-w-[120px]">
           {player.full_name}
           {isSelf && <span className="text-primary ml-1">(you)</span>}
         </span>

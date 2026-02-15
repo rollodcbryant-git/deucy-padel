@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { EditNameDialog } from '@/components/profile/EditNameDialog';
 import { ChangePinDialog } from '@/components/profile/ChangePinDialog';
 import { ProfilePledgeCard } from '@/components/profile/ProfilePledgeCard';
+import { PlayerLedger } from '@/components/profile/PlayerLedger';
 import { usePlayer } from '@/contexts/PlayerContext';
 import { usePledgeStatus } from '@/hooks/usePledgeStatus';
 import { supabase } from '@/integrations/supabase/client';
@@ -255,6 +256,13 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
+
+          {/* Credit Ledger */}
+          <PlayerLedger
+            playerId={player.id}
+            tournamentId={tournament.id}
+            showDecimals={showDecimals}
+          />
 
           {/* Tournament membership */}
           <div className="space-y-3">
