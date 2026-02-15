@@ -284,27 +284,19 @@ export default function MatchesPage() {
               )}
             </div>
 
-            {/* C) ROUND BETS - collapsed by default */}
-            {tournament!.betting_enabled && (
+            {/* C) ROUND BETS - always visible */}
+            {tournament!.betting_enabled && liveRound && (
               <div className="space-y-2">
-                <button
-                  onClick={() => setShowBets(!showBets)}
-                  className="w-full flex items-center justify-between rounded-xl bg-muted/30 border border-border p-3"
-                >
-                  <span className="font-semibold text-sm flex items-center gap-2">
-                    🎲 Round Bets
-                  </span>
-                  {showBets ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                </button>
-                {showBets && (
-                  <div className="animate-in slide-in-from-top-2 duration-200 rounded-xl bg-muted/30 border border-border p-4">
-                    <RoundBetsSection
-                      tournament={tournament!}
-                      player={player!}
-                      currentRound={liveRound}
-                    />
-                  </div>
-                )}
+                <h3 className="font-semibold text-sm flex items-center gap-2 px-1">
+                  🎲 Round Bets
+                </h3>
+                <div className="rounded-xl bg-muted/30 border border-border p-4">
+                  <RoundBetsSection
+                    tournament={tournament!}
+                    player={player!}
+                    currentRound={liveRound}
+                  />
+                </div>
               </div>
             )}
 
