@@ -45,7 +45,7 @@ export function ProfilePledgeCard({ pledge, roundIndex, showDecimals = false, on
             <div className="flex items-center gap-1.5 shrink-0">
               {roundIndex != null && (
                 <span className="text-[10px] font-bold rounded-full bg-muted px-2 py-0.5">
-                  R{roundIndex}
+                  Round {roundIndex}
                 </span>
               )}
               <StatusChip

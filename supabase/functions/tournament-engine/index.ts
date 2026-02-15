@@ -75,6 +75,8 @@ Deno.serve(async (req) => {
         return await extendRound(supabase, body);
       case "lock_round":
         return await lockRound(supabase, body);
+      case "recalculate_balances":
+        return await recalculateBalances(supabase, body);
       default:
         return jsonResponse({ error: `Unknown action: ${action}` }, 400);
     }
@@ -1377,4 +1379,121 @@ async function lockRound(supabase: any, body: any) {
 
   await supabase.from("rounds").update({ status: "Locked" }).eq("id", round_id);
   return jsonResponse({ success: true, status: "Locked" });
+}
+
+// ============================================================
+// RECALCULATE BALANCES FROM LEDGER (admin utility)
+// ============================================================
+async function recalculateBalances(supabase: any, body: any) {
+  const { tournament_id } = body;
+  if (!tournament_id) throw new Error("tournament_id is required");
+
+  const { data: tournament } = await supabase
+    .from("tournaments")
+    .select("*")
+    .eq("id", tournament_id)
+    .single();
+  if (!tournament) throw new Error("Tournament not found");
+
+  // Get all players in the tournament
+  const { data: players } = await supabase
+    .from("players")
+    .select("*")
+    .eq("tournament_id", tournament_id);
+  if (!players) throw new Error("No players found");
+
+  // Get all ledger entries for this tournament
+  const { data: ledger } = await supabase
+    .from("credit_ledger_entries")
+    .select("*")
+    .eq("tournament_id", tournament_id);
+
+  // Also re-settle any unsettled bets for played matches
+  const { data: pendingBets } = await supabase
+    .from("match_bets")
+    .select("*")
+    .eq("tournament_id", tournament_id)
+    .eq("status", "Pending");
+
+  let betsResettled = 0;
+  if (pendingBets && pendingBets.length > 0) {
+    // Get played matches
+    const matchIds = [...new Set(pendingBets.map((b: any) => b.match_id))];
+    const { data: matches } = await supabase
+      .from("matches")
+      .select("*")
+      .in("id", matchIds)
+      .eq("status", "Played");
+
+    for (const match of matches || []) {
+      const matchBets = pendingBets.filter((b: any) => b.match_id === match.id);
+      if (matchBets.length === 0) continue;
+
+      const multiplier = Number(tournament.payout_multiplier) || 2.0;
+      const winner = match.sets_a > match.sets_b ? "team_a" : "team_b";
+
+      for (const bet of matchBets) {
+        const isWinner = bet.predicted_winner === winner;
+        const payout = isWinner ? Math.round(bet.stake * multiplier) : 0;
+        const now = new Date().toISOString();
+
+        await supabase
+          .from("match_bets")
+          .update({
+            status: isWinner ? "Won" : "Lost",
+            payout: isWinner ? payout : 0,
+            settled_at: now,
+          })
+          .eq("id", bet.id);
+
+        if (isWinner) {
+          await supabase.from("credit_ledger_entries").insert({
+            tournament_id,
+            player_id: bet.player_id,
+            match_id: bet.match_id,
+            round_id: bet.round_id,
+            type: "BetPayout",
+            amount: payout,
+            note: `Bet won! ${multiplier}x payout (recalc)`,
+          });
+        }
+
+        betsResettled++;
+      }
+    }
+  }
+
+  // Now recalculate each player's balance from the full ledger
+  // Re-fetch ledger after potential new entries
+  const { data: fullLedger } = await supabase
+    .from("credit_ledger_entries")
+    .select("*")
+    .eq("tournament_id", tournament_id);
+
+  const ledgerByPlayer = new Map<string, number>();
+  for (const entry of fullLedger || []) {
+    ledgerByPlayer.set(
+      entry.player_id,
+      (ledgerByPlayer.get(entry.player_id) || 0) + entry.amount,
+    );
+  }
+
+  let playersUpdated = 0;
+  for (const player of players) {
+    const computedBalance = ledgerByPlayer.get(player.id) || 0;
+    if (computedBalance !== player.credits_balance) {
+      await supabase
+        .from("players")
+        .update({ credits_balance: computedBalance })
+        .eq("id", player.id);
+      playersUpdated++;
+    }
+  }
+
+  return jsonResponse({
+    success: true,
+    players_checked: players.length,
+    players_updated: playersUpdated,
+    bets_resettled: betsResettled,
+  });
 }

@@ -153,7 +153,7 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
           const count = (pledgesByRound.get(r.id) || []).length;
           return (
             <Button key={r.id} variant={selectedRound === r.id ? 'default' : 'outline'} size="sm" className="h-7 text-xs shrink-0" onClick={() => setSelectedRound(r.id)}>
-              R{r.index} ({count})
+              Round {r.index} ({count})
             </Button>
           );
         })}
@@ -183,7 +183,7 @@ export default function AdminPledgesSection({ pledges, players, rounds, onReload
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       {pledgeRound && (
-                        <span className="shrink-0 text-[10px] font-bold bg-primary/20 text-primary rounded px-1.5 py-0.5">R{pledgeRound.index}</span>
+                        <span className="shrink-0 text-[10px] font-bold bg-primary/20 text-primary rounded px-1.5 py-0.5">Round {pledgeRound.index}</span>
                       )}
                       <p className="font-medium text-sm truncate">{pledge.title}</p>
                     </div>

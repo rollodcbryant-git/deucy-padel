@@ -292,7 +292,7 @@ export default function AuctionHousePage() {
                   className={roundFilter === r.id ? 'bg-gradient-primary shrink-0' : 'shrink-0'}
                   onClick={() => setRoundFilter(r.id)}
                 >
-                  R{r.index}
+                  Round {r.index}
                 </Button>
               ))}
             </div>

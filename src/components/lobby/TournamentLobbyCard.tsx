@@ -172,7 +172,7 @@ export function TournamentLobbyCard({
 
             {lobbyStatus === 'live' && liveRound?.end_at && (
               <span className="text-[11px]">
-                R{liveRound.index} ends <CountdownTimer targetDate={liveRound.end_at} variant="compact" className="text-xs inline font-medium text-foreground" />
+                Round {liveRound.index} ends in <CountdownTimer targetDate={liveRound.end_at} variant="compact" className="text-xs inline font-medium text-foreground" />
               </span>
             )}
 

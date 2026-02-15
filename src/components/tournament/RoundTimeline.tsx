@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Accordion,
   AccordionContent,
@@ -14,7 +15,8 @@ import { formatEuros } from '@/lib/euros';
 import { cn } from '@/lib/utils';
 import { Copy, ShoppingBag, BarChart3 } from 'lucide-react';
 import { useRoundPledges } from '@/hooks/useRoundPledges';
-import type { MatchWithPlayers, Tournament } from '@/lib/types';
+import { supabase } from '@/integrations/supabase/client';
+import type { MatchWithPlayers, Tournament, MatchBet } from '@/lib/types';
 import type { RoundSummary } from '@/hooks/useRoundSummaries';
 
 interface RoundTimelineProps {
@@ -108,6 +110,25 @@ function RoundAccordionItem({
     round.id,
   );
 
+  // Load bet counts per match for this round
+  const [betCounts, setBetCounts] = useState<Map<string, number>>(new Map());
+
+  const loadBetCounts = useCallback(async () => {
+    if (!tournament?.betting_enabled) return;
+    const matchIds = matches.filter(m => !m.is_bye).map(m => m.id);
+    if (matchIds.length === 0) return;
+    const { data } = await supabase.from('match_bets').select('match_id').in('match_id', matchIds);
+    if (data) {
+      const counts = new Map<string, number>();
+      data.forEach((b: any) => {
+        counts.set(b.match_id, (counts.get(b.match_id) || 0) + 1);
+      });
+      setBetCounts(counts);
+    }
+  }, [tournament?.betting_enabled, matches]);
+
+  useEffect(() => { loadBetCounts(); }, [loadBetCounts]);
+
   const roundLabel = round.is_playoff
     ? (round.playoff_type === 'final' ? '🏆 Final' : '⚔️ Semi-Final')
     : `Round ${round.index}`;
@@ -173,6 +194,7 @@ function RoundAccordionItem({
                     round={round}
                     tournament={tournament}
                     roundPledges={roundPledges}
+                    betsCount={betCounts.get(match.id) || 0}
                     onClaimBooking={() => onClaimBooking(match)}
                     onReportResult={() => onReportResult(match)}
                     onPledgeSaved={refreshPledges}

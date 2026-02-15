@@ -74,7 +74,7 @@ export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: Pl
 
         {roundIndex != null && (
           <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-background/80 backdrop-blur-sm border border-border px-2 py-0.5 text-[10px] font-bold text-foreground">
-            R{roundIndex}
+            Round {roundIndex}
           </span>
         )}
       </div>
