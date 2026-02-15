@@ -581,9 +581,8 @@ async function processMatchResult(supabase: any, body: any) {
     })
     .eq("id", match_id);
 
-  // Per-set euro scoring system
-  const winPerSet = tournament.euros_per_set_win || 200; // cents
-  const losePerSet = tournament.euros_per_set_loss || 200; // cents
+  // Per-set euro scoring: players only EARN for sets won, never lose for losing
+  const winPerSet = tournament.euros_per_set_win || 200; // cents per set won
   const allowNegative = tournament.allow_negative_balance || false;
 
   const allPlayerIds = [
@@ -596,39 +595,38 @@ async function processMatchResult(supabase: any, body: any) {
   const teamAIds = [match.team_a_player1_id, match.team_a_player2_id].filter(Boolean);
   const teamBIds = [match.team_b_player1_id, match.team_b_player2_id].filter(Boolean);
 
-  // Calculate per-player net based on sets
-  // Team A won absoluteSetsA sets, lost absoluteSetsB sets
-  // Team A players: gain = absoluteSetsA * winPerSet, loss = absoluteSetsB * losePerSet
-  const teamANet = (absoluteSetsA * winPerSet) - (absoluteSetsB * losePerSet);
-  const teamBNet = (absoluteSetsB * winPerSet) - (absoluteSetsA * losePerSet);
+  // Team A won absoluteSetsA sets -> each Team A player earns absoluteSetsA * winPerSet
+  // Team B won absoluteSetsB sets -> each Team B player earns absoluteSetsB * winPerSet
+  // No deduction for losing sets!
+  const teamAEarnings = absoluteSetsA * winPerSet;
+  const teamBEarnings = absoluteSetsB * winPerSet;
 
   const ledgerEntries: any[] = [];
 
-  // Record per-player ledger entries
   for (const pid of teamAIds) {
-    if (teamANet !== 0) {
+    if (teamAEarnings > 0) {
       ledgerEntries.push({
         tournament_id: match.tournament_id,
         player_id: pid,
         match_id,
         round_id: match.round_id,
-        type: teamANet > 0 ? "MatchPayout" : "MatchStake",
-        amount: teamANet,
-        note: `Sets ${absoluteSetsA}-${absoluteSetsB}: ${teamANet > 0 ? '+' : ''}${(teamANet / 100).toFixed(0)}€`,
+        type: "MatchPayout",
+        amount: teamAEarnings,
+        note: `Sets won: ${absoluteSetsA} × +${(winPerSet / 100).toFixed(0)}€ = +${(teamAEarnings / 100).toFixed(0)}€`,
       });
     }
   }
 
   for (const pid of teamBIds) {
-    if (teamBNet !== 0) {
+    if (teamBEarnings > 0) {
       ledgerEntries.push({
         tournament_id: match.tournament_id,
         player_id: pid,
         match_id,
         round_id: match.round_id,
-        type: teamBNet > 0 ? "MatchPayout" : "MatchStake",
-        amount: teamBNet,
-        note: `Sets ${absoluteSetsB}-${absoluteSetsA}: ${teamBNet > 0 ? '+' : ''}${(teamBNet / 100).toFixed(0)}€`,
+        type: "MatchPayout",
+        amount: teamBEarnings,
+        note: `Sets won: ${absoluteSetsB} × +${(winPerSet / 100).toFixed(0)}€ = +${(teamBEarnings / 100).toFixed(0)}€`,
       });
     }
   }
@@ -640,7 +638,7 @@ async function processMatchResult(supabase: any, body: any) {
   // Update player stats and balance
   for (const pid of allPlayerIds) {
     const isOnTeamA = teamAIds.includes(pid);
-    const netCredit = isOnTeamA ? teamANet : teamBNet;
+    const earnings = isOnTeamA ? teamAEarnings : teamBEarnings;
     const isWinnerTeamA = absoluteSetsA > absoluteSetsB;
     const isWinner = (isWinnerTeamA && isOnTeamA) || (!isWinnerTeamA && !isOnTeamA);
 
@@ -654,7 +652,7 @@ async function processMatchResult(supabase: any, body: any) {
       const setsWon = isOnTeamA ? absoluteSetsA : absoluteSetsB;
       const setsLost = isOnTeamA ? absoluteSetsB : absoluteSetsA;
 
-      let newBalance = currentPlayer.credits_balance + netCredit;
+      let newBalance = currentPlayer.credits_balance + earnings;
       if (!allowNegative && newBalance < 0) newBalance = 0;
 
       await supabase
@@ -676,7 +674,7 @@ async function processMatchResult(supabase: any, body: any) {
   // Auto-settle bets on this match
   await autoSettleBets(supabase, match_id, match.tournament_id, absoluteSetsA, absoluteSetsB);
 
-  return jsonResponse({ success: true, teamANet, teamBNet });
+  return jsonResponse({ success: true, teamAEarnings, teamBEarnings });
 }
 
 // ============================================================
