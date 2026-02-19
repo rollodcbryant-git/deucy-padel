@@ -75,6 +75,8 @@ Deno.serve(async (req) => {
         return await extendRound(supabase, body);
       case "lock_round":
         return await lockRound(supabase, body);
+      case "advance_round_early":
+        return await advanceRoundEarly(supabase, body);
       case "recalculate_balances":
         return await recalculateBalances(supabase, body);
       default:
@@ -867,6 +869,117 @@ async function checkAdvanceRound(supabase: any, body: any) {
   }
 
   return jsonResponse({ success: true, penalties_applied: penaltiesApplied });
+}
+
+// ============================================================
+// ADVANCE ROUND EARLY (no penalties, unplayed matches stay open)
+// ============================================================
+async function advanceRoundEarly(supabase: any, body: any) {
+  const { tournament_id } = body;
+
+  const { data: tournament } = await supabase
+    .from("tournaments")
+    .select("*")
+    .eq("id", tournament_id)
+    .single();
+  if (!tournament) throw new Error("Tournament not found");
+
+  const { data: liveRounds } = await supabase
+    .from("rounds")
+    .select("*")
+    .eq("tournament_id", tournament_id)
+    .eq("status", "Live");
+
+  if (!liveRounds || liveRounds.length === 0) {
+    return jsonResponse({ success: true, message: "No live round to advance" });
+  }
+
+  const currentRound = liveRounds[0];
+
+  // Complete current round but do NOT touch unplayed matches — they stay Scheduled/BookingClaimed
+  await supabase
+    .from("rounds")
+    .update({ status: "Completed" })
+    .eq("id", currentRound.id);
+
+  // Check if more rounds needed
+  const { data: allRounds } = await supabase
+    .from("rounds")
+    .select("*")
+    .eq("tournament_id", tournament_id)
+    .eq("is_playoff", false);
+
+  const completedRegularRounds = (allRounds || []).length;
+  const roundsCount = tournament.rounds_count || calculateRoundsCount(0);
+
+  if (completedRegularRounds < roundsCount) {
+    const { data: activePlayers } = await supabase
+      .from("players")
+      .select("*")
+      .eq("tournament_id", tournament_id)
+      .eq("status", "Active")
+      .eq("confirmed", true);
+
+    if (activePlayers && activePlayers.length >= 4) {
+      const nextRoundIndex = completedRegularRounds + 1;
+      const startAt = new Date();
+      const endAt = new Date(
+        startAt.getTime() + tournament.round_duration_days * 24 * 60 * 60 * 1000
+      );
+
+      const { data: newRound } = await supabase
+        .from("rounds")
+        .insert({
+          tournament_id,
+          index: nextRoundIndex,
+          start_at: startAt.toISOString(),
+          end_at: endAt.toISOString(),
+          status: "Live",
+        })
+        .select()
+        .single();
+
+      const bonusEntries = activePlayers.map((p: any) => ({
+        tournament_id,
+        player_id: p.id,
+        round_id: newRound.id,
+        type: "ParticipationBonus",
+        amount: tournament.participation_bonus,
+        note: `Round ${nextRoundIndex} participation bonus`,
+      }));
+      await supabase.from("credit_ledger_entries").insert(bonusEntries);
+
+      for (const p of activePlayers) {
+        await supabase
+          .from("players")
+          .update({
+            credits_balance: p.credits_balance + tournament.participation_bonus,
+          })
+          .eq("id", p.id);
+      }
+
+      await generateMatchesForRound(supabase, tournament, newRound, activePlayers);
+
+      return jsonResponse({
+        success: true,
+        message: "Round advanced early — unplayed matches from previous round can still be completed",
+        new_round: nextRoundIndex,
+      });
+    }
+  } else {
+    await supabase
+      .from("tournaments")
+      .update({ status: "Finished" })
+      .eq("id", tournament_id);
+
+    return jsonResponse({
+      success: true,
+      message: "Round advanced early — tournament finished",
+      tournament_finished: true,
+    });
+  }
+
+  return jsonResponse({ success: true, message: "Round advanced early" });
 }
 
 // ============================================================

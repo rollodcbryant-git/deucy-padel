@@ -100,6 +100,17 @@ export default function AdminRoundsSection({ tournament, rounds, matches, onRelo
     });
   };
 
+  const handleAdvanceRoundEarly = () => {
+    setConfirmAction({
+      title: 'Advance Round Early?',
+      description: 'This will complete the current round and create the next one. Unplayed matches will NOT receive penalties and players can still report their results.',
+      onConfirm: () => {
+        callEngine('advance_round_early');
+        setConfirmAction(null);
+      },
+    });
+  };
+
   // No rounds yet — big CTA
   if (rounds.length === 0) {
     return (
@@ -212,20 +223,31 @@ export default function AdminRoundsSection({ tournament, rounds, matches, onRelo
             </Button>
           </div>
 
-          <div className="flex gap-1.5 pt-1 border-t border-border/50">
+          <div className="flex flex-col gap-1.5 pt-1 border-t border-border/50">
+            <div className="flex gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs flex-1"
+                onClick={handleAdvanceRoundEarly}
+                disabled={isUpdating}
+              >
+                <ChevronRight className="mr-1 h-3 w-3" />Advance (keep open)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs flex-1"
+                onClick={handleAdvanceRound}
+                disabled={isUpdating}
+              >
+                <ChevronRight className="mr-1 h-3 w-3" />Advance + Penalise
+              </Button>
+            </div>
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-xs flex-1"
-              onClick={handleAdvanceRound}
-              disabled={isUpdating}
-            >
-              <ChevronRight className="mr-1 h-3 w-3" />Advance Round
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs text-destructive flex-1"
+              className="h-7 text-xs text-destructive w-full"
               onClick={() => handleEndRoundNow(liveRound.id)}
               disabled={isUpdating}
             >
