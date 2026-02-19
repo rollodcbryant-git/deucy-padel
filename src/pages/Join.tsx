@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { hashPin } from '@/contexts/PlayerContext';
+import { hashPin, usePlayer } from '@/contexts/PlayerContext';
 import { normalizePhone } from '@/lib/phone';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, User, Phone, Users, Eye, EyeOff } from 'lucide-react';
@@ -17,6 +17,7 @@ export default function JoinPage() {
   const tournamentId = searchParams.get('t');
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { refreshPlayer } = usePlayer();
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -137,14 +138,17 @@ export default function JoinPage() {
           token,
         };
         localStorage.setItem('padel_chaos_session', JSON.stringify(session));
+        
+        // Refresh context so PlayerProvider picks up the new session
+        await refreshPlayer();
       }
 
       toast({ title: 'Account created! 🎾', description: 'Welcome to Deucy!' });
 
       if (tournamentId) {
-        window.location.href = '/complete-entry';
+        navigate('/complete-entry', { replace: true });
       } else {
-        window.location.href = '/tournaments';
+        navigate('/tournaments', { replace: true });
       }
     } catch (error: any) {
       console.error('Join error:', error);
