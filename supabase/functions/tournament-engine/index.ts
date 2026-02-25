@@ -549,7 +549,7 @@ function findBestTeamAssignment(
 // PROCESS MATCH RESULT
 // ============================================================
 async function processMatchResult(supabase: any, body: any) {
-  const { match_id, sets_a, sets_b, is_unfinished, player_id } = body;
+  const { match_id, sets_a, sets_b, is_unfinished, player_id, tiebreak_winner } = body;
 
   const { data: match, error: mErr } = await supabase
     .from("matches")
@@ -637,11 +637,52 @@ async function processMatchResult(supabase: any, body: any) {
     await supabase.from("credit_ledger_entries").insert(ledgerEntries);
   }
 
+  // Tiebreak bonus: if sets are tied and a tiebreak winner is specified,
+  // award one extra set's worth of credits to the winning team
+  if (absoluteSetsA === absoluteSetsB && absoluteSetsA > 0 && tiebreak_winner) {
+    // tiebreak_winner is 'A' or 'B' from the reporter's perspective
+    // Convert to absolute: if reporter is on Team A, 'A' = Team A wins; if on Team B, 'A' = Team B wins
+    const absoluteWinner = player_id
+      ? (isTeamA ? tiebreak_winner : (tiebreak_winner === 'A' ? 'B' : 'A'))
+      : tiebreak_winner;
+
+    const winnerIds = absoluteWinner === 'A' ? teamAIds : teamBIds;
+    const tiebreakEntries: any[] = [];
+
+    for (const pid of winnerIds) {
+      tiebreakEntries.push({
+        tournament_id: match.tournament_id,
+        player_id: pid,
+        match_id,
+        round_id: match.round_id,
+        type: "MatchPayout",
+        amount: winPerSet,
+        note: `Tiebreak win bonus: +${(winPerSet / 100).toFixed(0)}€`,
+      });
+    }
+
+    if (tiebreakEntries.length > 0) {
+      await supabase.from("credit_ledger_entries").insert(tiebreakEntries);
+    }
+  }
+
+  // Determine tiebreak winner in absolute terms for stats
+  const absoluteTiebreakWinner = (absoluteSetsA === absoluteSetsB && absoluteSetsA > 0 && tiebreak_winner)
+    ? (player_id ? (isTeamA ? tiebreak_winner : (tiebreak_winner === 'A' ? 'B' : 'A')) : tiebreak_winner)
+    : null;
+
   // Update player stats and balance
   for (const pid of allPlayerIds) {
     const isOnTeamA = teamAIds.includes(pid);
     const earnings = isOnTeamA ? teamAEarnings : teamBEarnings;
-    const isWinnerTeamA = absoluteSetsA > absoluteSetsB;
+
+    // Tiebreak bonus for this player
+    const isTiebreakWinnerTeam = absoluteTiebreakWinner
+      ? (absoluteTiebreakWinner === 'A' ? isOnTeamA : !isOnTeamA)
+      : false;
+    const tiebreakBonus = isTiebreakWinnerTeam ? winPerSet : 0;
+
+    const isWinnerTeamA = absoluteSetsA > absoluteSetsB || (absoluteSetsA === absoluteSetsB && absoluteTiebreakWinner === 'A');
     const isWinner = (isWinnerTeamA && isOnTeamA) || (!isWinnerTeamA && !isOnTeamA);
 
     const { data: currentPlayer } = await supabase
@@ -654,7 +695,7 @@ async function processMatchResult(supabase: any, body: any) {
       const setsWon = isOnTeamA ? absoluteSetsA : absoluteSetsB;
       const setsLost = isOnTeamA ? absoluteSetsB : absoluteSetsA;
 
-      let newBalance = currentPlayer.credits_balance + earnings;
+      let newBalance = currentPlayer.credits_balance + earnings + tiebreakBonus;
       if (!allowNegative && newBalance < 0) newBalance = 0;
 
       await supabase

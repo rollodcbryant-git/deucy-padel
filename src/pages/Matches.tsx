@@ -140,10 +140,10 @@ export default function MatchesPage() {
     toast({ title: 'Contacts copied! 📋', description: 'Paste into your WhatsApp group' });
   };
 
-  const handleSubmitResult = async (setsA: number, setsB: number, isUnfinished: boolean) => {
+  const handleSubmitResult = async (setsA: number, setsB: number, isUnfinished: boolean, tiebreakWinner?: 'A' | 'B') => {
     if (!selectedMatch || !player) return;
     const { data, error } = await supabase.functions.invoke('tournament-engine', {
-      body: { action: 'process_match_result', match_id: selectedMatch.id, sets_a: setsA, sets_b: setsB, is_unfinished: isUnfinished, player_id: player.id },
+      body: { action: 'process_match_result', match_id: selectedMatch.id, sets_a: setsA, sets_b: setsB, is_unfinished: isUnfinished, player_id: player.id, tiebreak_winner: tiebreakWinner },
     });
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
