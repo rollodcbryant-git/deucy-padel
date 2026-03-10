@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { Phone, ExternalLink, Check, MapPin, MessageCircle, Flame } from 'lucide-react';
 import { PlayerLink } from '@/components/ui/PlayerLink';
 import { PledgeIndicator } from './PledgeIndicator';
-import { RoundPledgeSection } from './RoundPledgeSection';
 import { useToast } from '@/hooks/use-toast';
 import type { MatchWithPlayers, Player, Round, Tournament, PledgeItem } from '@/lib/types';
 import type { RoundPledgeMap } from '@/hooks/useRoundPledges';
