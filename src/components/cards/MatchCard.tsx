@@ -7,7 +7,7 @@ import { Phone, ExternalLink, Check, MapPin, MessageCircle, Flame } from 'lucide
 import { PlayerLink } from '@/components/ui/PlayerLink';
 import { PledgeIndicator } from './PledgeIndicator';
 import { useToast } from '@/hooks/use-toast';
-import type { MatchWithPlayers, Player, Round, Tournament, PledgeItem } from '@/lib/types';
+import type { MatchWithPlayers, Player, Round, Tournament } from '@/lib/types';
 import type { RoundPledgeMap } from '@/hooks/useRoundPledges';
 import { format } from 'date-fns';
 
