@@ -237,14 +237,14 @@ export default function MatchesPage() {
               );
             })()}
 
-            {/* B) TOURNAMENT PROGRESS - compact collapsible */}
-            <div className="space-y-2">
+            {/* B) TOURNAMENT PROGRESS */}
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
               <button
                 onClick={() => setShowProgress(!showProgress)}
                 className="w-full flex items-center justify-between text-sm"
               >
-                <span className="font-semibold text-muted-foreground uppercase tracking-wide text-xs">Tournament Progress</span>
-                {showProgress ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                <span className="font-semibold text-primary uppercase tracking-wide text-xs">Tournament Progress</span>
+                {showProgress ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-primary" />}
               </button>
 
               {/* Compact progress strip always visible */}
