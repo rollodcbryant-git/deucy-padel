@@ -4,6 +4,9 @@ import type { Player, Tournament } from '@/lib/types';
 
 export type PledgeGateStatus = 'loading' | 'missing' | 'submitted' | 'approved';
 
+/**
+ * Checks if the player has ANY pledge for the tournament (not per-round).
+ */
 export function usePledgeStatus(player: Player | null, tournament: Tournament | null) {
   const [status, setStatus] = useState<PledgeGateStatus>('loading');
 
@@ -23,6 +26,7 @@ export function usePledgeStatus(player: Player | null, tournament: Tournament | 
       .select('id, status')
       .eq('pledged_by_player_id', player.id)
       .eq('tournament_id', tournament.id)
+      .in('status', ['Approved', 'Draft'])
       .limit(1);
 
     if (!data || data.length === 0) {

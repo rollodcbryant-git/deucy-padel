@@ -70,10 +70,6 @@ export default function PledgesPage() {
     setIsSaving(true);
     try {
       if (myPledge) {
-        if (myPledge.status === 'Approved') {
-          toast({ title: 'Already approved', description: "Can't edit after admin approval", variant: 'destructive' });
-          return;
-        }
         await supabase.from('pledge_items').update({ title, category, description: description || null, quantity_text: quantityText || null }).eq('id', myPledge.id);
       } else {
         await supabase.from('pledge_items').insert({

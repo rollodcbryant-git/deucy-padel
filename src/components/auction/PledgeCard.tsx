@@ -7,7 +7,6 @@ interface PledgeCardProps {
   pledge: PledgeItem;
   pledger?: Player;
   isOwner?: boolean;
-  roundIndex?: number;
   onClick?: () => void;
 }
 
@@ -30,7 +29,7 @@ function formatEstimate(low: number | null, high: number | null): string | null 
   return null;
 }
 
-export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: PledgeCardProps) {
+export function PledgeCard({ pledge, pledger, isOwner, onClick }: PledgeCardProps) {
   const cat = getCategoryConfig(pledge.category);
   const estimate = formatEstimate(pledge.estimate_low, pledge.estimate_high);
   const isPending = pledge.status === 'Draft';
@@ -60,22 +59,10 @@ export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: Pl
           {cat.emoji} {cat.label}
         </span>
 
-        {isPending && isOwner && (
+        {isPending && (
           <div className="absolute top-2 right-2">
             <StatusChip variant="warning" size="sm">Pending</StatusChip>
           </div>
-        )}
-
-        {!isPending && !isOwner && pledge.status === 'Draft' && (
-          <div className="absolute top-2 right-2">
-            <StatusChip variant="neutral" size="sm">Pending approval</StatusChip>
-          </div>
-        )}
-
-        {roundIndex != null && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-background/80 backdrop-blur-sm border border-border px-2 py-0.5 text-[10px] font-bold text-foreground">
-            Round {roundIndex}
-          </span>
         )}
       </div>
 
@@ -86,7 +73,7 @@ export function PledgeCard({ pledge, pledger, isOwner, roundIndex, onClick }: Pl
           by <span className="hover:text-primary transition-colors">{pledger?.full_name || 'Unknown'}</span>
         </p>
 
-        {/* Expert estimate only - no "Price" on player cards */}
+        {/* Expert estimate */}
         <div>
           <p className="text-[10px] text-muted-foreground leading-tight">Expert estimate</p>
           <p className="text-xs font-medium text-primary">{estimate || 'TBD'}</p>
