@@ -6,14 +6,6 @@ interface PledgeIndicatorProps {
   className?: string;
 }
 
-const categoryEmoji: Record<string, string> = {
-  food: '🍕',
-  drink: '🍷',
-  object: '🎁',
-  service: '💆',
-  chaos: '🎲',
-};
-
 export function PledgeIndicator({ pledge, className }: PledgeIndicatorProps) {
   if (!pledge) {
     return (
