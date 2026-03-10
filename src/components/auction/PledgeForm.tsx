@@ -81,7 +81,6 @@ export function PledgeForm({ tournamentId, playerId, roundId, existing, onSaved,
           tournament_id: tournamentId,
           pledged_by_player_id: playerId,
           title, category, description, image_url: imageUrl,
-          title, category, description, image_url: imageUrl,
           status: 'Approved', approved: true,
         });
       }
