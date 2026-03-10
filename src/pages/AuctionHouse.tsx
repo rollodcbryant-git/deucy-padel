@@ -143,7 +143,7 @@ export default function AuctionHousePage() {
     );
   }
 
-  const canEdit = myCurrentRoundPledge && myCurrentRoundPledge.status === 'Draft';
+  const canEdit = myCurrentRoundPledge && !auctionLive && myCurrentRoundPledge.status !== 'Hidden';
   const hasSubmittedThisRound = !!myCurrentRoundPledge;
   const auctionLive = auction?.status === 'Live';
   const auctionEnded = auction?.status === 'Ended';
