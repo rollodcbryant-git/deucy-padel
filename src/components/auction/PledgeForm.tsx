@@ -82,7 +82,7 @@ export function PledgeForm({ tournamentId, playerId, roundId, existing, onSaved,
           pledged_by_player_id: playerId,
           round_id: roundId || null,
           title, category, description, image_url: imageUrl,
-          status: 'Draft',
+          status: 'Approved', approved: true,
         });
       }
       toast({ title: existing ? 'Pledge updated! 🎁' : 'Pledge submitted! 🎁' });
