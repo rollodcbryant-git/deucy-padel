@@ -174,16 +174,18 @@ export function MatchCard({
           </div>
         )}
 
-        {/* Round Pledge Section - top priority */}
-        {!isPlayed && round && tournament && onPledgeSaved && (
-          <RoundPledgeSection
-            currentPlayerPledge={roundPledges[currentPlayerId]}
-            tournamentId={tournament.id}
-            playerId={currentPlayerId}
-            roundId={round.id}
-            tournament={tournament}
-            onPledgeSaved={onPledgeSaved}
-          />
+        {/* Pledge indicators for players */}
+        {!isPlayed && Object.keys(roundPledges).length > 0 && (
+          <div className="pt-2 border-t border-border">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Pledge Status</p>
+            <div className="flex flex-wrap gap-1">
+              {allPlayers.map(p => (
+                <span key={p.id} className="text-[10px] text-muted-foreground">
+                  {p.full_name.split(' ')[0]}: {roundPledges[p.id] ? '✅' : '⛔'}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Actions */}
