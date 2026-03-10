@@ -143,10 +143,10 @@ export default function AuctionHousePage() {
     );
   }
 
-  const canEdit = myCurrentRoundPledge && myCurrentRoundPledge.status === 'Draft';
-  const hasSubmittedThisRound = !!myCurrentRoundPledge;
   const auctionLive = auction?.status === 'Live';
   const auctionEnded = auction?.status === 'Ended';
+  const canEdit = myCurrentRoundPledge && !auctionLive && !auctionEnded && myCurrentRoundPledge.status !== 'Hidden';
+  const hasSubmittedThisRound = !!myCurrentRoundPledge;
 
   const categories: { key: CategoryFilter; label: string }[] = [
     { key: 'all', label: 'All' },

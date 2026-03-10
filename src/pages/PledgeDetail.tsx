@@ -45,7 +45,8 @@ export default function PledgeDetailPage() {
   }
 
   const isOwner = pledge.pledged_by_player_id === player.id;
-  const canEdit = isOwner && pledge.status === 'Draft';
+  const auctionLive = tournament.status === 'AuctionLive' || tournament.status === 'Finished' || tournament.status === 'Closed';
+  const canEdit = isOwner && !auctionLive && pledge.status !== 'Hidden';
   const cat = getCategoryConfig(pledge.category);
   const hasEstimate = pledge.estimate_low != null || pledge.estimate_high != null;
 

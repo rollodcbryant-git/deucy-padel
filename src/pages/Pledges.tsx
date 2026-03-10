@@ -99,7 +99,8 @@ export default function PledgesPage() {
     );
   }
 
-  const canEdit = !myPledge || myPledge.status === 'Draft';
+  const auctionLocked = tournament.status === 'AuctionLive' || tournament.status === 'Finished' || tournament.status === 'Closed';
+  const canEdit = !auctionLocked && (!myPledge || myPledge.status !== 'Hidden');
   const showForm = !myPledge || isEditing;
 
   return (
