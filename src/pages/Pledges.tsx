@@ -78,7 +78,7 @@ export default function PledgesPage() {
       } else {
         await supabase.from('pledge_items').insert({
           tournament_id: tournament.id, pledged_by_player_id: player.id, title, category,
-          description: description || null, quantity_text: quantityText || null, status: 'Draft',
+          description: description || null, quantity_text: quantityText || null, status: 'Approved', approved: true,
         });
       }
       toast({ title: myPledge ? 'Pledge updated! 🎁' : 'Pledge submitted! 🎁' });
