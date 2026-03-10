@@ -75,7 +75,7 @@ export function MatchCard({
   return (
     <Card className={cn(
       'chaos-card transition-all',
-      isInMatch && !isPlayed && !isOverdue && 'ring-2 ring-primary/50 border-primary/60 shadow-lg shadow-primary/10',
+      isInMatch && !isPlayed && !isOverdue && 'ring-2 ring-primary/60 border-primary/60 shadow-lg shadow-primary/20 bg-[hsl(145_80%_50%/0.08)]',
       className,
     )}>
       <CardContent className="p-4 space-y-4">
