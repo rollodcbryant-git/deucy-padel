@@ -311,10 +311,11 @@ export default function AdminMatchesSection({ tournament, rounds, matches, playe
             {/* Swap player UI */}
             {swapMatch?.matchId === m.id && (
               <div className="rounded-md border border-border bg-background p-2 space-y-2">
-                <p className="text-xs font-medium">Swap {slotLabels[swapMatch.slot]} ({getName((m as any)[swapMatch.slot])})</p>
-                <PlayerSelect value={swapPlayerId} onChange={setSwapPlayerId} />
+                <p className="text-xs font-medium">Replace {slotLabels[swapMatch.slot]} ({getName((m as any)[swapMatch.slot])})</p>
+                <p className="text-[10px] text-muted-foreground">Pick any player — 🟢 unmatched, 🔵 in another match</p>
+                <PlayerSelect value={swapPlayerId} onChange={setSwapPlayerId} showAll />
                 <div className="flex gap-2">
-                  <Button size="sm" className="h-7 text-xs" onClick={swapPlayer}>Swap</Button>
+                  <Button size="sm" className="h-7 text-xs" onClick={swapPlayer} disabled={!swapPlayerId}>Swap</Button>
                   <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setSwapMatch(null); setSwapPlayerId(''); }}>Cancel</Button>
                 </div>
               </div>
