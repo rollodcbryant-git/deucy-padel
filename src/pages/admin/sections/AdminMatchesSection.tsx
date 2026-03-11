@@ -187,18 +187,27 @@ export default function AdminMatchesSection({ tournament, rounds, matches, playe
 
   const playerSelectOptions = activePlayers.sort((a, b) => a.full_name.localeCompare(b.full_name));
 
-  const PlayerSelect = ({ value, onChange, exclude = [] }: { value: string; onChange: (v: string) => void; exclude?: string[] }) => (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select player" /></SelectTrigger>
-      <SelectContent>
-        {playerSelectOptions.filter(p => !exclude.includes(p.id) || p.id === value).map(p => (
-          <SelectItem key={p.id} value={p.id} className="text-xs">
-            {p.full_name} {unmatchedPlayers.some(u => u.id === p.id) ? '🟢' : ''}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
+  const PlayerSelect = ({ value, onChange, exclude = [], showAll = false }: { value: string; onChange: (v: string) => void; exclude?: string[]; showAll?: boolean }) => {
+    const filtered = playerSelectOptions.filter(p => !exclude.includes(p.id) || p.id === value);
+    const unmatchedFirst = showAll
+      ? [...filtered.filter(p => unmatchedPlayers.some(u => u.id === p.id)), ...filtered.filter(p => !unmatchedPlayers.some(u => u.id === p.id))]
+      : filtered;
+    return (
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select player" /></SelectTrigger>
+        <SelectContent>
+          {showAll && unmatchedPlayers.length > 0 && (
+            <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground border-b border-border mb-1">Unmatched players shown first</div>
+          )}
+          {unmatchedFirst.map(p => (
+            <SelectItem key={p.id} value={p.id} className="text-xs">
+              {p.full_name} {unmatchedPlayers.some(u => u.id === p.id) ? '🟢' : '🔵'}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  };
 
   const slotLabels: Record<string, string> = {
     team_a_player1_id: 'Team A P1',
