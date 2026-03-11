@@ -187,18 +187,27 @@ export default function AdminMatchesSection({ tournament, rounds, matches, playe
 
   const playerSelectOptions = activePlayers.sort((a, b) => a.full_name.localeCompare(b.full_name));
 
-  const PlayerSelect = ({ value, onChange, exclude = [] }: { value: string; onChange: (v: string) => void; exclude?: string[] }) => (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select player" /></SelectTrigger>
-      <SelectContent>
-        {playerSelectOptions.filter(p => !exclude.includes(p.id) || p.id === value).map(p => (
-          <SelectItem key={p.id} value={p.id} className="text-xs">
-            {p.full_name} {unmatchedPlayers.some(u => u.id === p.id) ? '🟢' : ''}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
+  const PlayerSelect = ({ value, onChange, exclude = [], showAll = false }: { value: string; onChange: (v: string) => void; exclude?: string[]; showAll?: boolean }) => {
+    const filtered = playerSelectOptions.filter(p => !exclude.includes(p.id) || p.id === value);
+    const unmatchedFirst = showAll
+      ? [...filtered.filter(p => unmatchedPlayers.some(u => u.id === p.id)), ...filtered.filter(p => !unmatchedPlayers.some(u => u.id === p.id))]
+      : filtered;
+    return (
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select player" /></SelectTrigger>
+        <SelectContent>
+          {showAll && unmatchedPlayers.length > 0 && (
+            <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground border-b border-border mb-1">Unmatched players shown first</div>
+          )}
+          {unmatchedFirst.map(p => (
+            <SelectItem key={p.id} value={p.id} className="text-xs">
+              {p.full_name} {unmatchedPlayers.some(u => u.id === p.id) ? '🟢' : '🔵'}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  };
 
   const slotLabels: Record<string, string> = {
     team_a_player1_id: 'Team A P1',
@@ -302,10 +311,11 @@ export default function AdminMatchesSection({ tournament, rounds, matches, playe
             {/* Swap player UI */}
             {swapMatch?.matchId === m.id && (
               <div className="rounded-md border border-border bg-background p-2 space-y-2">
-                <p className="text-xs font-medium">Swap {slotLabels[swapMatch.slot]} ({getName((m as any)[swapMatch.slot])})</p>
-                <PlayerSelect value={swapPlayerId} onChange={setSwapPlayerId} />
+                <p className="text-xs font-medium">Replace {slotLabels[swapMatch.slot]} ({getName((m as any)[swapMatch.slot])})</p>
+                <p className="text-[10px] text-muted-foreground">Pick any player — 🟢 unmatched, 🔵 in another match</p>
+                <PlayerSelect value={swapPlayerId} onChange={setSwapPlayerId} showAll />
                 <div className="flex gap-2">
-                  <Button size="sm" className="h-7 text-xs" onClick={swapPlayer}>Swap</Button>
+                  <Button size="sm" className="h-7 text-xs" onClick={swapPlayer} disabled={!swapPlayerId}>Swap</Button>
                   <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setSwapMatch(null); setSwapPlayerId(''); }}>Cancel</Button>
                 </div>
               </div>
