@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -105,7 +106,7 @@ export default function BlitzTournament() {
     if (new Set(names).size !== numPlayers) { toast({ title: 'All names must be unique', variant: 'destructive' }); return; }
 
     const schedule = generateSchedule(numPlayers, selectedConfig.totalRounds);
-    const players = names.map(name => ({ name, balance: 0 }));
+    const players = names.map(name => ({ name, balance: 10 }));
     const roundInserts = Array.from({ length: selectedConfig.totalRounds }, (_, i) => ({
       tournament_id: id!,
       round_index: i + 1,
@@ -122,6 +123,7 @@ export default function BlitzTournament() {
     }).eq('id', id!);
     await supabase.from('blitz_rounds').insert(roundInserts);
     setTimerSeconds(selectedConfig.roundDurationSeconds);
+    try { localStorage.setItem('blitz_creator_' + id, '1'); } catch {}
     load();
     toast({ title: 'Tournament started! ⚡' });
   };
@@ -159,16 +161,17 @@ export default function BlitzTournament() {
       }
     }
 
-    const totalRounds = tournament.total_rounds;
-    const isLast = roundIdx >= totalRounds;
-    if (isLast) {
+    // Auto-advance: find next pending round (lowest index)
+    const nextPending = rounds
+      .filter(r => r.status === 'pending' && r.round_index !== roundIdx)
+      .sort((a, b) => a.round_index - b.round_index)[0];
+    if (!nextPending) {
       await supabase.from('blitz_tournaments').update({ players: updatedPlayers as any, current_round: roundIdx, status: 'finished' }).eq('id', id!);
       toast({ title: 'Tournament complete! 🏆' });
     } else {
-      const nextRound = rounds.find(r => r.round_index === roundIdx + 1);
-      if (nextRound) await supabase.from('blitz_rounds').update({ status: 'active' }).eq('id', nextRound.id);
-      await supabase.from('blitz_tournaments').update({ players: updatedPlayers as any, current_round: roundIdx + 1 }).eq('id', id!);
-      toast({ title: `Round ${roundIdx} done! Moving to Round ${roundIdx + 1}` });
+      await supabase.from('blitz_rounds').update({ status: 'active' }).eq('id', nextPending.id);
+      await supabase.from('blitz_tournaments').update({ players: updatedPlayers as any, current_round: nextPending.round_index }).eq('id', id!);
+      toast({ title: `Round ${roundIdx} done! Moving to Round ${nextPending.round_index}` });
     }
 
     setScoreA(''); setScoreB('');
@@ -184,7 +187,7 @@ export default function BlitzTournament() {
     if (!id) return;
     await supabase.from('blitz_bets').delete().eq('tournament_id', id);
     await supabase.from('blitz_rounds').delete().eq('tournament_id', id);
-    const resetPlayers = (tournament?.players || []).map(p => ({ name: p.name, balance: 0 }));
+    const resetPlayers = (tournament?.players || []).map(p => ({ name: p.name, balance: 10 }));
     await supabase.from('blitz_tournaments').update({
       status: 'setup', current_round: 0, players: resetPlayers as any, schedule: [] as any,
     }).eq('id', id);
@@ -222,6 +225,28 @@ export default function BlitzTournament() {
     load();
     toast({ title: `€${betStake} bet placed on Team ${betPrediction}! 🎲` });
   };
+
+  // ── SWITCH ROUND (creator only) ──
+  const handleSwitchRound = async (newIndex: number) => {
+    if (!tournament || newIndex === tournament.current_round) return;
+    const target = rounds.find(r => r.round_index === newIndex);
+    if (!target || target.status === 'completed') return;
+    const current = rounds.find(r => r.round_index === tournament.current_round);
+    if (current && current.status === 'active') {
+      await supabase.from('blitz_rounds').update({ status: 'pending' }).eq('id', current.id);
+    }
+    await supabase.from('blitz_rounds').update({ status: 'active' }).eq('id', target.id);
+    await supabase.from('blitz_tournaments').update({ current_round: newIndex }).eq('id', id!);
+    setTimerSeconds(tournament.round_duration_seconds);
+    setTimerRunning(false);
+    setScoreA(''); setScoreB('');
+    setShowScoreInput(false);
+    setBetPrediction(null); setBetPlayer(null);
+    load();
+    toast({ title: `Switched to Round ${newIndex}` });
+  };
+
+  const isCreator = (() => { try { return !!localStorage.getItem('blitz_creator_' + id); } catch { return false; } })();
 
   if (!tournament) return <div className="min-h-screen bg-background flex items-center justify-center"><div className="text-4xl animate-pulse">⚡</div></div>;
 
@@ -443,9 +468,32 @@ export default function BlitzTournament() {
               </Card>
             ) : currentSchedule && (
               <>
-                <div className="text-center">
+                <div className="text-center space-y-2">
                   <p className="text-xs text-muted-foreground uppercase tracking-wide">Round</p>
                   <p className="text-3xl font-black text-primary">{tournament.current_round} <span className="text-base font-normal text-muted-foreground">/ {totalRounds}</span></p>
+                  {isCreator && (() => {
+                    const selectable = rounds
+                      .filter(r => r.status !== 'completed')
+                      .sort((a, b) => a.round_index - b.round_index);
+                    if (selectable.length <= 1) return null;
+                    return (
+                      <div className="max-w-sm mx-auto pt-1">
+                        <Select value={String(tournament.current_round)} onValueChange={(v) => handleSwitchRound(parseInt(v))}>
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="Pick round" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectable.map(r => {
+                              const s = tournament.schedule[r.round_index - 1];
+                              if (!s) return null;
+                              const label = `Round ${r.round_index} — ${tournament.players[s.teamA[0]]?.name} & ${tournament.players[s.teamA[1]]?.name} vs ${tournament.players[s.teamB[0]]?.name} & ${tournament.players[s.teamB[1]]?.name}`;
+                              return <SelectItem key={r.id} value={String(r.round_index)}>{label}</SelectItem>;
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <Card className="border-primary/40 bg-[hsl(145_80%_50%/0.08)]">
