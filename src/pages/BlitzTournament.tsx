@@ -106,7 +106,7 @@ export default function BlitzTournament() {
     if (new Set(names).size !== numPlayers) { toast({ title: 'All names must be unique', variant: 'destructive' }); return; }
 
     const schedule = generateSchedule(numPlayers, selectedConfig.totalRounds);
-    const players = names.map(name => ({ name, balance: 0 }));
+    const players = names.map(name => ({ name, balance: 10 }));
     const roundInserts = Array.from({ length: selectedConfig.totalRounds }, (_, i) => ({
       tournament_id: id!,
       round_index: i + 1,
@@ -123,6 +123,7 @@ export default function BlitzTournament() {
     }).eq('id', id!);
     await supabase.from('blitz_rounds').insert(roundInserts);
     setTimerSeconds(selectedConfig.roundDurationSeconds);
+    try { localStorage.setItem('blitz_creator_' + id, '1'); } catch {}
     load();
     toast({ title: 'Tournament started! ⚡' });
   };
