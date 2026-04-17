@@ -161,16 +161,17 @@ export default function BlitzTournament() {
       }
     }
 
-    const totalRounds = tournament.total_rounds;
-    const isLast = roundIdx >= totalRounds;
-    if (isLast) {
+    // Auto-advance: find next pending round (lowest index)
+    const nextPending = rounds
+      .filter(r => r.status === 'pending' && r.round_index !== roundIdx)
+      .sort((a, b) => a.round_index - b.round_index)[0];
+    if (!nextPending) {
       await supabase.from('blitz_tournaments').update({ players: updatedPlayers as any, current_round: roundIdx, status: 'finished' }).eq('id', id!);
       toast({ title: 'Tournament complete! 🏆' });
     } else {
-      const nextRound = rounds.find(r => r.round_index === roundIdx + 1);
-      if (nextRound) await supabase.from('blitz_rounds').update({ status: 'active' }).eq('id', nextRound.id);
-      await supabase.from('blitz_tournaments').update({ players: updatedPlayers as any, current_round: roundIdx + 1 }).eq('id', id!);
-      toast({ title: `Round ${roundIdx} done! Moving to Round ${roundIdx + 1}` });
+      await supabase.from('blitz_rounds').update({ status: 'active' }).eq('id', nextPending.id);
+      await supabase.from('blitz_tournaments').update({ players: updatedPlayers as any, current_round: nextPending.round_index }).eq('id', id!);
+      toast({ title: `Round ${roundIdx} done! Moving to Round ${nextPending.round_index}` });
     }
 
     setScoreA(''); setScoreB('');
