@@ -468,9 +468,32 @@ export default function BlitzTournament() {
               </Card>
             ) : currentSchedule && (
               <>
-                <div className="text-center">
+                <div className="text-center space-y-2">
                   <p className="text-xs text-muted-foreground uppercase tracking-wide">Round</p>
                   <p className="text-3xl font-black text-primary">{tournament.current_round} <span className="text-base font-normal text-muted-foreground">/ {totalRounds}</span></p>
+                  {isCreator && (() => {
+                    const selectable = rounds
+                      .filter(r => r.status !== 'completed')
+                      .sort((a, b) => a.round_index - b.round_index);
+                    if (selectable.length <= 1) return null;
+                    return (
+                      <div className="max-w-sm mx-auto pt-1">
+                        <Select value={String(tournament.current_round)} onValueChange={(v) => handleSwitchRound(parseInt(v))}>
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="Pick round" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectable.map(r => {
+                              const s = tournament.schedule[r.round_index - 1];
+                              if (!s) return null;
+                              const label = `Round ${r.round_index} — ${tournament.players[s.teamA[0]]?.name} & ${tournament.players[s.teamA[1]]?.name} vs ${tournament.players[s.teamB[0]]?.name} & ${tournament.players[s.teamB[1]]?.name}`;
+                              return <SelectItem key={r.id} value={String(r.round_index)}>{label}</SelectItem>;
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <Card className="border-primary/40 bg-[hsl(145_80%_50%/0.08)]">
