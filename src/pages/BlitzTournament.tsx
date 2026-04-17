@@ -338,57 +338,122 @@ export default function BlitzTournament() {
             </Card>
           )}
 
-          {/* Step 3: Choose configuration */}
-          {setupStep === 'config' && (
-            <Card>
-              <CardContent className="p-4 space-y-4">
-                <p className="text-sm font-semibold text-center">Choose a format</p>
-                <p className="text-xs text-muted-foreground text-center">
-                  {numPlayers} players · {totalMinutes} minutes · 2v2
-                </p>
-                {configs.length === 0 ? (
-                  <p className="text-sm text-destructive text-center">No valid configurations. Try more time or fewer players.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {configs.map((c, i) => {
-                      const mins = Math.floor(c.roundDurationSeconds / 60);
-                      const secs = c.roundDurationSeconds % 60;
-                      const isSelected = selectedConfig?.totalRounds === c.totalRounds;
-                      const isSweet = c.roundDurationSeconds >= 300 && c.roundDurationSeconds <= 900;
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => setSelectedConfig(c)}
-                          className={cn(
-                            'w-full rounded-lg border-2 p-4 text-left transition-all',
-                            isSelected ? 'border-primary bg-primary/10' : 'border-border hover:border-muted-foreground/40',
-                            isSweet && !isSelected && 'border-primary/30',
-                          )}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-bold">{c.totalRounds} rounds × {mins}:{secs.toString().padStart(2, '0')} each</p>
-                              <p className="text-xs text-muted-foreground">
-                                Each player plays {c.gamesPerPlayer} rounds
-                              </p>
-                            </div>
-                            {isSweet && <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">Recommended</span>}
-                          </div>
-                        </button>
-                      );
-                    })}
+          {/* Step 3: Choose configuration via dual linked sliders */}
+          {setupStep === 'config' && (() => {
+            const validRounds = getValidTotalRounds(numPlayers, totalMinutes);
+            if (validRounds.length === 0) {
+              return (
+                <Card>
+                  <CardContent className="p-4 space-y-4">
+                    <p className="text-sm text-destructive text-center">No valid configurations. Try more time or fewer players.</p>
+                    <Button variant="outline" className="w-full" onClick={() => setSetupStep('time')}>← Back</Button>
+                  </CardContent>
+                </Card>
+              );
+            }
+
+            // Initialize: pick a valid config near the middle if none selected (or invalid for current params)
+            const currentRounds = selectedConfig && validRounds.includes(selectedConfig.totalRounds)
+              ? selectedConfig.totalRounds
+              : validRounds[Math.floor(validRounds.length / 2)];
+            const currentMinPerRound = Math.max(3, Math.min(20, Math.floor((totalMinutes * 60) / currentRounds / 60)));
+
+            if (!selectedConfig || !validRounds.includes(selectedConfig.totalRounds)) {
+              const r = currentRounds;
+              const k = (r * 4) / numPlayers;
+              const sec = Math.floor((totalMinutes * 60) / r);
+              setTimeout(() => setSelectedConfig({ totalRounds: r, gamesPerPlayer: k, roundDurationSeconds: sec }), 0);
+            }
+
+            const applyRounds = (r: number) => {
+              const k = (r * 4) / numPlayers;
+              const sec = Math.floor((totalMinutes * 60) / r);
+              setSelectedConfig({ totalRounds: r, gamesPerPlayer: k, roundDurationSeconds: sec });
+            };
+
+            const applyMinutes = (minPer: number) => {
+              // total rounds ≈ totalMinutes / minPer; snap to nearest valid
+              const target = totalMinutes / minPer;
+              const nearest = validRounds.reduce((best, v) =>
+                Math.abs(v - target) < Math.abs(best - target) ? v : best, validRounds[0]);
+              applyRounds(nearest);
+            };
+
+            const minPerRoundMax = Math.min(20, Math.floor(totalMinutes / validRounds[0]) || 20);
+            const minPerRoundMin = Math.max(3, Math.floor(totalMinutes / validRounds[validRounds.length - 1]) || 3);
+            const sliderMinPer = Math.min(Math.max(currentMinPerRound, minPerRoundMin), minPerRoundMax);
+
+            const cfg = selectedConfig ?? { totalRounds: currentRounds, gamesPerPlayer: (currentRounds * 4) / numPlayers, roundDurationSeconds: Math.floor((totalMinutes * 60) / currentRounds) };
+            const displayMin = Math.floor(cfg.roundDurationSeconds / 60);
+            const displaySec = cfg.roundDurationSeconds % 60;
+
+            return (
+              <Card>
+                <CardContent className="p-4 space-y-6">
+                  <div className="text-center">
+                    <p className="text-sm font-semibold">Choose a format</p>
+                    <p className="text-xs text-muted-foreground">{numPlayers} players · {totalMinutes} minutes · 2v2</p>
                   </div>
-                )}
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => setSetupStep('time')}>← Back</Button>
-                  <Button className="flex-1" disabled={!selectedConfig} onClick={() => {
-                    setPlayerNames(Array(numPlayers).fill(''));
-                    setSetupStep('names');
-                  }}>Next →</Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Minutes per round</label>
+                      <span className="text-sm font-bold text-primary">{displayMin}{displaySec > 0 ? `:${displaySec.toString().padStart(2, '0')}` : ''} min</span>
+                    </div>
+                    <Slider
+                      min={minPerRoundMin}
+                      max={minPerRoundMax}
+                      step={1}
+                      value={[sliderMinPer]}
+                      onValueChange={([v]) => applyMinutes(v)}
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{minPerRoundMin} min</span>
+                      <span>{minPerRoundMax} min</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Total rounds</label>
+                      <span className="text-sm font-bold text-primary">{cfg.totalRounds}</span>
+                    </div>
+                    <Slider
+                      min={validRounds[0]}
+                      max={validRounds[validRounds.length - 1]}
+                      step={1}
+                      value={[cfg.totalRounds]}
+                      onValueChange={([v]) => {
+                        // snap to nearest valid
+                        const nearest = validRounds.reduce((best, val) =>
+                          Math.abs(val - v) < Math.abs(best - v) ? val : best, validRounds[0]);
+                        applyRounds(nearest);
+                      }}
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{validRounds[0]}</span>
+                      <span>{validRounds[validRounds.length - 1]}</span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg bg-muted/50 p-3 text-center">
+                    <p className="text-sm font-semibold">
+                      {cfg.totalRounds} rounds × {displayMin}{displaySec > 0 ? `:${displaySec.toString().padStart(2, '0')}` : ''} min
+                    </p>
+                    <p className="text-xs text-muted-foreground">each player plays {cfg.gamesPerPlayer} games</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={() => setSetupStep('time')}>← Back</Button>
+                    <Button className="flex-1" disabled={!selectedConfig} onClick={() => {
+                      setPlayerNames(Array(numPlayers).fill(''));
+                      setSetupStep('names');
+                    }}>Next →</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Step 4: Player names */}
           {setupStep === 'names' && selectedConfig && (
