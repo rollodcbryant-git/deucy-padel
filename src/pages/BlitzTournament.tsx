@@ -226,6 +226,28 @@ export default function BlitzTournament() {
     toast({ title: `€${betStake} bet placed on Team ${betPrediction}! 🎲` });
   };
 
+  // ── SWITCH ROUND (creator only) ──
+  const handleSwitchRound = async (newIndex: number) => {
+    if (!tournament || newIndex === tournament.current_round) return;
+    const target = rounds.find(r => r.round_index === newIndex);
+    if (!target || target.status === 'completed') return;
+    const current = rounds.find(r => r.round_index === tournament.current_round);
+    if (current && current.status === 'active') {
+      await supabase.from('blitz_rounds').update({ status: 'pending' }).eq('id', current.id);
+    }
+    await supabase.from('blitz_rounds').update({ status: 'active' }).eq('id', target.id);
+    await supabase.from('blitz_tournaments').update({ current_round: newIndex }).eq('id', id!);
+    setTimerSeconds(tournament.round_duration_seconds);
+    setTimerRunning(false);
+    setScoreA(''); setScoreB('');
+    setShowScoreInput(false);
+    setBetPrediction(null); setBetPlayer(null);
+    load();
+    toast({ title: `Switched to Round ${newIndex}` });
+  };
+
+  const isCreator = (() => { try { return !!localStorage.getItem('blitz_creator_' + id); } catch { return false; } })();
+
   if (!tournament) return <div className="min-h-screen bg-background flex items-center justify-center"><div className="text-4xl animate-pulse">⚡</div></div>;
 
   const totalRounds = tournament.total_rounds;
