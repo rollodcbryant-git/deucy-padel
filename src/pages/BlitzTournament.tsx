@@ -187,7 +187,7 @@ export default function BlitzTournament() {
     if (!id) return;
     await supabase.from('blitz_bets').delete().eq('tournament_id', id);
     await supabase.from('blitz_rounds').delete().eq('tournament_id', id);
-    const resetPlayers = (tournament?.players || []).map(p => ({ name: p.name, balance: 0 }));
+    const resetPlayers = (tournament?.players || []).map(p => ({ name: p.name, balance: 10 }));
     await supabase.from('blitz_tournaments').update({
       status: 'setup', current_round: 0, players: resetPlayers as any, schedule: [] as any,
     }).eq('id', id);
