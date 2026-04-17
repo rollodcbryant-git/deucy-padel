@@ -13,8 +13,26 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Zap, Play, Pause, RotateCcw, Trophy, Users, Clock, ChevronLeft, Dice1, Share2, Trash2, CalendarDays } from 'lucide-react';
 import { generateSchedule, getAllBlitzConfigs, BlitzRoundSchedule, EUROS_PER_GAME } from '@/lib/blitz-schedule';
+import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
+
+// Compute valid totalRounds values for N players where every player plays equal rounds (2v2)
+function getValidTotalRounds(numPlayers: number, totalMinutes: number): number[] {
+  if (numPlayers < 5) return [];
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+  const g = gcd(numPlayers, 4);
+  const minK = 4 / g;
+  const valid: number[] = [];
+  for (let mult = 1; mult <= 40; mult++) {
+    const k = minK * mult;
+    const r = (numPlayers * k) / 4;
+    const roundSec = Math.floor((totalMinutes * 60) / r);
+    if (roundSec < 180) break;
+    valid.push(r);
+  }
+  return valid;
+}
 
 const MAX_BET = 3;
 
