@@ -11,6 +11,14 @@ export interface BlitzRoundSchedule {
  * where every player plays exactly K rounds.
  * Total rounds R = N*K/4, so N*K must be divisible by 4.
  */
+// 3-min gap between rounds — subtracted from total time, not a real timer
+const GAP_SECONDS = 180;
+
+function computeRoundDuration(totalMinutes: number, totalRounds: number): number {
+  const usable = (totalMinutes * 60) - (GAP_SECONDS * totalRounds);
+  return Math.floor(usable / totalRounds);
+}
+
 export function computeBlitzConfig(
   numPlayers: number,
   totalMinutes: number
@@ -26,7 +34,7 @@ export function computeBlitzConfig(
   for (let mult = 1; mult <= 20; mult++) {
     const k = minK * mult;
     const r = (numPlayers * k) / 4;
-    const roundSec = Math.floor((totalMinutes * 60) / r);
+    const roundSec = computeRoundDuration(totalMinutes, r);
     if (roundSec < 180) break; // less than 3 min per round is too short
     if (roundSec >= 300 && roundSec <= 1200) {
       // 5-20 min is ideal
@@ -57,7 +65,7 @@ export function getAllBlitzConfigs(
   for (let mult = 1; mult <= 20; mult++) {
     const k = minK * mult;
     const r = (numPlayers * k) / 4;
-    const roundSec = Math.floor((totalMinutes * 60) / r);
+    const roundSec = computeRoundDuration(totalMinutes, r);
     if (roundSec < 180) break; // stop when rounds get too short
     configs.push({ totalRounds: r, gamesPerPlayer: k, roundDurationSeconds: roundSec });
   }

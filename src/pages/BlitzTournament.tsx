@@ -17,6 +17,14 @@ import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
 
+// 3-min gap between rounds — subtracted from total time, not a real timer
+const GAP_SECONDS = 180;
+
+function computeRoundDuration(totalMinutes: number, totalRounds: number): number {
+  const usable = (totalMinutes * 60) - (GAP_SECONDS * totalRounds);
+  return Math.floor(usable / totalRounds);
+}
+
 // Compute valid totalRounds values for N players where every player plays equal rounds (2v2)
 function getValidTotalRounds(numPlayers: number, totalMinutes: number): number[] {
   if (numPlayers < 5) return [];
@@ -27,7 +35,7 @@ function getValidTotalRounds(numPlayers: number, totalMinutes: number): number[]
   for (let mult = 1; mult <= 40; mult++) {
     const k = minK * mult;
     const r = (numPlayers * k) / 4;
-    const roundSec = Math.floor((totalMinutes * 60) / r);
+    const roundSec = computeRoundDuration(totalMinutes, r);
     if (roundSec < 180) break;
     valid.push(r);
   }
@@ -356,34 +364,34 @@ export default function BlitzTournament() {
             const currentRounds = selectedConfig && validRounds.includes(selectedConfig.totalRounds)
               ? selectedConfig.totalRounds
               : validRounds[Math.floor(validRounds.length / 2)];
-            const currentMinPerRound = Math.max(3, Math.min(20, Math.floor((totalMinutes * 60) / currentRounds / 60)));
+            const currentMinPerRound = Math.max(3, Math.min(20, Math.floor(computeRoundDuration(totalMinutes, currentRounds) / 60)));
 
             if (!selectedConfig || !validRounds.includes(selectedConfig.totalRounds)) {
               const r = currentRounds;
               const k = (r * 4) / numPlayers;
-              const sec = Math.floor((totalMinutes * 60) / r);
+              const sec = computeRoundDuration(totalMinutes, r);
               setTimeout(() => setSelectedConfig({ totalRounds: r, gamesPerPlayer: k, roundDurationSeconds: sec }), 0);
             }
 
             const applyRounds = (r: number) => {
               const k = (r * 4) / numPlayers;
-              const sec = Math.floor((totalMinutes * 60) / r);
+              const sec = computeRoundDuration(totalMinutes, r);
               setSelectedConfig({ totalRounds: r, gamesPerPlayer: k, roundDurationSeconds: sec });
             };
 
             const applyMinutes = (minPer: number) => {
-              // total rounds ≈ totalMinutes / minPer; snap to nearest valid
-              const target = totalMinutes / minPer;
+              // Solve: minPer*60 = (totalMinutes*60 - GAP*r)/r  →  r = totalMinutes*60 / (minPer*60 + GAP)
+              const target = (totalMinutes * 60) / (minPer * 60 + GAP_SECONDS);
               const nearest = validRounds.reduce((best, v) =>
                 Math.abs(v - target) < Math.abs(best - target) ? v : best, validRounds[0]);
               applyRounds(nearest);
             };
 
-            const minPerRoundMax = Math.min(20, Math.floor(totalMinutes / validRounds[0]) || 20);
-            const minPerRoundMin = Math.max(3, Math.floor(totalMinutes / validRounds[validRounds.length - 1]) || 3);
+            const minPerRoundMax = Math.min(20, Math.floor(computeRoundDuration(totalMinutes, validRounds[0]) / 60) || 20);
+            const minPerRoundMin = Math.max(3, Math.floor(computeRoundDuration(totalMinutes, validRounds[validRounds.length - 1]) / 60) || 3);
             const sliderMinPer = Math.min(Math.max(currentMinPerRound, minPerRoundMin), minPerRoundMax);
 
-            const cfg = selectedConfig ?? { totalRounds: currentRounds, gamesPerPlayer: (currentRounds * 4) / numPlayers, roundDurationSeconds: Math.floor((totalMinutes * 60) / currentRounds) };
+            const cfg = selectedConfig ?? { totalRounds: currentRounds, gamesPerPlayer: (currentRounds * 4) / numPlayers, roundDurationSeconds: computeRoundDuration(totalMinutes, currentRounds) };
             const displayMin = Math.floor(cfg.roundDurationSeconds / 60);
             const displaySec = cfg.roundDurationSeconds % 60;
 
