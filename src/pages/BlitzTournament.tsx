@@ -364,34 +364,34 @@ export default function BlitzTournament() {
             const currentRounds = selectedConfig && validRounds.includes(selectedConfig.totalRounds)
               ? selectedConfig.totalRounds
               : validRounds[Math.floor(validRounds.length / 2)];
-            const currentMinPerRound = Math.max(3, Math.min(20, Math.floor((totalMinutes * 60) / currentRounds / 60)));
+            const currentMinPerRound = Math.max(3, Math.min(20, Math.floor(computeRoundDuration(totalMinutes, currentRounds) / 60)));
 
             if (!selectedConfig || !validRounds.includes(selectedConfig.totalRounds)) {
               const r = currentRounds;
               const k = (r * 4) / numPlayers;
-              const sec = Math.floor((totalMinutes * 60) / r);
+              const sec = computeRoundDuration(totalMinutes, r);
               setTimeout(() => setSelectedConfig({ totalRounds: r, gamesPerPlayer: k, roundDurationSeconds: sec }), 0);
             }
 
             const applyRounds = (r: number) => {
               const k = (r * 4) / numPlayers;
-              const sec = Math.floor((totalMinutes * 60) / r);
+              const sec = computeRoundDuration(totalMinutes, r);
               setSelectedConfig({ totalRounds: r, gamesPerPlayer: k, roundDurationSeconds: sec });
             };
 
             const applyMinutes = (minPer: number) => {
-              // total rounds ≈ totalMinutes / minPer; snap to nearest valid
-              const target = totalMinutes / minPer;
+              // Solve: minPer*60 = (totalMinutes*60 - GAP*r)/r  →  r = totalMinutes*60 / (minPer*60 + GAP)
+              const target = (totalMinutes * 60) / (minPer * 60 + GAP_SECONDS);
               const nearest = validRounds.reduce((best, v) =>
                 Math.abs(v - target) < Math.abs(best - target) ? v : best, validRounds[0]);
               applyRounds(nearest);
             };
 
-            const minPerRoundMax = Math.min(20, Math.floor(totalMinutes / validRounds[0]) || 20);
-            const minPerRoundMin = Math.max(3, Math.floor(totalMinutes / validRounds[validRounds.length - 1]) || 3);
+            const minPerRoundMax = Math.min(20, Math.floor(computeRoundDuration(totalMinutes, validRounds[0]) / 60) || 20);
+            const minPerRoundMin = Math.max(3, Math.floor(computeRoundDuration(totalMinutes, validRounds[validRounds.length - 1]) / 60) || 3);
             const sliderMinPer = Math.min(Math.max(currentMinPerRound, minPerRoundMin), minPerRoundMax);
 
-            const cfg = selectedConfig ?? { totalRounds: currentRounds, gamesPerPlayer: (currentRounds * 4) / numPlayers, roundDurationSeconds: Math.floor((totalMinutes * 60) / currentRounds) };
+            const cfg = selectedConfig ?? { totalRounds: currentRounds, gamesPerPlayer: (currentRounds * 4) / numPlayers, roundDurationSeconds: computeRoundDuration(totalMinutes, currentRounds) };
             const displayMin = Math.floor(cfg.roundDurationSeconds / 60);
             const displaySec = cfg.roundDurationSeconds % 60;
 
