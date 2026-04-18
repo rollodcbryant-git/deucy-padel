@@ -685,24 +685,18 @@ export default function BlitzTournament() {
                       </span>
                     </div>
                     <div className="flex items-center justify-center gap-2">
-                      {isCreator ? (
-                        <>
-                          {!timerRunning ? (
-                            <Button onClick={handleTimerStart} disabled={timerSeconds === 0}>
-                              <Play className="h-4 w-4 mr-1" /> {timerPausedRemaining != null ? 'Resume' : 'Start'}
-                            </Button>
-                          ) : (
-                            <Button variant="secondary" onClick={handleTimerPause}>
-                              <Pause className="h-4 w-4 mr-1" /> Pause
-                            </Button>
-                          )}
-                          <Button variant="outline" onClick={handleTimerReset}>
-                            <RotateCcw className="h-4 w-4 mr-1" /> Reset
-                          </Button>
-                        </>
+                      {!timerRunning ? (
+                        <Button onClick={handleTimerStart} disabled={timerSeconds === 0}>
+                          <Play className="h-4 w-4 mr-1" /> {timerPausedRemaining != null ? 'Resume' : 'Start'}
+                        </Button>
                       ) : (
-                        <span className="text-xs text-muted-foreground">Timer controlled by creator</span>
+                        <Button variant="secondary" onClick={handleTimerPause}>
+                          <Pause className="h-4 w-4 mr-1" /> Pause
+                        </Button>
                       )}
+                      <Button variant="outline" onClick={handleTimerReset}>
+                        <RotateCcw className="h-4 w-4 mr-1" /> Reset
+                      </Button>
                       {currentSchedule && currentSchedule.rest.length > 0 && (
                         <Button variant="hot" onClick={() => setActiveTab('bets')}>
                           <Dice1 className="h-4 w-4 mr-1" /> Bet
