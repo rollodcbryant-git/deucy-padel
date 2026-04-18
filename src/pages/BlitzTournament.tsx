@@ -73,9 +73,9 @@ export default function BlitzTournament() {
   // Round state
   const [scoreA, setScoreA] = useState('');
   const [scoreB, setScoreB] = useState('');
-  const [timerSeconds, setTimerSeconds] = useState(600);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Server-synced timer: derived from tournament.timer_started_at + timer_paused_remaining
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const rafRef = useRef<number | null>(null);
 
   // Bet state
   const [betPlayer, setBetPlayer] = useState<number | null>(null);
