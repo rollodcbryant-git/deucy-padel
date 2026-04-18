@@ -119,7 +119,20 @@ export default function BlitzTournament() {
     if (!id) return;
     const channel = supabase
       .channel(`blitz_tournament_${id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'blitz_tournaments', filter: `id=eq.${id}` }, () => load())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'blitz_tournaments', filter: `id=eq.${id}` }, (payload) => {
+        const next = payload.new as any;
+        // Merge instantly so the timer derivation reacts without waiting for a refetch
+        setTournament((prev) => prev ? {
+          ...prev,
+          ...next,
+          players: Array.isArray(next.players)
+            ? (next.players as any[]).map((p: any) => ({ name: p.name, balance: p.balance ?? p.score ?? 0 }))
+            : prev.players,
+          schedule: Array.isArray(next.schedule) ? next.schedule : prev.schedule,
+          timer_started_at: next.timer_started_at ?? null,
+          timer_paused_remaining: next.timer_paused_remaining ?? null,
+        } : prev);
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'blitz_rounds', filter: `tournament_id=eq.${id}` }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'blitz_bets', filter: `tournament_id=eq.${id}` }, () => load())
       .subscribe();
