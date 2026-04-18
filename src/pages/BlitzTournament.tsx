@@ -688,18 +688,24 @@ export default function BlitzTournament() {
                       </span>
                     </div>
                     <div className="flex items-center justify-center gap-2">
-                      {!timerRunning ? (
-                        <Button onClick={() => setTimerRunning(true)} disabled={timerSeconds === 0}>
-                          <Play className="h-4 w-4 mr-1" /> {timerSeconds === tournament.round_duration_seconds ? 'Start' : 'Resume'}
-                        </Button>
+                      {isCreator ? (
+                        <>
+                          {!timerRunning ? (
+                            <Button onClick={handleTimerStart} disabled={timerSeconds === 0}>
+                              <Play className="h-4 w-4 mr-1" /> {timerPausedRemaining != null ? 'Resume' : 'Start'}
+                            </Button>
+                          ) : (
+                            <Button variant="secondary" onClick={handleTimerPause}>
+                              <Pause className="h-4 w-4 mr-1" /> Pause
+                            </Button>
+                          )}
+                          <Button variant="outline" onClick={handleTimerReset}>
+                            <RotateCcw className="h-4 w-4 mr-1" /> Reset
+                          </Button>
+                        </>
                       ) : (
-                        <Button variant="secondary" onClick={() => setTimerRunning(false)}>
-                          <Pause className="h-4 w-4 mr-1" /> Pause
-                        </Button>
+                        <span className="text-xs text-muted-foreground">Timer controlled by creator</span>
                       )}
-                      <Button variant="outline" onClick={() => { setTimerRunning(false); setTimerSeconds(tournament.round_duration_seconds); }}>
-                        <RotateCcw className="h-4 w-4 mr-1" /> Reset
-                      </Button>
                       {currentSchedule && currentSchedule.rest.length > 0 && (
                         <Button variant="hot" onClick={() => setActiveTab('bets')}>
                           <Dice1 className="h-4 w-4 mr-1" /> Bet
