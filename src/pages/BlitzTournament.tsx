@@ -212,9 +212,10 @@ export default function BlitzTournament() {
       total_rounds: selectedConfig.totalRounds,
       round_duration_seconds: selectedConfig.roundDurationSeconds,
       schedule: schedule as any,
-    }).eq('id', id!);
+      timer_started_at: null,
+      timer_paused_remaining: null,
+    } as any).eq('id', id!);
     await supabase.from('blitz_rounds').insert(roundInserts);
-    setTimerSeconds(selectedConfig.roundDurationSeconds);
     try { localStorage.setItem('blitz_creator_' + id, '1'); } catch {}
     load();
     toast({ title: 'Tournament started! ⚡' });
