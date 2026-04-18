@@ -259,17 +259,15 @@ export default function BlitzTournament() {
       .filter(r => r.status === 'pending' && r.round_index !== roundIdx)
       .sort((a, b) => a.round_index - b.round_index)[0];
     if (!nextPending) {
-      await supabase.from('blitz_tournaments').update({ players: updatedPlayers as any, current_round: roundIdx, status: 'finished' }).eq('id', id!);
+      await supabase.from('blitz_tournaments').update({ players: updatedPlayers as any, current_round: roundIdx, status: 'finished', timer_started_at: null, timer_paused_remaining: null } as any).eq('id', id!);
       toast({ title: 'Tournament complete! 🏆' });
     } else {
       await supabase.from('blitz_rounds').update({ status: 'active' }).eq('id', nextPending.id);
-      await supabase.from('blitz_tournaments').update({ players: updatedPlayers as any, current_round: nextPending.round_index }).eq('id', id!);
+      await supabase.from('blitz_tournaments').update({ players: updatedPlayers as any, current_round: nextPending.round_index, timer_started_at: null, timer_paused_remaining: null } as any).eq('id', id!);
       toast({ title: `Round ${roundIdx} done! Moving to Round ${nextPending.round_index}` });
     }
 
     setScoreA(''); setScoreB('');
-    setTimerSeconds(tournament.round_duration_seconds);
-    setTimerRunning(false);
     setShowScoreInput(false);
     setBetPrediction(null); setBetPlayer(null);
     load();
