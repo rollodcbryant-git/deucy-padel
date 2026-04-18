@@ -187,8 +187,6 @@ export default function BlitzTournament() {
     await supabase.from('blitz_tournaments').update({ timer_started_at: null, timer_paused_remaining: null } as any).eq('id', id);
   };
 
-  const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
-
   // Configs
   const configs = getAllBlitzConfigs(numPlayers, totalMinutes);
 
