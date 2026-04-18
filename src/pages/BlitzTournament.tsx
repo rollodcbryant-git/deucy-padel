@@ -17,6 +17,14 @@ import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
 
+// 3-min gap between rounds — subtracted from total time, not a real timer
+const GAP_SECONDS = 180;
+
+function computeRoundDuration(totalMinutes: number, totalRounds: number): number {
+  const usable = (totalMinutes * 60) - (GAP_SECONDS * totalRounds);
+  return Math.floor(usable / totalRounds);
+}
+
 // Compute valid totalRounds values for N players where every player plays equal rounds (2v2)
 function getValidTotalRounds(numPlayers: number, totalMinutes: number): number[] {
   if (numPlayers < 5) return [];
@@ -27,7 +35,7 @@ function getValidTotalRounds(numPlayers: number, totalMinutes: number): number[]
   for (let mult = 1; mult <= 40; mult++) {
     const k = minK * mult;
     const r = (numPlayers * k) / 4;
-    const roundSec = Math.floor((totalMinutes * 60) / r);
+    const roundSec = computeRoundDuration(totalMinutes, r);
     if (roundSec < 180) break;
     valid.push(r);
   }
