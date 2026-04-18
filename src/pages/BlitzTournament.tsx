@@ -326,9 +326,7 @@ export default function BlitzTournament() {
       await supabase.from('blitz_rounds').update({ status: 'pending' }).eq('id', current.id);
     }
     await supabase.from('blitz_rounds').update({ status: 'active' }).eq('id', target.id);
-    await supabase.from('blitz_tournaments').update({ current_round: newIndex }).eq('id', id!);
-    setTimerSeconds(tournament.round_duration_seconds);
-    setTimerRunning(false);
+    await supabase.from('blitz_tournaments').update({ current_round: newIndex, timer_started_at: null, timer_paused_remaining: null } as any).eq('id', id!);
     setScoreA(''); setScoreB('');
     setShowScoreInput(false);
     setBetPrediction(null); setBetPlayer(null);
