@@ -96,6 +96,8 @@ export default function BlitzTournament() {
       ...t, players, schedule,
       total_rounds: t.total_rounds,
       round_duration_seconds: t.round_duration_seconds,
+      timer_started_at: (t as any).timer_started_at ?? null,
+      timer_paused_remaining: (t as any).timer_paused_remaining ?? null,
     } as TournamentData);
     if (t.status === 'setup') {
       if (players.length > 0 && players[0]?.name) {
@@ -103,7 +105,6 @@ export default function BlitzTournament() {
         setNumPlayers(players.length);
       }
     }
-    if (t.round_duration_seconds) setTimerSeconds(t.round_duration_seconds);
 
     const { data: r } = await supabase.from('blitz_rounds').select('*').eq('tournament_id', id).order('round_index');
     setRounds((r || []) as BlitzRound[]);
@@ -113,13 +114,78 @@ export default function BlitzTournament() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Timer logic
+  // Realtime subscription — sync timer changes across devices
   useEffect(() => {
-    if (timerRunning && timerSeconds > 0) {
-      timerRef.current = setInterval(() => setTimerSeconds(s => { if (s <= 1) { setTimerRunning(false); return 0; } return s - 1; }), 1000);
+    if (!id) return;
+    const channel = supabase
+      .channel(`blitz_tournament_${id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'blitz_tournaments', filter: `id=eq.${id}` }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'blitz_rounds', filter: `tournament_id=eq.${id}` }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'blitz_bets', filter: `tournament_id=eq.${id}` }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id, load]);
+
+  // Server-synced timer derivation via requestAnimationFrame
+  const timerStartedAt = tournament?.timer_started_at ?? null;
+  const timerPausedRemaining = tournament?.timer_paused_remaining ?? null;
+  const roundDurationSeconds = tournament?.round_duration_seconds ?? 0;
+
+  useEffect(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+
+    const compute = () => {
+      if (timerStartedAt) {
+        const elapsed = (Date.now() - Date.parse(timerStartedAt)) / 1000;
+        const left = Math.max(0, Math.ceil(roundDurationSeconds - elapsed));
+        setTimerSeconds(left);
+        if (left > 0) {
+          // tick ~4x/sec so the displayed second updates promptly
+          rafRef.current = window.setTimeout(() => requestAnimationFrame(compute), 250) as unknown as number;
+        }
+      } else if (timerPausedRemaining != null) {
+        setTimerSeconds(timerPausedRemaining);
+      } else {
+        setTimerSeconds(roundDurationSeconds);
+      }
+    };
+    compute();
+    return () => {
+      if (rafRef.current) {
+        clearTimeout(rafRef.current as unknown as ReturnType<typeof setTimeout>);
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [timerStartedAt, timerPausedRemaining, roundDurationSeconds]);
+
+  const timerRunning = !!timerStartedAt;
+
+  const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
+  // Timer controls (creator only) — server-synced via DB updates
+  const handleTimerStart = async () => {
+    if (!id) return;
+    // If resuming from pause, shift "started_at" backward so the remaining matches paused value
+    if (timerPausedRemaining != null) {
+      const elapsedEquivalent = roundDurationSeconds - timerPausedRemaining;
+      const startedAt = new Date(Date.now() - elapsedEquivalent * 1000).toISOString();
+      await supabase.from('blitz_tournaments').update({ timer_started_at: startedAt, timer_paused_remaining: null } as any).eq('id', id);
+    } else {
+      await supabase.from('blitz_tournaments').update({ timer_started_at: new Date().toISOString(), timer_paused_remaining: null } as any).eq('id', id);
     }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [timerRunning]);
+  };
+
+  const handleTimerPause = async () => {
+    if (!id || !timerStartedAt) return;
+    const elapsed = (Date.now() - Date.parse(timerStartedAt)) / 1000;
+    const remaining = Math.max(0, Math.ceil(roundDurationSeconds - elapsed));
+    await supabase.from('blitz_tournaments').update({ timer_started_at: null, timer_paused_remaining: remaining } as any).eq('id', id);
+  };
+
+  const handleTimerReset = async () => {
+    if (!id) return;
+    await supabase.from('blitz_tournaments').update({ timer_started_at: null, timer_paused_remaining: null } as any).eq('id', id);
+  };
 
   const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
