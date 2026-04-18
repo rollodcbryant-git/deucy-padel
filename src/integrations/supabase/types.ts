@@ -285,6 +285,8 @@ export type Database = {
           round_duration_seconds: number
           schedule: Json
           status: string
+          timer_paused_remaining: number | null
+          timer_started_at: string | null
           total_rounds: number
         }
         Insert: {
@@ -296,6 +298,8 @@ export type Database = {
           round_duration_seconds?: number
           schedule?: Json
           status?: string
+          timer_paused_remaining?: number | null
+          timer_started_at?: string | null
           total_rounds?: number
         }
         Update: {
@@ -307,6 +311,8 @@ export type Database = {
           round_duration_seconds?: number
           schedule?: Json
           status?: string
+          timer_paused_remaining?: number | null
+          timer_started_at?: string | null
           total_rounds?: number
         }
         Relationships: []
