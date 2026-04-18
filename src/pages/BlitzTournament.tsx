@@ -281,9 +281,8 @@ export default function BlitzTournament() {
     const resetPlayers = (tournament?.players || []).map(p => ({ name: p.name, balance: 10 }));
     await supabase.from('blitz_tournaments').update({
       status: 'setup', current_round: 0, players: resetPlayers as any, schedule: [] as any,
-    }).eq('id', id);
-    setTimerSeconds(600);
-    setTimerRunning(false);
+      timer_started_at: null, timer_paused_remaining: null,
+    } as any).eq('id', id);
     setScoreA(''); setScoreB('');
     setBets([]); setRounds([]);
     setSetupStep('players_count');
