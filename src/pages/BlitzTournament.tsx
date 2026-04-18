@@ -50,6 +50,8 @@ interface BlitzBet { id: string; round_index: number; bettor_index: number; pred
 interface TournamentData {
   id: string; name: string; status: string; players: BlitzPlayer[]; current_round: number;
   total_rounds: number; round_duration_seconds: number; schedule: BlitzRoundSchedule[];
+  timer_started_at: string | null;
+  timer_paused_remaining: number | null;
 }
 
 export default function BlitzTournament() {
